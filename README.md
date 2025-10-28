@@ -150,6 +150,38 @@ python merge_kctcs_data.py
 - Prediction generation: ~1 minute
 - **Total**: ~10-15 minutes
 
+### Batch Upload to Database
+
+The pipeline uses an efficient batch upload system to save predictions to MariaDB:
+
+**Features**:
+- **Automatic batching**: Large datasets are split into manageable chunks (1,000 records per batch)
+- **Progress tracking**: Real-time progress updates during upload
+- **Connection pooling**: SQLAlchemy engine with connection pooling for reliability
+- **Error handling**: Automatic fallback to CSV if database connection fails
+- **Verification**: Automatic record count verification after upload
+
+**Example Output**:
+```
+Saving 500,000 records to table 'course_predictions'...
+✓ Successfully saved to 'course_predictions'
+  - Records: 500,000
+  - Columns: 45
+  - Verified: 500,000 records in database
+```
+
+**Configuration**:
+- Default batch size: 1,000 records per chunk
+- Adjustable via `chunksize` parameter in `save_dataframe_to_db()`
+- Located in `operations/db_utils.py`
+
+**Tables Created**:
+1. `student_predictions` - Student-level predictions (~20K records)
+2. `course_predictions` - Course-level predictions (~500K records)
+3. `ml_model_performance` - Model metrics and training history
+
+For more details, see [operations/README.md](operations/README.md).
+
 ## 🤖 Models
 
 ### 1. Retention Prediction Model
