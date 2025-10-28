@@ -76,6 +76,11 @@ print(f"Reading from: {student_file}")
 df = pd.read_csv(student_file)
 print(f"Loaded {len(df):,} students with {len(df.columns)} features")
 
+# Convert Institution_ID to string to prevent comma formatting
+if 'Institution_ID' in df.columns:
+    df['Institution_ID'] = df['Institution_ID'].astype(str).str.replace(',', '').str.replace(' ', '')
+    print("Converted Institution_ID to string format (no commas or spaces)")
+
 # ============================================================================
 # STEP 2: FEATURE ENGINEERING
 # ============================================================================
@@ -722,6 +727,11 @@ merged_file = os.path.join(DATA_DIR, 'kctcs_merged_with_zip.csv')
 print(f"Reading from: {merged_file}")
 merged_df = pd.read_csv(merged_file)
 print(f"Loaded {len(merged_df):,} course records")
+
+# Convert Institution_ID to string to prevent comma formatting
+if 'Institution_ID' in merged_df.columns:
+    merged_df['Institution_ID'] = merged_df['Institution_ID'].astype(str).str.replace(',', '').str.replace(' ', '')
+    print("Converted Institution_ID to string format (no commas or spaces)")
 
 print("\nMerging predictions...")
 # Merge predictions onto course-level data
