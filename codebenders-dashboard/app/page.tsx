@@ -1,161 +1,155 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
+import { useEffect, useState } from "react"
+import { KPICard } from "@/components/kpi-card"
+import { RiskAlertChart } from "@/components/risk-alert-chart"
+import { RetentionRiskChart } from "@/components/retention-risk-chart"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { AnalysisResult } from "@/components/analysis-result"
-import { QueryPlanPanel } from "@/components/query-plan-panel"
-import { analyzePrompt } from "@/lib/prompt-analyzer"
-import { executeQuery } from "@/lib/query-executor"
-import type { QueryPlan, QueryResult } from "@/lib/types"
+import { TrendingUp, Users, AlertTriangle, BookOpen, Search } from "lucide-react"
+import Link from "next/link"
 
-const INSTITUTIONS = [
-  { name: "KCTCS", code: "kctcs" },
-  { name: "Bishop State", code: "al" },
-  { name: "University of Akron", code: "oh" },
-  { name: "Cal State San Bernardino", code: "csusb" },
-  { name: "Thomas More University", code: "ky" },
-]
+interface KPIData {
+  overallRetentionRate: string
+  avgPredictedRetention: string
+  highCriticalRiskCount: number
+  avgCourseCompletionRate: string
+  totalStudents: number
+}
+
+interface RiskAlertData {
+  category: string
+  count: number
+  percentage: number
+}
+
+interface RetentionRiskData {
+  category: string
+  count: number
+  percentage: number
+}
 
 export default function DashboardPage() {
-  const [institution, setInstitution] = useState<string>(INSTITUTIONS[0].code)
-  const [prompt, setPrompt] = useState<string>("")
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [queryPlan, setQueryPlan] = useState<QueryPlan | null>(null)
-  const [queryResult, setQueryResult] = useState<QueryResult | null>(null)
-  const [useDirectDB, setUseDirectDB] = useState(true)
+  const [kpis, setKpis] = useState<KPIData | null>(null)
+  const [riskAlerts, setRiskAlerts] = useState<RiskAlertData[]>([])
+  const [retentionRisk, setRetentionRisk] = useState<RetentionRiskData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleAnalyze = async () => {
-    console.log("handleAnalyze", prompt, institution)
-    if (!prompt.trim()) return
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
 
-    setIsAnalyzing(true)
-    try {
-      const enableLLM = process.env.NEXT_PUBLIC_ENABLE_LLM === "1"
-      console.log("enableLLM", enableLLM)
-      let plan: QueryPlan
+        // Fetch all data in parallel
+        const [kpisRes, riskAlertsRes, retentionRiskRes] = await Promise.all([
+          fetch("/api/dashboard/kpis"),
+          fetch("/api/dashboard/risk-alerts"),
+          fetch("/api/dashboard/retention-risk"),
+        ])
 
-      if (enableLLM) {
-        console.log("fetching analyze")
-        const response = await fetch("/api/analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, institution }),
-        })
-
-        console.log("response status:", response.status)
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          console.error("response error", response.status, errorData)
-          throw new Error("Failed to analyze prompt: " + (errorData.error || response.statusText))
+        if (!kpisRes.ok || !riskAlertsRes.ok || !retentionRiskRes.ok) {
+          throw new Error("Failed to fetch dashboard data")
         }
 
-        plan = await response.json()
-        console.log("plan received:", plan)
-      } else {
-        plan = analyzePrompt(prompt, institution)
-      }
+        const [kpisData, riskAlertsData, retentionRiskData] = await Promise.all([
+          kpisRes.json(),
+          riskAlertsRes.json(),
+          retentionRiskRes.json(),
+        ])
 
-      setQueryPlan(plan)
-      console.log("executing query with plan:", plan)
-      const result = await executeQuery(plan, institution, useDirectDB)
-      console.log("query result:", result)
-      setQueryResult(result)
-    } catch (error) {
-      console.error("Error analyzing prompt:", error)
-      alert("Error: " + (error instanceof Error ? error.message : String(error)))
-    } finally {
-      setIsAnalyzing(false)
+        setKpis(kpisData)
+        setRiskAlerts(riskAlertsData.data || [])
+        setRetentionRisk(retentionRiskData.data || [])
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err)
+        setError(err instanceof Error ? err.message : "Failed to load dashboard")
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+
+    fetchDashboardData()
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 space-y-6">
-        <div className="border-b border-border pb-6">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Student Success Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Analyze student performance data with natural language queries</p>
+        {/* Header */}
+        <div className="border-b border-border pb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Student Success Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              KCTCS Student Analytics & Predictive Models
+            </p>
+          </div>
+          <Link href="/query">
+            <Button variant="outline" className="gap-2">
+              <Search className="h-4 w-4" />
+              SQL Query Interface
+            </Button>
+          </Link>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Query Controls</CardTitle>
-            <CardDescription>Select an institution and enter your analysis prompt</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2 pb-4 border-b border-border">
-              <Switch id="db-mode" checked={useDirectDB} onCheckedChange={setUseDirectDB} />
-              <Label htmlFor="db-mode" className="text-sm font-medium">
-                {useDirectDB ? "Direct Database" : "API Mode"}
-              </Label>
-              <span className="text-xs text-muted-foreground">
-                {useDirectDB ? "(Execute SQL directly)" : "(Fetch from API endpoints)"}
-              </span>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-[200px_1fr_auto]">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Institution</label>
-                <Select value={institution} onValueChange={setInstitution}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INSTITUTIONS.map((inst) => (
-                      <SelectItem key={inst.code} value={inst.code}>
-                        {inst.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Analysis Prompt</label>
-                <Input
-                  placeholder="e.g., retention by cohort for last two terms"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault()
-                      handleAnalyze()
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="flex items-end">
-                <Button onClick={handleAnalyze} disabled={isAnalyzing || !prompt.trim()} className="w-full md:w-auto">
-                  {isAnalyzing ? "Analyzing..." : "Analyze"}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {queryResult && queryPlan && (
-          <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-            <AnalysisResult result={queryResult} plan={queryPlan} />
-            <QueryPlanPanel plan={queryPlan} />
+        {/* Error State */}
+        {error && (
+          <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded">
+            <p className="font-semibold">Error loading dashboard</p>
+            <p className="text-sm">{error}</p>
           </div>
         )}
 
-        {!queryResult && (
-          <Card className="border-dashed">
-            <CardContent className="flex items-center justify-center py-12">
-              <div className="text-center space-y-2">
-                <p className="text-muted-foreground">Enter a prompt and click Analyze to see results</p>
-                <p className="text-sm text-muted-foreground">Try: "Show me all cohorts" or "Count students by term"</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* KPI Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <KPICard
+            title="Overall Retention Rate"
+            value={kpis ? `${kpis.overallRetentionRate}%` : "—"}
+            icon={TrendingUp}
+            subtitle={kpis ? `${kpis.totalStudents.toLocaleString()} total students` : undefined}
+            loading={loading}
+          />
+          <KPICard
+            title="Avg Predicted Retention"
+            value={kpis ? `${kpis.avgPredictedRetention}%` : "—"}
+            icon={Users}
+            subtitle="ML model prediction"
+            loading={loading}
+          />
+          <KPICard
+            title="Students at High/Critical Risk"
+            value={kpis ? kpis.highCriticalRiskCount.toLocaleString() : "—"}
+            icon={AlertTriangle}
+            subtitle="Require immediate intervention"
+            loading={loading}
+          />
+          <KPICard
+            title="Avg Course Completion"
+            value={kpis ? `${kpis.avgCourseCompletionRate}%` : "—"}
+            icon={BookOpen}
+            subtitle="Credits earned / attempted"
+            loading={loading}
+          />
+        </div>
+
+        {/* Charts */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <RiskAlertChart data={riskAlerts} loading={loading} />
+          <RetentionRiskChart data={retentionRisk} loading={loading} />
+        </div>
+
+        {/* Additional Info */}
+        <div className="border-t border-border pt-6">
+          <div className="text-sm text-muted-foreground">
+            <p>
+              <strong>Data Source:</strong> kcts_student_predictions table (32,800 students)
+            </p>
+            <p className="mt-1">
+              <strong>Last Updated:</strong> {new Date().toLocaleDateString()}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
