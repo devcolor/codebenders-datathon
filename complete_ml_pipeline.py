@@ -40,7 +40,7 @@ print("=" * 80)
 
 print("\nLoading student-level dataset...")
 df = pd.read_csv('kctcs_student_level_with_zip.csv')
-print(f"✓ Loaded {len(df):,} students with {len(df.columns)} features")
+print(f"Loaded {len(df):,} students with {len(df.columns)} features")
 
 # ============================================================================
 # STEP 2: FEATURE ENGINEERING
@@ -139,7 +139,7 @@ def assign_credential_type(row):
 
 df['target_credential_type'] = df.apply(assign_credential_type, axis=1)
 
-print(f"✓ Created target variables:")
+print(f"Created target variables:")
 print(f"  - Retention: {df['target_retention'].value_counts().to_dict()}")
 print(f"  - At Risk: {df['target_at_risk'].value_counts().to_dict()}")
 print(f"  - Credential Type: {df['target_credential_type'].value_counts().to_dict()}")
@@ -183,7 +183,7 @@ retention_features = (
     enrollment_features + course_features + performance_features
 )
 
-print(f"✓ Selected {len(retention_features)} features for modeling")
+print(f"Selected {len(retention_features)} features for modeling")
 
 # ============================================================================
 # STEP 3: DATA PREPROCESSING
@@ -215,8 +215,8 @@ def preprocess_features(df, feature_list):
 
 print("\nPreprocessing features...")
 X, label_encoders = preprocess_features(df, retention_features)
-print(f"✓ Preprocessed {X.shape[1]} features")
-print(f"✓ Encoded {len(label_encoders)} categorical variables")
+print(f"Preprocessed {X.shape[1]} features")
+print(f"Encoded {len(label_encoders)} categorical variables")
 
 # ============================================================================
 # STEP 4: MODEL 1 - RETENTION PREDICTION
@@ -251,7 +251,7 @@ retention_model = xgb.XGBClassifier(
     eval_metric='logloss'
 )
 retention_model.fit(X_train, y_train)
-print("✓ Model trained")
+print("Model trained")
 
 # Predictions
 y_pred = retention_model.predict(X_test)
@@ -309,7 +309,7 @@ df['retention_risk_category'] = pd.cut(
     labels=['Critical Risk', 'High Risk', 'Moderate Risk', 'Low Risk']
 )
 
-print(f"✓ Predictions generated for all {len(df):,} students")
+print(f"Predictions generated for all {len(df):,} students")
 
 # ============================================================================
 # STEP 5: MODEL 2 - EARLY WARNING SYSTEM (ALIGNED WITH RETENTION)
@@ -388,7 +388,7 @@ df['at_risk_alert'] = df['risk_score'].apply(assign_alert_level)
 df['at_risk_probability'] = df['risk_score'] / 100
 df['at_risk_prediction'] = (df['risk_score'] >= 50).astype(int)
 
-print("✓ Risk scores calculated using composite approach")
+print("Risk scores calculated using composite approach")
 
 # Validation - check for contradictions
 print("\n" + "-" * 80)
@@ -403,7 +403,7 @@ print(f"Students with >80% retention flagged as URGENT: {len(high_retention_urge
 low_retention_low_risk = df[(df['retention_probability'] < 0.3) & (df['at_risk_alert'] == 'LOW')]
 print(f"Students with <30% retention flagged as LOW: {len(low_retention_low_risk)} (should be very few)")
 
-print(f"\n✓ Early warning system aligned with retention predictions")
+print(f"\nEarly warning system aligned with retention predictions")
 print(f"\nAlert distribution:")
 print(df['at_risk_alert'].value_counts().sort_index())
 
@@ -438,7 +438,7 @@ if len(X_time) > 100:  # Only train if we have enough data
         random_state=42
     )
     time_model.fit(X_train, y_train)
-    print("✓ Model trained")
+    print("Model trained")
     
     # Predictions
     y_pred = time_model.predict(X_test)
@@ -456,9 +456,9 @@ if len(X_time) > 100:  # Only train if we have enough data
     df['predicted_time_to_credential'] = time_model.predict(X_full_retention)
     df['predicted_graduation_year'] = df['Cohort'].str[:4].astype(float) + df['predicted_time_to_credential']
     
-    print(f"✓ Time predictions generated")
+    print(f"Time predictions generated")
 else:
-    print("⚠ Insufficient data for time-to-credential model")
+    print("Warning: Insufficient data for time-to-credential model")
     df['predicted_time_to_credential'] = np.nan
     df['predicted_graduation_year'] = np.nan
 
@@ -494,7 +494,7 @@ credential_model = RandomForestClassifier(
     n_jobs=-1
 )
 credential_model.fit(X_train, y_train)
-print("✓ Model trained")
+print("Model trained")
 
 # Predictions
 y_pred = credential_model.predict(X_test)
@@ -532,7 +532,7 @@ for i, class_idx in enumerate(classes):
     if class_idx < len(prob_labels):
         df[prob_labels[int(class_idx)]] = proba[:, i]
 
-print(f"✓ Credential type predictions generated")
+print(f"Credential type predictions generated")
 
 # ============================================================================
 # STEP 8: MODEL 5 - COURSE SUCCESS (GRADE PREDICTION)
@@ -563,7 +563,7 @@ grade_model = RandomForestRegressor(
     n_jobs=-1
 )
 grade_model.fit(X_train, y_train)
-print("✓ Model trained")
+print("Model trained")
 
 # Predictions
 y_pred = grade_model.predict(X_test)
@@ -586,7 +586,7 @@ df['gpa_performance'] = df.apply(
     axis=1
 )
 
-print(f"✓ Grade predictions generated")
+print(f"Grade predictions generated")
 
 # ============================================================================
 # STEP 9: SAVE PREDICTIONS TO STUDENT-LEVEL FILE
@@ -611,7 +611,7 @@ predictions_df = df[prediction_columns].copy()
 # Save student-level predictions
 output_file = 'kctcs_student_level_with_predictions.csv'
 df.to_csv(output_file, index=False)
-print(f"✓ Saved student-level predictions to: {output_file}")
+print(f"Saved student-level predictions to: {output_file}")
 print(f"  Records: {len(df):,}")
 print(f"  Columns: {len(df.columns)} (original + {len(prediction_columns)-1} prediction columns)")
 
@@ -624,7 +624,7 @@ print("=" * 80)
 
 print("\nLoading course-level merged file...")
 merged_df = pd.read_csv('kctcs_merged_with_zip.csv')
-print(f"✓ Loaded {len(merged_df):,} course records")
+print(f"Loaded {len(merged_df):,} course records")
 
 print("\nMerging predictions...")
 # Merge predictions onto course-level data
@@ -637,7 +637,7 @@ merged_with_predictions = pd.merge(
 
 output_file = 'kctcs_merged_with_predictions.csv'
 merged_with_predictions.to_csv(output_file, index=False)
-print(f"✓ Saved course-level data with predictions to: {output_file}")
+print(f"Saved course-level data with predictions to: {output_file}")
 print(f"  Records: {len(merged_with_predictions):,}")
 print(f"  Columns: {len(merged_with_predictions.columns)}")
 
@@ -767,12 +767,12 @@ print(summary_report)
 report_file = 'ML_PIPELINE_REPORT.txt'
 with open(report_file, 'w') as f:
     f.write(summary_report)
-print(f"\n✓ Detailed report saved to: {report_file}")
+print(f"\nDetailed report saved to: {report_file}")
 
 print("\n" + "=" * 80)
 print("ALL MODELS TRAINED AND PREDICTIONS GENERATED!")
 print("=" * 80)
 print(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-print("\n✓ Ready for analysis and deployment!")
+print("\nReady for analysis and deployment!")
 print("=" * 80)
 
