@@ -39,7 +39,7 @@ print("STEP 1: DATA LOADING")
 print("=" * 80)
 
 print("\nLoading student-level dataset...")
-df = pd.read_csv('kctcs_student_level_with_zip.csv')
+df = pd.read_csv('../data/kctcs_student_level_with_zip.csv')
 print(f"Loaded {len(df):,} students with {len(df.columns)} features")
 
 # ============================================================================
@@ -609,7 +609,7 @@ prediction_columns = [
 predictions_df = df[prediction_columns].copy()
 
 # Save student-level predictions
-output_file = 'kctcs_student_level_with_predictions.csv'
+output_file = '../data/kctcs_student_level_with_predictions.csv'
 df.to_csv(output_file, index=False)
 print(f"Saved student-level predictions to: {output_file}")
 print(f"  Records: {len(df):,}")
@@ -623,7 +623,7 @@ print("STEP 10: MERGING PREDICTIONS WITH COURSE-LEVEL FILE")
 print("=" * 80)
 
 print("\nLoading course-level merged file...")
-merged_df = pd.read_csv('kctcs_merged_with_zip.csv')
+merged_df = pd.read_csv('../data/kctcs_merged_with_zip.csv')
 print(f"Loaded {len(merged_df):,} course records")
 
 print("\nMerging predictions...")
@@ -635,7 +635,7 @@ merged_with_predictions = pd.merge(
     how='left'
 )
 
-output_file = 'kctcs_merged_with_predictions.csv'
+output_file = '../data/kctcs_merged_with_predictions.csv'
 merged_with_predictions.to_csv(output_file, index=False)
 print(f"Saved course-level data with predictions to: {output_file}")
 print(f"  Records: {len(merged_with_predictions):,}")

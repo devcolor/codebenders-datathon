@@ -7,17 +7,17 @@ print("=" * 80)
 
 # Read all three CSV files
 print("\n1. Reading ar_kcts.csv...")
-ar_df = pd.read_csv('ar_kcts.csv')
+ar_df = pd.read_csv('../data/ar_kcts_with_zip.csv')
 print(f"   - Loaded {len(ar_df)} records")
 print(f"   - Columns: {len(ar_df.columns)}")
 
 print("\n2. Reading kctcs_cohorts.csv...")
-cohorts_df = pd.read_csv('kctcs_cohorts.csv')
+cohorts_df = pd.read_csv('../data/kctcs_cohorts_with_zip.csv')
 print(f"   - Loaded {len(cohorts_df)} records")
 print(f"   - Columns: {len(cohorts_df.columns)}")
 
 print("\n3. Reading kctcs_courses.csv...")
-courses_df = pd.read_csv('kctcs_courses.csv')
+courses_df = pd.read_csv('../data/kctcs_courses.csv')
 print(f"   - Loaded {len(courses_df)} records")
 print(f"   - Columns: {len(courses_df.columns)}")
 
@@ -82,7 +82,7 @@ print(f"   - Result: {len(final_merged)} records")
 print(f"   - Columns: {len(final_merged.columns)}")
 
 # Save the merged file
-output_filename = 'kctcs_merged.csv'
+output_filename = '../data/kctcs_merged_with_zip.csv'
 print(f"\n3. Saving merged data to {output_filename}...")
 final_merged.to_csv(output_filename, index=False)
 
