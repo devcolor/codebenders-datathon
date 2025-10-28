@@ -27,11 +27,6 @@ A comprehensive machine learning pipeline with **5 predictive models** for stude
 - **156 columns** (134 original + 22 prediction columns)
 - **Use for**: Student-level analysis, dashboards, reports
 
-### 3. **ML_PIPELINE_REPORT.txt**
-- Detailed model performance metrics
-- Feature importance rankings
-- Distribution statistics
-
 ---
 
 ## 🔍 FEATURES USED IN MODELS

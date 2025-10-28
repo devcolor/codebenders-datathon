@@ -8,7 +8,7 @@ Models:
 4. Credential Type Prediction (Multi-class Classification)
 5. Course Success Prediction (Regression)
 
-Output: Predictions added to kctcs_merged_with_zip.csv
+Output: Predictions saved to MariaDB database tables
 """
 
 import pandas as pd
@@ -26,10 +26,42 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
+# Database utilities
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from operations.db_utils import (
+    save_dataframe_to_db, 
+    save_model_performance, 
+    create_model_performance_table,
+    test_connection
+)
+from operations.db_config import TABLES, DB_CONFIG
+
+# Get the project root directory
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
+
 print("=" * 80)
 print("COMPLETE ML PIPELINE FOR STUDENT SUCCESS PREDICTION")
 print("=" * 80)
 print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+print(f"Project Root: {PROJECT_ROOT}")
+print(f"Data Directory: {DATA_DIR}")
+
+# Test database connection
+print("\n" + "=" * 80)
+print("TESTING DATABASE CONNECTION")
+print("=" * 80)
+if test_connection():
+    print("✓ Database connection successful")
+    create_model_performance_table()
+else:
+    print("✗ Database connection failed - will save to CSV as fallback")
+    USE_DATABASE = False
+
+USE_DATABASE = True  # Set to False to use CSV fallback
 
 # ============================================================================
 # STEP 1: DATA LOADING AND PREPARATION
@@ -39,8 +71,15 @@ print("STEP 1: DATA LOADING")
 print("=" * 80)
 
 print("\nLoading student-level dataset...")
-df = pd.read_csv('kctcs_student_level_with_zip.csv')
+student_file = os.path.join(DATA_DIR, 'kctcs_student_level_with_zip.csv')
+print(f"Reading from: {student_file}")
+df = pd.read_csv(student_file)
 print(f"Loaded {len(df):,} students with {len(df.columns)} features")
+
+# Convert Institution_ID to string to prevent comma formatting
+if 'Institution_ID' in df.columns:
+    df['Institution_ID'] = df['Institution_ID'].astype(str).str.replace(',', '').str.replace(' ', '')
+    print("Converted Institution_ID to string format (no commas or spaces)")
 
 # ============================================================================
 # STEP 2: FEATURE ENGINEERING
@@ -296,6 +335,15 @@ feature_importance = pd.DataFrame({
 for i, row in feature_importance.head(10).iterrows():
     print(f"  {row['feature']:40s} {row['importance']:.4f}")
 
+# Save model performance to database
+if USE_DATABASE:
+    save_model_performance(
+        model_name='Retention Prediction',
+        model_type='classification',
+        metrics=retention_test_results,
+        notes=f'XGBoost Classifier with {len(retention_features)} features'
+    )
+
 # Generate predictions for full dataset
 print("\nGenerating predictions for all students...")
 X_full_retention, _ = preprocess_features(df, retention_features)
@@ -447,9 +495,21 @@ if len(X_time) > 100:  # Only train if we have enough data
     print("\n" + "-" * 80)
     print("TIME TO CREDENTIAL MODEL EVALUATION")
     print("-" * 80)
-    print(f"RMSE:      {np.sqrt(mean_squared_error(y_test, y_pred)):.4f} years")
-    print(f"MAE:       {mean_absolute_error(y_test, y_pred):.4f} years")
-    print(f"R² Score:  {r2_score(y_test, y_pred):.4f}")
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    print(f"RMSE:      {rmse:.4f} years")
+    print(f"MAE:       {mae:.4f} years")
+    print(f"R² Score:  {r2:.4f}")
+    
+    # Save model performance to database
+    if USE_DATABASE:
+        save_model_performance(
+            model_name='Time-to-Credential Prediction',
+            model_type='regression',
+            metrics={'rmse': rmse, 'mae': mae, 'r2_score': r2},
+            notes=f'XGBoost Regressor trained on {len(X_time)} students with credentials'
+        )
     
     # Generate predictions for all students
     print("\nGenerating time-to-credential predictions...")
@@ -503,8 +563,10 @@ y_pred = credential_model.predict(X_test)
 print("\n" + "-" * 80)
 print("CREDENTIAL TYPE MODEL EVALUATION")
 print("-" * 80)
-print(f"Accuracy:  {accuracy_score(y_test, y_pred):.4f}")
-print(f"Macro F1:  {f1_score(y_test, y_pred, average='macro'):.4f}")
+cred_accuracy = accuracy_score(y_test, y_pred)
+cred_f1 = f1_score(y_test, y_pred, average='macro')
+print(f"Accuracy:  {cred_accuracy:.4f}")
+print(f"Macro F1:  {cred_f1:.4f}")
 
 print("\nPer-Class Performance:")
 for i in sorted(y_credential.unique()):
@@ -512,6 +574,15 @@ for i in sorted(y_credential.unique()):
     if mask.sum() > 0:
         acc = accuracy_score(y_test[mask], y_pred[mask])
         print(f"  {cred_labels.get(i, i):20s} Accuracy: {acc:.4f}")
+
+# Save model performance to database
+if USE_DATABASE:
+    save_model_performance(
+        model_name='Credential Type Prediction',
+        model_type='classification',
+        metrics={'accuracy': cred_accuracy, 'f1': cred_f1},
+        notes=f'Random Forest Classifier - 4 classes (No Credential, Certificate, Associate, Bachelor)'
+    )
 
 # Generate predictions for all students
 print("\nGenerating credential type predictions...")
@@ -572,9 +643,21 @@ y_pred = grade_model.predict(X_test)
 print("\n" + "-" * 80)
 print("COURSE SUCCESS (GRADE) MODEL EVALUATION")
 print("-" * 80)
-print(f"RMSE:      {np.sqrt(mean_squared_error(y_test, y_pred)):.4f} GPA points")
-print(f"MAE:       {mean_absolute_error(y_test, y_pred):.4f} GPA points")
-print(f"R² Score:  {r2_score(y_test, y_pred):.4f}")
+gpa_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+gpa_mae = mean_absolute_error(y_test, y_pred)
+gpa_r2 = r2_score(y_test, y_pred)
+print(f"RMSE:      {gpa_rmse:.4f} GPA points")
+print(f"MAE:       {gpa_mae:.4f} GPA points")
+print(f"R² Score:  {gpa_r2:.4f}")
+
+# Save model performance to database
+if USE_DATABASE:
+    save_model_performance(
+        model_name='Course Success (GPA) Prediction',
+        model_type='regression',
+        metrics={'rmse': gpa_rmse, 'mae': gpa_mae, 'r2_score': gpa_r2},
+        notes=f'Random Forest Regressor for GPA prediction (0-4 scale)'
+    )
 
 # Generate predictions for all students
 print("\nGenerating grade predictions...")
@@ -609,11 +692,28 @@ prediction_columns = [
 predictions_df = df[prediction_columns].copy()
 
 # Save student-level predictions
-output_file = 'kctcs_student_level_with_predictions.csv'
-df.to_csv(output_file, index=False)
-print(f"Saved student-level predictions to: {output_file}")
-print(f"  Records: {len(df):,}")
-print(f"  Columns: {len(df.columns)} (original + {len(prediction_columns)-1} prediction columns)")
+if USE_DATABASE:
+    print("\nSaving student-level predictions to database...")
+    success = save_dataframe_to_db(
+        df, 
+        TABLES['student_predictions'], 
+        if_exists='replace'
+    )
+    if success:
+        print(f"✓ Student-level predictions saved to database")
+        print(f"  Table: {TABLES['student_predictions']}")
+        print(f"  Records: {len(df):,}")
+        print(f"  Columns: {len(df.columns)}")
+    else:
+        print("✗ Database save failed, falling back to CSV")
+        USE_DATABASE = False
+
+if not USE_DATABASE:
+    output_file = '../data/kctcs_student_level_with_predictions.csv'
+    df.to_csv(output_file, index=False)
+    print(f"Saved student-level predictions to: {output_file}")
+    print(f"  Records: {len(df):,}")
+    print(f"  Columns: {len(df.columns)} (original + {len(prediction_columns)-1} prediction columns)")
 
 # ============================================================================
 # STEP 10: MERGE PREDICTIONS WITH COURSE-LEVEL FILE
@@ -623,8 +723,15 @@ print("STEP 10: MERGING PREDICTIONS WITH COURSE-LEVEL FILE")
 print("=" * 80)
 
 print("\nLoading course-level merged file...")
-merged_df = pd.read_csv('kctcs_merged_with_zip.csv')
+merged_file = os.path.join(DATA_DIR, 'kctcs_merged_with_zip.csv')
+print(f"Reading from: {merged_file}")
+merged_df = pd.read_csv(merged_file)
 print(f"Loaded {len(merged_df):,} course records")
+
+# Convert Institution_ID to string to prevent comma formatting
+if 'Institution_ID' in merged_df.columns:
+    merged_df['Institution_ID'] = merged_df['Institution_ID'].astype(str).str.replace(',', '').str.replace(' ', '')
+    print("Converted Institution_ID to string format (no commas or spaces)")
 
 print("\nMerging predictions...")
 # Merge predictions onto course-level data
@@ -635,11 +742,24 @@ merged_with_predictions = pd.merge(
     how='left'
 )
 
-output_file = 'kctcs_merged_with_predictions.csv'
-merged_with_predictions.to_csv(output_file, index=False)
-print(f"Saved course-level data with predictions to: {output_file}")
-print(f"  Records: {len(merged_with_predictions):,}")
-print(f"  Columns: {len(merged_with_predictions.columns)}")
+if USE_DATABASE:
+    print("\nSaving course-level predictions to database...")
+    success = save_dataframe_to_db(
+        merged_with_predictions, 
+        TABLES['course_predictions'], 
+        if_exists='replace'
+    )
+    if success:
+        print(f"✓ Course-level predictions saved to database")
+        print(f"  Table: {TABLES['course_predictions']}")
+        print(f"  Records: {len(merged_with_predictions):,}")
+        print(f"  Columns: {len(merged_with_predictions.columns)}")
+else:
+    output_file = '../data/kctcs_merged_with_predictions.csv'
+    merged_with_predictions.to_csv(output_file, index=False)
+    print(f"Saved course-level data with predictions to: {output_file}")
+    print(f"  Records: {len(merged_with_predictions):,}")
+    print(f"  Columns: {len(merged_with_predictions.columns)}")
 
 # ============================================================================
 # STEP 11: GENERATE SUMMARY REPORT
@@ -717,18 +837,23 @@ for perf in df['gpa_performance'].value_counts().items():
     pct = count / len(df) * 100
     summary_report += f"     {perf[0]:20s} {count:6,} ({pct:5.1f}%)\n"
 
+output_location = "DATABASE TABLES" if USE_DATABASE else "CSV FILES"
 summary_report += f"""
-OUTPUT FILES
+OUTPUT: {output_location}
 {'-' * 80}
-1. kctcs_student_level_with_predictions.csv
+1. student_predictions {'(Table)' if USE_DATABASE else '(CSV)'}
    - Student-level data with all predictions
    - {len(df):,} students
    - {len(df.columns)} columns
 
-2. kctcs_merged_with_predictions.csv
+2. course_predictions {'(Table)' if USE_DATABASE else '(CSV)'}
    - Course-level data with predictions
    - {len(merged_with_predictions):,} records
    - {len(merged_with_predictions.columns)} columns
+
+3. ml_model_performance {'(Table)' if USE_DATABASE else '(N/A)'}
+   - Model performance metrics
+   - Training timestamps and notes
 
 PREDICTION COLUMNS ADDED
 {'-' * 80}
@@ -775,4 +900,35 @@ print("=" * 80)
 print(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("\nReady for analysis and deployment!")
 print("=" * 80)
+
+# ============================================================================
+# DEBUG LOG: DATABASE CONNECTION AND RECORD COUNTS
+# ============================================================================
+print("\n" + "=" * 80)
+print("DEBUG LOG")
+print("=" * 80)
+
+# Database connection status
+db_connected = 1 if USE_DATABASE else 0
+print(f"\nDatabase Connection Status: {db_connected}")
+if db_connected == 1:
+    print("  ✓ Successfully connected to MariaDB")
+    print(f"  ✓ Database: {DB_CONFIG['database']}")
+    print(f"  ✓ Host: {DB_CONFIG['host']}")
+else:
+    print("  ✗ Database connection failed - used CSV fallback")
+
+# Record counts loaded to database
+print(f"\nRecords Loaded to Database:")
+if db_connected == 1:
+    print(f"  - student_predictions table: {len(df):,} records")
+    print(f"  - course_predictions table: {len(merged_with_predictions):,} records")
+    print(f"  - ml_model_performance table: 4 model records")
+    print(f"\n  Total records saved: {len(df) + len(merged_with_predictions) + 4:,}")
+else:
+    print(f"  - No records loaded to database (CSV fallback used)")
+    print(f"  - student_predictions.csv: {len(df):,} records")
+    print(f"  - course_predictions.csv: {len(merged_with_predictions):,} records")
+
+print("\n" + "=" * 80)
 
