@@ -77,6 +77,7 @@ codebenders-datathon/
 
 - Python 3.8 or higher
 - pip package manager
+- MariaDB database access (for saving predictions)
 
 ### Setup
 
@@ -91,7 +92,26 @@ codebenders-datathon/
    pip install -r requirements.txt
    ```
 
-3. **Verify data files**
+3. **Configure database** (Optional - will fallback to CSV if not configured)
+   
+   Database credentials are stored in `ai_model/db_config.py`:
+   ```python
+   DB_CONFIG = {
+       'host': 'devcolor00.czqeeakaypfi.us-west-2.rds.amazonaws.com',
+       'user': 'admin',
+       'password': 'devcolor2025',
+       'database': 'Kentucky_Community_and_Technical_College_System',
+       'port': 3306
+   }
+   ```
+
+4. **Test database connection**
+   ```bash
+   cd ai_model
+   python test_db_connection.py
+   ```
+
+5. **Verify data files**
    Ensure all required CSV files are in the `data/` folder.
 
 ## 💻 Usage
@@ -106,11 +126,13 @@ python complete_ml_pipeline.py
 ```
 
 This will:
-1. Load and preprocess data
-2. Train all 5 models
-3. Generate predictions for all students
-4. Save results to CSV files
-5. Create a summary report
+1. Test database connection
+2. Load and preprocess data
+3. Train all 5 models
+4. Generate predictions for all students
+5. Save results to **MariaDB database** (or CSV files as fallback)
+6. Save model performance metrics to database
+7. Create a summary report
 
 ### Data Merging (Optional)
 
@@ -239,17 +261,34 @@ python merge_kctcs_data.py
 
 ## 📈 Output
 
-### Generated Files
+### Database Tables (Primary Output)
 
-1. **`kctcs_student_level_with_predictions.csv`**
+Predictions are saved to MariaDB database:
+
+1. **`kctcs_student_level_with_predictions`** (Table)
    - Student-level data with all predictions
    - One row per student (~20K records)
    - Original features + 17 prediction columns
 
-2. **`kctcs_merged_with_predictions.csv`**
+2. **`kctcs_merged_with_predictions`** (Table)
    - Course-level data with predictions
    - One row per course enrollment (~500K records)
    - Predictions merged from student level
+
+3. **`ml_model_performance`** (Table)
+   - Model performance metrics for each training run
+   - Tracks accuracy, precision, recall, F1, AUC-ROC, RMSE, MAE, R²
+   - Includes training date and model notes
+
+### Generated Files (Fallback)
+
+If database connection fails, predictions are saved to CSV:
+
+1. **`kctcs_student_level_with_predictions.csv`**
+   - Student-level data with all predictions
+
+2. **`kctcs_merged_with_predictions.csv`**
+   - Course-level data with predictions
 
 3. **`ML_PIPELINE_REPORT.txt`**
    - Comprehensive summary report
