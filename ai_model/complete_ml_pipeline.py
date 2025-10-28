@@ -39,10 +39,16 @@ from db_utils import (
 )
 from db_config import TABLES, DB_CONFIG
 
+# Get the project root directory
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
+
 print("=" * 80)
 print("COMPLETE ML PIPELINE FOR STUDENT SUCCESS PREDICTION")
 print("=" * 80)
 print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+print(f"Project Root: {PROJECT_ROOT}")
+print(f"Data Directory: {DATA_DIR}")
 
 # Test database connection
 print("\n" + "=" * 80)
@@ -65,7 +71,9 @@ print("STEP 1: DATA LOADING")
 print("=" * 80)
 
 print("\nLoading student-level dataset...")
-df = pd.read_csv('../data/kctcs_student_level_with_zip.csv')
+student_file = os.path.join(DATA_DIR, 'kctcs_student_level_with_zip.csv')
+print(f"Reading from: {student_file}")
+df = pd.read_csv(student_file)
 print(f"Loaded {len(df):,} students with {len(df.columns)} features")
 
 # ============================================================================
@@ -711,7 +719,9 @@ print("STEP 10: MERGING PREDICTIONS WITH COURSE-LEVEL FILE")
 print("=" * 80)
 
 print("\nLoading course-level merged file...")
-merged_df = pd.read_csv('../data/kctcs_merged_with_zip.csv')
+merged_file = os.path.join(DATA_DIR, 'kctcs_merged_with_zip.csv')
+print(f"Reading from: {merged_file}")
+merged_df = pd.read_csv(merged_file)
 print(f"Loaded {len(merged_df):,} course records")
 
 print("\nMerging predictions...")
