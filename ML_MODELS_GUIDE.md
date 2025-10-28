@@ -29,6 +29,135 @@ A comprehensive machine learning pipeline with **5 predictive models** for stude
 
 ---
 
+## 🔍 FEATURES USED IN MODELS
+
+### Quick Reference
+
+| Model | Algorithm | Features Used | Training Data |
+|-------|-----------|---------------|---------------|
+| **Model 1: Retention** | XGBoost Classifier | 31 features (all categories) | 32,800 students |
+| **Model 2: Early Warning** | Composite Risk Score | Model 1 output + 3 metrics | N/A (not trained) |
+| **Model 3: Time to Credential** | XGBoost Regressor | 31 features (same as Model 1) | 184 credential completers |
+| **Model 4: Credential Type** | Random Forest Classifier | 31 features (same as Model 1) | 32,800 students (184 with credentials) |
+| **Model 5: GPA Prediction** | Random Forest Regressor | 31 features (same as Model 1) | 32,800 students |
+
+### Detailed Feature Breakdown
+
+All trained ML models (Models 1, 3, 4, 5) use the **same 31 features** organized into 5 categories:
+
+### **Demographic Features (7 features)**
+- `Student_Age` - Age at cohort entry
+- `Race` - Student's race/ethnicity category
+- `Ethnicity` - Hispanic/Non-Hispanic designation
+- `Gender` - Student gender
+- `First_Gen` - First-generation college student status
+- `Pell_Status_First_Year` - Federal Pell Grant recipient indicator
+- `zip_code` - Home ZIP code (for geographic analysis)
+
+### **Academic Preparation Features (4 features)**
+- `Math_Placement` - Math placement test level (college-ready vs. remedial)
+- `English_Placement` - English placement test level
+- `Reading_Placement` - Reading placement test level
+- `Credential_Type_Sought_Year_1` - Intended credential type (certificate, associate's, etc.)
+
+### **Enrollment Features (4 features)**
+- `Enrollment_Type` - First-time vs. continuing student
+- `Enrollment_Intensity_First_Term` - Full-time vs. part-time
+- `Attendance_Status_Term_1` - Attendance pattern first term
+- `Cohort_Term` - Term of initial enrollment (Fall, Spring, Summer)
+
+### **Course Performance Features (12 features)**
+- `total_courses_enrolled` - Total number of courses taken
+- `unique_course_prefixes` - Variety of subjects studied
+- `total_credits_attempted` - Total credits attempted
+- `total_credits_earned` - Total credits successfully earned
+- `avg_credits_per_course` - Average credit hours per course
+- `course_completion_rate` - % of courses completed (vs. withdrawn)
+- `average_grade` - Average GPA across all courses
+- `passing_rate` - % of courses passed (C or better)
+- `failing_grades_count` - Number of courses failed (D or F)
+- `pct_online` - Percentage of courses taken online
+- `gateway_math_courses` - Count of gateway math courses taken
+- `gateway_english_courses` - Count of gateway English courses taken
+
+### **Year 1 Performance Features (4 features)**
+- `GPA_Group_Year_1` - Categorical GPA grouping first year
+- `Number_of_Credits_Earned_Year_1` - Credits earned in first year
+- `CompletedGatewayMathYear1` - Completed gateway math in Year 1 (binary)
+- `CompletedGatewayEnglishYear1` - Completed gateway English in Year 1 (binary)
+
+**Total: 31 features** used by Models 1, 3, 4, and 5
+
+### **Feature Processing**
+- Categorical variables are label-encoded (converted to numbers)
+- Missing values filled with median (numeric) or "Unknown" (categorical)
+- No feature scaling applied (tree-based models don't require it)
+
+---
+
+## 🎯 TARGET VARIABLES (What Models Predict)
+
+Each model predicts a different outcome based on existing data fields.
+
+**Key Concept**: Target variables are the OUTPUTS that models predict—they are NOT used as input features. Models learn patterns from the 31 input features to predict these target outcomes.
+
+**Simple Example for Model 1 (Retention)**:
+```
+INPUTS (31 features)                  MODEL                OUTPUT (Target)
+-------------------                   -----                ---------------
+- Student Age: 19                                         
+- Math Placement: College-ready                           
+- First Gen: Yes                     XGBoost    ------>   Retention: 1 (Retained)
+- GPA Year 1: 3.2                    Classifier            (predicted)
+- Credits Earned: 15
+- ... (26 more features)
+```
+The model examines patterns like: "Students with college-ready math + GPA > 3.0 tend to be retained"
+
+### **Model 1: Retention** (`target_retention`)
+- **Source**: `Retention` field from dataset
+- **Definition**: Binary (0=Not Retained, 1=Retained in subsequent year)
+- **Training Process**: 
+  - Model is given 31 input features (demographics, academics, etc.)
+  - Model learns which patterns in those features predict retention
+  - The `Retention` field itself is NOT an input—it's what we're trying to predict!
+
+### **Model 2: At-Risk Status** (Calculated, not trained)
+- **Not a training target** - this is a composite risk score
+- **Calculated from**: Model 1 output + performance metrics
+- **Components**:
+  - Retention probability (inverted)
+  - GPA thresholds (<2.0, <2.5, <3.0)
+  - Completion rate thresholds (<50%, <70%, <85%)
+  - Credits earned thresholds (<6, <12)
+
+### **Model 3: Time to Credential** (`target_time_to_credential`)
+- **Source**: Calculated from multiple credential completion fields:
+  - `Years_to_Bachelors_at_cohort_inst_`
+  - `Years_to_Bachelor_at_other_inst_`
+  - `Years_to_Associates_or_Certificate_at_cohort_inst_`
+  - `Years_to_Associates_or_Certificate_at_other_inst_`
+- **Definition**: Minimum time (in years) to ANY credential completion
+- **Used for**: Training on 184 students who completed credentials (0.56%)
+
+### **Model 4: Credential Type** (`target_credential_type`)
+- **Source**: Calculated from credential completion fields (same as Model 3)
+- **Definition**: Multi-class categorical (0=None, 1=Certificate, 2=Associate's, 3=Bachelor's)
+- **Logic**: 
+  - Priority 1: Bachelor's (if any bachelor's field > 0)
+  - Priority 2: Associate's (if specific associate's field > 0)
+  - Priority 3: Certificate (if specific certificate field > 0)
+  - Priority 4: Infer from combined Associate's/Certificate field
+  - Default: No credential (0)
+
+### **Model 5: Course Success** (Target: `average_grade`)
+- **Source**: `average_grade` field (calculated GPA across all courses)
+- **Definition**: Continuous variable (0.0 - 4.0 GPA scale)
+- **Used for**: Training on all 32,800 students with grade data
+- **Note**: Model learns from OTHER features to predict what GPA is expected
+
+---
+
 ## 🤖 THE 5 PREDICTIVE MODELS
 
 ### **MODEL 1: Retention Prediction** ⭐ **PRIMARY MODEL**
@@ -38,6 +167,12 @@ A comprehensive machine learning pipeline with **5 predictive models** for stude
 
 **Purpose**: Predict if a student will be retained year-to-year  
 
+**How It Works**:
+- **INPUT FEATURES (X)**: All 31 features listed above (demographics, academic prep, enrollment, course performance, Year 1 performance)
+- **TARGET VARIABLE (y)**: `Retention` field (0=Not Retained, 1=Retained)
+- **Training**: Model learns patterns in the 31 features that predict retention outcomes
+- **Note**: The retention field is NOT used as an input—it's what the model is trying to predict!
+
 **Performance** (Current Model): 
 - Accuracy: 52.2%
 - Precision: 53.5%
@@ -45,7 +180,7 @@ A comprehensive machine learning pipeline with **5 predictive models** for stude
 - F1-Score: 53.9%
 - AUC-ROC: 0.54
 
-**⚠️ Note**: A tuned XGBoost model achieves better performance (54.5% AUC-ROC, 53.0% accuracy). See `ML_ANSWERS_AND_FINDINGS.md` for details.
+**⚠️ Note**: A tuned XGBoost model achieves better performance (54.5% AUC-ROC, 53.0% accuracy).
 
 **Output Columns**:
 ```
@@ -79,7 +214,14 @@ retention_risk_category    (Categories: Low/Moderate/High/Critical Risk)
 **Why Composite Approach**: Rule-based scoring ensures interpretability, avoids contradictions with retention predictions, and provides actionable risk scores that advisors can easily understand.
 
 **Purpose**: Flag students needing immediate intervention  
-**Approach**: NOT a trained ML model—uses weighted risk scoring based on retention probability (50%), GPA (20%), course completion (20%), and credit progress (10%)
+
+**Approach**: NOT a trained ML model—uses weighted risk scoring based on:
+- **Retention probability** from Model 1 (50% weight)
+- **Average GPA** - `average_grade` field (20% weight)
+- **Course completion rate** - `course_completion_rate` field (20% weight)  
+- **Credits earned** - `total_credits_earned` field (10% weight)
+
+**Features Used**: Composite of Model 1 output + 3 performance metrics
 
 **Output Columns**:
 ```
@@ -118,6 +260,12 @@ risk_score            (Float: 0-100 comprehensive risk score)
 
 **Purpose**: Predict years until credential completion
 
+**Features Used**: Same 31 features as Model 1 (demographics, academic prep, enrollment, course performance, Year 1 performance)
+
+**Training Data**: Only students who completed credentials (184 students = 0.56% of dataset)
+- Includes completions at cohort institution AND other institutions
+- Calculates time from enrollment to first credential earned
+
 **Performance**:
 - **RMSE**: 0.65 years (±8 months error on average)
 - **MAE**: 0.42 years (±5 months median error)
@@ -151,7 +299,9 @@ predicted_graduation_year       (Float: year)
 
 **Purpose**: Predict highest credential earned
 
-**Features Used**: Same 31 features as retention model (demographics, academic prep, enrollment, course performance)
+**Features Used**: Same 31 features as Model 1 (demographics, academic prep, enrollment, course performance, Year 1 performance)
+
+**Training Data**: All 32,800 students, but only 184 (0.56%) have completed credentials
 
 **Performance**: Limited by class imbalance, but functional
 - Training distribution: 99.44% No Credential, 0.50% Associate's, 0.06% Bachelor's
@@ -209,6 +359,10 @@ prob_bachelor                (Float: probability)
 **Why Random Forest**: Captures non-linear grade patterns across different student profiles and provides stable predictions without extensive hyperparameter tuning.
 
 **Purpose**: Predict student's average GPA
+
+**Features Used**: Same 31 features as Model 1 (demographics, academic prep, enrollment, course performance, Year 1 performance)
+
+**Note**: This model predicts `average_grade`, which is also used as an input feature. The model learns patterns from OTHER features to predict what GPA is expected, then compares actual vs. expected.
 
 **Performance**:
 - **RMSE**: 0.79 GPA points
