@@ -16,6 +16,12 @@ A comprehensive machine learning pipeline with **5 predictive models** for stude
 - **151 columns** (134 original + 17 prediction columns)
 - **Use for**: Course-level analysis with student predictions
 
+**Use the course-level data (kctcs_merged_with_predictions.csv) when you want to:**
+- Analyze course-specific patterns (which courses have highest failure rates)
+- Track enrollment trends by course type or delivery method
+- Show course completion patterns over time
+
+
 ### 2. **kctcs_student_level_with_predictions.csv** (16 MB)
 - **32,800 records** (one per student)
 - **156 columns** (134 original + 22 prediction columns)
