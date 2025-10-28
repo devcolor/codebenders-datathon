@@ -31,13 +31,13 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db_utils import (
+from operations.db_utils import (
     save_dataframe_to_db, 
     save_model_performance, 
     create_model_performance_table,
     test_connection
 )
-from db_config import TABLES, DB_CONFIG
+from operations.db_config import TABLES, DB_CONFIG
 
 # Get the project root directory
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -692,8 +692,7 @@ if USE_DATABASE:
     success = save_dataframe_to_db(
         df, 
         TABLES['student_predictions'], 
-        if_exists='replace',
-        chunksize=1000
+        if_exists='replace'
     )
     if success:
         print(f"✓ Student-level predictions saved to database")
@@ -738,8 +737,7 @@ if USE_DATABASE:
     success = save_dataframe_to_db(
         merged_with_predictions, 
         TABLES['course_predictions'], 
-        if_exists='replace',
-        chunksize=5000
+        if_exists='replace'
     )
     if success:
         print(f"✓ Course-level predictions saved to database")

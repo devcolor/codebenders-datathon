@@ -7,7 +7,7 @@ Helper functions for database operations
 import pandas as pd
 import pymysql
 from sqlalchemy import create_engine, text
-from db_config import DB_CONFIG, TABLES
+from .db_config import DB_CONFIG, TABLES
 import warnings
 warnings.filterwarnings('ignore')
 
