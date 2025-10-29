@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         SUM(CASE WHEN at_risk_alert IN ('HIGH', 'URGENT') THEN 1 ELSE 0 END) as high_critical_risk_count,
         AVG(course_completion_rate) * 100 as avg_course_completion_rate,
         COUNT(*) as total_students
-      FROM kcts_student_predictions
+      FROM student_predictions
       LIMIT 1
     `
 

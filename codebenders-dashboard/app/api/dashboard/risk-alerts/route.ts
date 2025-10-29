@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
       SELECT 
         at_risk_alert as category,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM kcts_student_predictions), 1) as percentage
-      FROM kcts_student_predictions
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM student_predictions), 1) as percentage
+      FROM student_predictions
       WHERE at_risk_alert IS NOT NULL
       GROUP BY at_risk_alert
       ORDER BY 

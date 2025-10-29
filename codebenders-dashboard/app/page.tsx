@@ -310,7 +310,7 @@ export default function DashboardPage() {
         <div className="border-t border-border pt-6">
           <div className="text-sm text-muted-foreground">
             <p>
-              <strong>Data Source:</strong> kcts_student_predictions table (32,800 students)
+              <strong>Data Source:</strong> student_predictions table (32,800 students)
             </p>
             <p className="mt-1">
               <strong>Last Updated:</strong> {new Date().toLocaleDateString()}

@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
       SELECT 
         retention_risk_category as category,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM kcts_student_predictions), 1) as percentage
-      FROM kcts_student_predictions
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM student_predictions), 1) as percentage
+      FROM student_predictions
       WHERE retention_risk_category IS NOT NULL
       GROUP BY retention_risk_category
       ORDER BY 

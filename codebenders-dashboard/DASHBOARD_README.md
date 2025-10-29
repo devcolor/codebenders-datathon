@@ -89,7 +89,7 @@ codebenders-dashboard/
 
 ## Database Schema
 
-The dashboard queries the `kcts_student_predictions` table, which contains:
+The dashboard queries the `student_predictions` table, which contains:
 
 - **32,800 students** from KCTCS
 - **Demographics**: Age, race, gender, first-gen status, etc.
@@ -182,7 +182,7 @@ OPENAI_API_KEY=your-openai-key
 
 ### Prerequisites
 - Node.js 18+ 
-- MySQL database with `kcts_student_predictions` table
+- MySQL database with `student_predictions` table
 
 ### Installation
 

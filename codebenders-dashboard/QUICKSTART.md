@@ -70,7 +70,7 @@ You should see:
 
 ### "Failed to fetch dashboard data"
 - Check that your database credentials in `.env.local` are correct
-- Verify the `kcts_student_predictions` table exists in your database
+- Verify the `student_predictions` table exists in your database
 - Check the browser console (F12) for detailed error messages
 
 ### Charts show "No data available"
@@ -81,7 +81,7 @@ You should see:
   - http://localhost:3000/api/dashboard/retention-risk
 
 ### Table doesn't exist error
-The APIs expect a table named `kcts_student_predictions` with the schema defined in `/kctcs_student_level_with_predictions_schema.json`.
+The APIs expect a table named `student_predictions` with the schema defined in `/kctcs_student_level_with_predictions_schema.json`.
 
 Key columns used:
 - `Retention` (0 or 1)
