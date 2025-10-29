@@ -702,7 +702,7 @@ for i, class_idx in enumerate(classes):
 print(f"Credential type predictions generated")
 
 # ============================================================================
-# STEP 8: MODEL 5 - GATEWAY MATH SUCCESS PREDICTION (NEW!)
+# STEP 8: MODEL 5 - GATEWAY MATH SUCCESS PREDICTION
 # ============================================================================
 print("\n" + "=" * 80)
 print("STEP 8: MODEL 5 - GATEWAY MATH SUCCESS PREDICTION")
