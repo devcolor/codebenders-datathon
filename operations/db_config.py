@@ -15,7 +15,7 @@ DB_CONFIG = {
 
 # Table names
 TABLES = {
-    'student_predictions': 'kctcs_student_level_with_predictions',
-    'course_predictions': 'kctcs_merged_with_predictions',
+    'student_predictions': 'student_level_with_predictions',
+    'course_predictions': 'course_predictions',
     'model_performance': 'ml_model_performance'
 }

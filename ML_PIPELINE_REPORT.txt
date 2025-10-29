@@ -1,0 +1,99 @@
+
+KCTCS ML PIPELINE - SUMMARY REPORT
+================================================================================
+Generated: 2025-10-28 17:29:21
+
+DATASET OVERVIEW
+--------------------------------------------------------------------------------
+Total Students: 32,800
+Total Course Records: 145,918
+
+MODEL PERFORMANCE SUMMARY
+--------------------------------------------------------------------------------
+
+1. RETENTION PREDICTION MODEL
+   Algorithm: XGBoost Classifier
+   Features Used: 31
+   Test Set Performance:
+     - Accuracy: 0.5224
+     - AUC-ROC: 0.5355
+   
+   Risk Distribution:
+     Critical Risk           242 (  0.7%)
+     High Risk            15,755 ( 48.0%)
+     Moderate Risk        15,202 ( 46.3%)
+     Low Risk              1,601 (  4.9%)
+
+2. EARLY WARNING SYSTEM
+   Algorithm: Composite Risk Score (Retention + Performance Metrics)
+   Approach: Aligned with retention predictions to eliminate contradictions
+   Alert Distribution:
+     URGENT        487 (  1.5%)
+     HIGH        8,344 ( 25.4%)
+     MODERATE   19,823 ( 60.4%)
+     LOW         4,146 ( 12.6%)
+
+3. TIME TO CREDENTIAL PREDICTION
+   Algorithm: XGBoost Regressor
+   Mean Predicted Time: 4.29 years
+   Median Predicted Time: 4.39 years
+
+4. CREDENTIAL TYPE PREDICTION
+   Algorithm: Random Forest Classifier
+   Predicted Distribution:
+     No Credential        32,735 ( 99.8%)
+     Associate                59 (  0.2%)
+     Bachelor                  6 (  0.0%)
+
+5. COURSE SUCCESS (GPA) PREDICTION
+   Algorithm: Random Forest Regressor
+   Mean Predicted GPA: 2.06
+   
+   Performance vs. Expected:
+     As Expected          32,800 (100.0%)
+
+OUTPUT: DATABASE TABLES
+--------------------------------------------------------------------------------
+1. student_predictions (Table)
+   - Student-level data with all predictions
+   - 32,800 students
+   - 156 columns
+
+2. course_predictions (Table)
+   - Course-level data with predictions
+   - 145,918 records
+   - 151 columns
+
+3. ml_model_performance (Table)
+   - Model performance metrics
+   - Training timestamps and notes
+
+PREDICTION COLUMNS ADDED
+--------------------------------------------------------------------------------
+Retention:
+  - retention_probability (0-1 scale)
+  - retention_prediction (0=Not Retained, 1=Retained)
+  - retention_risk_category (Critical/High/Moderate/Low Risk)
+
+Early Warning:
+  - at_risk_probability (0-1 scale)
+  - at_risk_prediction (0=Not At Risk, 1=At Risk)
+  - at_risk_alert (URGENT/HIGH/MODERATE/LOW)
+  - risk_score (0-100 comprehensive risk score)
+
+Time to Credential:
+  - predicted_time_to_credential (years)
+  - predicted_graduation_year (year)
+
+Credential Type:
+  - predicted_credential_type (0-3 numeric)
+  - predicted_credential_label (text label)
+  - prob_no_credential, prob_certificate, prob_associate, prob_bachelor
+
+Course Success:
+  - predicted_gpa (0-4 scale)
+  - gpa_performance (Above/Below/As Expected)
+
+================================================================================
+PIPELINE COMPLETE!
+================================================================================

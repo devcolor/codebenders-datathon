@@ -66,15 +66,38 @@ def save_dataframe_to_db(df, table_name, if_exists='replace', chunksize=1000):
         
         print(f"\nSaving {len(df):,} records to table '{table_name}'...")
         
-        # Save to database
-        df.to_sql(
-            name=table_name,
-            con=engine,
-            if_exists=if_exists,
-            index=False,
-            chunksize=chunksize,
-            method='multi'
-        )
+        # Add upload timestamp
+        from datetime import datetime
+        df_to_save = df.copy()
+        df_to_save['upload_timestamp'] = datetime.now()
+        
+        # Save to database with progress tracking
+        total_rows = len(df_to_save)
+        rows_saved = 0
+        status_interval = 10000
+        
+        # Manual chunking to track progress
+        for i in range(0, total_rows, chunksize):
+            chunk = df_to_save.iloc[i:i+chunksize]
+            
+            # Determine if_exists for this chunk
+            chunk_if_exists = if_exists if i == 0 else 'append'
+            
+            chunk.to_sql(
+                name=table_name,
+                con=engine,
+                if_exists=chunk_if_exists,
+                index=False,
+                chunksize=None,  # Already chunked
+                method='multi'
+            )
+            
+            rows_saved += len(chunk)
+            
+            # Show status every 10,000 records
+            if rows_saved % status_interval == 0 or rows_saved == total_rows:
+                progress_pct = (rows_saved / total_rows) * 100
+                print(f"  Progress: {rows_saved:,} / {total_rows:,} records ({progress_pct:.1f}%)")
         
         print(f"✓ Successfully saved to '{table_name}'")
         print(f"  - Records: {len(df):,}")
