@@ -1,0 +1,662 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "KCTCS Student Level with Predictions Schema",
+  "description": "Schema for the student-level KCTCS dataset with aggregated course statistics and ML predictions",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "Unique identifier for the student record"
+    },
+    "Student_GUID": {
+      "type": "string",
+      "description": "Globally unique student identifier"
+    },
+    "ar_id": {
+      "type": "integer",
+      "description": "Achievement record ID"
+    },
+    "Student_Age": {
+      "type": "string",
+      "description": "Student age category"
+    },
+    "Race": {
+      "type": "string",
+      "description": "Student race category"
+    },
+    "Ethnicity": {
+      "type": "string",
+      "description": "Student ethnicity (Y/N for Hispanic/Latino)"
+    },
+    "Gender": {
+      "type": "string",
+      "description": "Student gender"
+    },
+    "First_Gen": {
+      "type": ["string", "null"],
+      "description": "First generation college student indicator"
+    },
+    "NASPA_First_Generation": {
+      "type": ["number", "null"],
+      "description": "NASPA first generation indicator"
+    },
+    "ar_naspa_first_gen": {
+      "type": ["number", "null"],
+      "description": "AR: NASPA first generation indicator"
+    },
+    "Incarcerated_Status": {
+      "type": "string",
+      "description": "Incarceration status"
+    },
+    "Military_Status": {
+      "type": ["number", "null"],
+      "description": "Military status"
+    },
+    "Disability_Status": {
+      "type": "string",
+      "description": "Disability status"
+    },
+    "Institution_ID": {
+      "type": "integer",
+      "description": "Institution identifier"
+    },
+    "Cohort": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}$",
+      "description": "Academic year cohort (e.g., 2019-20)"
+    },
+    "Cohort_Term": {
+      "type": "string",
+      "enum": ["FALL", "SPRING", "SUMMER"],
+      "description": "Term when student first enrolled"
+    },
+    "Enrollment_Type": {
+      "type": "string",
+      "description": "Type of enrollment (First-Time, Transfer-In, etc.)"
+    },
+    "Enrollment_Intensity_First_Term": {
+      "type": "string",
+      "description": "Full-Time or Part-Time enrollment intensity"
+    },
+    "Dual_and_Summer_Enrollment": {
+      "type": ["string", "null"],
+      "description": "Dual or summer enrollment indicator"
+    },
+    "Pell_Status_First_Year": {
+      "type": "string",
+      "description": "Pell grant status in first year"
+    },
+    "Attendance_Status_Term_1": {
+      "type": "string",
+      "description": "Attendance status in first term"
+    },
+    "Special_Program": {
+      "type": ["string", "null"],
+      "description": "Special program participation"
+    },
+    "Employment_Status": {
+      "type": ["number", "null"],
+      "description": "Employment status"
+    },
+    "Math_Placement": {
+      "type": ["string", "null"],
+      "description": "Math placement level"
+    },
+    "English_Placement": {
+      "type": ["string", "null"],
+      "description": "English placement level"
+    },
+    "Reading_Placement": {
+      "type": ["string", "null"],
+      "description": "Reading placement level"
+    },
+    "Foreign_Language_Completion": {
+      "type": "string",
+      "description": "Foreign language completion status"
+    },
+    "Credential_Type_Sought_Year_1": {
+      "type": "string",
+      "description": "Type of credential sought in first year"
+    },
+    "Program_of_Study_Term_1": {
+      "type": ["number", "null"],
+      "description": "CIP code for program of study in term 1"
+    },
+    "Program_of_Study_Year_1": {
+      "type": ["number", "null"],
+      "description": "CIP code for program of study in year 1"
+    },
+    "total_courses_enrolled": {
+      "type": "integer",
+      "description": "Total number of courses enrolled"
+    },
+    "unique_course_prefixes": {
+      "type": "integer",
+      "description": "Number of unique course prefixes (subjects)"
+    },
+    "total_credits_attempted": {
+      "type": "integer",
+      "description": "Total credits attempted across all courses"
+    },
+    "total_credits_earned": {
+      "type": "integer",
+      "description": "Total credits earned across all courses"
+    },
+    "avg_credits_per_course": {
+      "type": "number",
+      "description": "Average credits per course"
+    },
+    "course_completion_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Course completion rate (credits earned / credits attempted)"
+    },
+    "courses_with_grades": {
+      "type": "integer",
+      "description": "Number of courses with grades recorded"
+    },
+    "average_grade": {
+      "type": ["number", "null"],
+      "description": "Average grade across all courses"
+    },
+    "min_grade": {
+      "type": ["number", "null"],
+      "description": "Minimum grade received"
+    },
+    "max_grade": {
+      "type": ["number", "null"],
+      "description": "Maximum grade received"
+    },
+    "grade_std_dev": {
+      "type": ["number", "null"],
+      "description": "Standard deviation of grades"
+    },
+    "failing_grades_count": {
+      "type": "integer",
+      "description": "Number of failing grades"
+    },
+    "passing_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Rate of passing grades"
+    },
+    "core_courses_taken": {
+      "type": "integer",
+      "description": "Number of core courses taken"
+    },
+    "gateway_math_courses": {
+      "type": "integer",
+      "description": "Number of gateway math courses"
+    },
+    "gateway_english_courses": {
+      "type": "integer",
+      "description": "Number of gateway English courses"
+    },
+    "corequisite_courses": {
+      "type": "integer",
+      "description": "Number of co-requisite courses"
+    },
+    "online_courses": {
+      "type": "integer",
+      "description": "Number of online courses"
+    },
+    "face_to_face_courses": {
+      "type": "integer",
+      "description": "Number of face-to-face courses"
+    },
+    "hybrid_courses": {
+      "type": "integer",
+      "description": "Number of hybrid courses"
+    },
+    "pct_online": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percentage of courses taken online"
+    },
+    "unique_academic_years": {
+      "type": "integer",
+      "description": "Number of unique academic years enrolled"
+    },
+    "unique_academic_terms": {
+      "type": "integer",
+      "description": "Number of unique academic terms enrolled"
+    },
+    "fall_courses": {
+      "type": "integer",
+      "description": "Number of fall courses"
+    },
+    "spring_courses": {
+      "type": "integer",
+      "description": "Number of spring courses"
+    },
+    "summer_courses": {
+      "type": "integer",
+      "description": "Number of summer courses"
+    },
+    "courses_with_fulltime_instructors": {
+      "type": "integer",
+      "description": "Number of courses with full-time instructors"
+    },
+    "courses_with_parttime_instructors": {
+      "type": "integer",
+      "description": "Number of courses with part-time instructors"
+    },
+    "enrolled_other_institutions": {
+      "type": "integer",
+      "description": "Number of courses at other institutions"
+    },
+    "GPA_Group_Term_1": {
+      "type": ["number", "null"],
+      "description": "GPA group/category in term 1"
+    },
+    "GPA_Group_Year_1": {
+      "type": ["number", "null"],
+      "description": "GPA group/category in year 1"
+    },
+    "Number_of_Credits_Attempted_Year_1": {
+      "type": ["number", "null"],
+      "description": "Total credits attempted in year 1"
+    },
+    "Number_of_Credits_Earned_Year_1": {
+      "type": ["number", "null"],
+      "description": "Total credits earned in year 1"
+    },
+    "Number_of_Credits_Attempted_Year_2": {
+      "type": ["number", "null"],
+      "description": "Total credits attempted in year 2"
+    },
+    "Number_of_Credits_Earned_Year_2": {
+      "type": ["number", "null"],
+      "description": "Total credits earned in year 2"
+    },
+    "Number_of_Credits_Attempted_Year_3": {
+      "type": ["number", "null"],
+      "description": "Total credits attempted in year 3"
+    },
+    "Number_of_Credits_Earned_Year_3": {
+      "type": ["number", "null"],
+      "description": "Total credits earned in year 3"
+    },
+    "Number_of_Credits_Attempted_Year_4": {
+      "type": ["number", "null"],
+      "description": "Total credits attempted in year 4"
+    },
+    "Number_of_Credits_Earned_Year_4": {
+      "type": ["number", "null"],
+      "description": "Total credits earned in year 4"
+    },
+    "Gateway_Math_Status": {
+      "type": "string",
+      "description": "Gateway math completion status"
+    },
+    "Gateway_English_Status": {
+      "type": "string",
+      "description": "Gateway English completion status"
+    },
+    "AttemptedGatewayMathYear1": {
+      "type": ["string", "null"],
+      "description": "Whether gateway math was attempted in year 1"
+    },
+    "AttemptedGatewayEnglishYear1": {
+      "type": ["string", "null"],
+      "description": "Whether gateway English was attempted in year 1"
+    },
+    "CompletedGatewayMathYear1": {
+      "type": ["string", "null"],
+      "description": "Whether gateway math was completed in year 1"
+    },
+    "CompletedGatewayEnglishYear1": {
+      "type": ["string", "null"],
+      "description": "Whether gateway English was completed in year 1"
+    },
+    "GatewayMathGradeY1": {
+      "type": ["number", "null"],
+      "description": "Grade in gateway math course in year 1"
+    },
+    "GatewayEnglishGradeY1": {
+      "type": ["number", "null"],
+      "description": "Grade in gateway English course in year 1"
+    },
+    "AttemptedDevMathY1": {
+      "type": ["string", "null"],
+      "description": "Whether developmental math was attempted in year 1"
+    },
+    "AttemptedDevEnglishY1": {
+      "type": ["string", "null"],
+      "description": "Whether developmental English was attempted in year 1"
+    },
+    "CompletedDevMathY1": {
+      "type": ["string", "null"],
+      "description": "Whether developmental math was completed in year 1"
+    },
+    "CompletedDevEnglishY1": {
+      "type": ["string", "null"],
+      "description": "Whether developmental English was completed in year 1"
+    },
+    "Retention": {
+      "type": "integer",
+      "description": "Retention indicator (0 or 1)"
+    },
+    "Persistence": {
+      "type": "integer",
+      "description": "Persistence indicator (0 or 1)"
+    },
+    "Years_to_Bachelors_at_cohort_inst_": {
+      "type": ["number", "null"],
+      "description": "Years to bachelor's degree at cohort institution"
+    },
+    "Years_to_Bachelor_at_other_inst_": {
+      "type": ["number", "null"],
+      "description": "Years to bachelor's degree at other institution"
+    },
+    "First_Year_to_Bachelors_at_cohort_inst_": {
+      "type": ["number", "null"],
+      "description": "First year when bachelor's was earned at cohort institution"
+    },
+    "First_Year_to_Bachelor_at_other_inst_": {
+      "type": ["number", "null"],
+      "description": "First year when bachelor's was earned at other institution"
+    },
+    "ar_years_to_bachelors_cohort": {
+      "type": ["number", "null"],
+      "description": "AR: Years to bachelor's at cohort institution"
+    },
+    "ar_years_to_bachelor_other": {
+      "type": ["number", "null"],
+      "description": "AR: Years to bachelor's at other institution"
+    },
+    "ar_first_year_bachelors_cohort": {
+      "type": ["number", "null"],
+      "description": "AR: First year bachelor's at cohort institution"
+    },
+    "ar_first_year_bachelor_other": {
+      "type": ["number", "null"],
+      "description": "AR: First year bachelor's at other institution"
+    },
+    "Years_to_Associates_or_Certificate_at_cohort_inst_": {
+      "type": ["number", "null"],
+      "description": "Years to associate's or certificate at cohort institution"
+    },
+    "Years_to_Associates_or_Certificate_at_other_inst_": {
+      "type": ["number", "null"],
+      "description": "Years to associate's or certificate at other institution"
+    },
+    "First_Year_to_Associates_or_Certificate_at_cohort_inst_": {
+      "type": ["number", "null"],
+      "description": "First year when associate's or certificate was earned at cohort institution"
+    },
+    "First_Year_to_Associates_or_Certificate_at_other_inst_": {
+      "type": ["number", "null"],
+      "description": "First year when associate's or certificate was earned at other institution"
+    },
+    "ar_years_to_assoc_cert_cohort": {
+      "type": ["number", "null"],
+      "description": "AR: Years to associate's/certificate at cohort institution"
+    },
+    "ar_years_to_assoc_cert_other": {
+      "type": ["number", "null"],
+      "description": "AR: Years to associate's/certificate at other institution"
+    },
+    "ar_first_year_assoc_cert_cohort": {
+      "type": ["number", "null"],
+      "description": "AR: First year associate's/certificate at cohort institution"
+    },
+    "ar_first_year_assoc_cert_other": {
+      "type": ["number", "null"],
+      "description": "AR: First year associate's/certificate at other institution"
+    },
+    "Years_to_Latest_Associates_at_Cohort_Inst": {
+      "type": ["number", "null"],
+      "description": "Years to latest associate's degree at cohort institution"
+    },
+    "Years_to_Latest_Certificate_at_Cohort_Inst": {
+      "type": ["number", "null"],
+      "description": "Years to latest certificate at cohort institution"
+    },
+    "First_Year_to_Associates_at_Cohort_Inst": {
+      "type": ["number", "null"],
+      "description": "First year when associate's was earned at cohort institution"
+    },
+    "First_Year_to_Certificate_at_Cohort_Inst": {
+      "type": ["number", "null"],
+      "description": "First year when certificate was earned at cohort institution"
+    },
+    "Years_to_Latest_Associates_at_Other_Inst": {
+      "type": ["number", "null"],
+      "description": "Years to latest associate's degree at other institution"
+    },
+    "Years_to_Latest_Certificate_at_Other_Inst": {
+      "type": ["number", "null"],
+      "description": "Years to latest certificate at other institution"
+    },
+    "First_Year_to_Associates_at_Other_Inst": {
+      "type": ["number", "null"],
+      "description": "First year when associate's was earned at other institution"
+    },
+    "First_Year_to_Certificate_at_Other_Inst": {
+      "type": ["number", "null"],
+      "description": "First year when certificate was earned at other institution"
+    },
+    "Years_of_Last_Enrollment_at_cohort_institution": {
+      "type": ["number", "null"],
+      "description": "Years of last enrollment at cohort institution"
+    },
+    "Years_of_Last_Enrollment_at_other_institution": {
+      "type": ["number", "null"],
+      "description": "Years of last enrollment at other institution"
+    },
+    "Time_to_Credential": {
+      "type": ["string", "null"],
+      "description": "Time to credential completion"
+    },
+    "Most_Recent_Bachelors_at_Other_Institution_STATE": {
+      "type": ["string", "null"],
+      "description": "State of most recent bachelor's degree at other institution"
+    },
+    "Most_Recent_Associates_or_Certificate_at_Other_Ins_dccdad65": {
+      "type": ["string", "null"],
+      "description": "State of most recent associate's or certificate at other institution"
+    },
+    "First_Bachelors_at_Other_Institution_STATE": {
+      "type": ["string", "null"],
+      "description": "State of first bachelor's degree at other institution"
+    },
+    "First_Associates_or_Certificate_at_Other_Institution_STATE": {
+      "type": ["string", "null"],
+      "description": "State of first associate's or certificate at other institution"
+    },
+    "Most_Recent_Bachelors_at_Other_Institution_CARNEGIE": {
+      "type": ["string", "null"],
+      "description": "Carnegie classification of most recent bachelor's institution"
+    },
+    "Most_Recent_Associates_or_Certificate_at_Other_Ins_5a42b456": {
+      "type": ["string", "null"],
+      "description": "Carnegie classification of most recent associate's/certificate institution"
+    },
+    "First_Bachelors_at_Other_Institution_CARNEGIE": {
+      "type": ["string", "null"],
+      "description": "Carnegie classification of first bachelor's institution"
+    },
+    "First_Associates_or_Certificate_at_Other_Instituti_9c09d367": {
+      "type": ["string", "null"],
+      "description": "Carnegie classification of first associate's/certificate institution"
+    },
+    "Most_Recent_Bachelors_at_Other_Institution_LOCALE": {
+      "type": ["string", "null"],
+      "description": "Locale of most recent bachelor's institution"
+    },
+    "Most_Recent_Associates_or_Certificate_at_Other_Ins_9cc1796c": {
+      "type": ["string", "null"],
+      "description": "Locale of most recent associate's/certificate institution"
+    },
+    "First_Bachelors_at_Other_Institution_LOCALE": {
+      "type": ["string", "null"],
+      "description": "Locale of first bachelor's institution"
+    },
+    "First_Associates_or_Certificate_at_Other_Institution_LOCALE": {
+      "type": ["string", "null"],
+      "description": "Locale of first associate's/certificate institution"
+    },
+    "school": {
+      "type": "string",
+      "description": "School identifier (KCTCS)"
+    },
+    "dataset_type": {
+      "type": "string",
+      "description": "Dataset type indicator"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when record was created"
+    },
+    "ar_school": {
+      "type": "string",
+      "description": "AR: School identifier"
+    },
+    "ar_created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "AR: Timestamp when record was created"
+    },
+    "Most_Recent_Last_Enrollment_at_Other_institution_STATE": {
+      "type": ["string", "null"],
+      "description": "State of most recent enrollment at other institution"
+    },
+    "Most_Recent_Last_Enrollment_at_Other_institution_CARNEGIE": {
+      "type": ["string", "null"],
+      "description": "Carnegie classification of most recent enrollment institution"
+    },
+    "Most_Recent_Last_Enrollment_at_Other_institution_LOCALE": {
+      "type": ["string", "null"],
+      "description": "Locale of most recent enrollment institution"
+    },
+    "ar_recent_assoc_cert_other_state": {
+      "type": ["string", "null"],
+      "description": "AR: State of recent associate's/certificate at other institution"
+    },
+    "ar_recent_assoc_cert_other_carnegie": {
+      "type": ["string", "null"],
+      "description": "AR: Carnegie classification of recent associate's/certificate institution"
+    },
+    "ar_first_assoc_cert_other_carnegie": {
+      "type": ["string", "null"],
+      "description": "AR: Carnegie classification of first associate's/certificate institution"
+    },
+    "ar_recent_assoc_cert_other_locale": {
+      "type": ["string", "null"],
+      "description": "AR: Locale of recent associate's/certificate institution"
+    },
+    "zip_code": {
+      "type": ["integer", "null"],
+      "description": "Student ZIP code"
+    },
+    "target_retention": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "Target variable: Actual retention outcome"
+    },
+    "target_at_risk": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "Target variable: Actual at-risk status"
+    },
+    "target_time_to_credential": {
+      "type": ["number", "null"],
+      "description": "Target variable: Actual time to credential in years"
+    },
+    "target_credential_type": {
+      "type": "integer",
+      "description": "Target variable: Actual credential type code"
+    },
+    "retention_probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "ML prediction: Probability of retention"
+    },
+    "retention_prediction": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "ML prediction: Binary retention prediction (0=not retained, 1=retained)"
+    },
+    "retention_risk_category": {
+      "type": "string",
+      "description": "ML prediction: Retention risk category"
+    },
+    "risk_score": {
+      "type": "number",
+      "description": "ML prediction: Numerical risk score"
+    },
+    "at_risk_alert": {
+      "type": "string",
+      "description": "ML prediction: At-risk alert level"
+    },
+    "at_risk_probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "ML prediction: Probability of being at risk"
+    },
+    "at_risk_prediction": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "ML prediction: Binary at-risk prediction (0=not at risk, 1=at risk)"
+    },
+    "predicted_time_to_credential": {
+      "type": "number",
+      "description": "ML prediction: Predicted time to credential in years"
+    },
+    "predicted_graduation_year": {
+      "type": "number",
+      "description": "ML prediction: Predicted graduation year"
+    },
+    "predicted_credential_type": {
+      "type": "integer",
+      "description": "ML prediction: Predicted credential type code"
+    },
+    "predicted_credential_label": {
+      "type": "string",
+      "description": "ML prediction: Predicted credential type label"
+    },
+    "prob_no_credential": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "ML prediction: Probability of no credential"
+    },
+    "prob_certificate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "ML prediction: Probability of certificate"
+    },
+    "prob_associate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "ML prediction: Probability of associate's degree"
+    },
+    "prob_bachelor": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "ML prediction: Probability of bachelor's degree"
+    },
+    "predicted_gpa": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 4,
+      "description": "ML prediction: Predicted GPA"
+    },
+    "gpa_performance": {
+      "type": "string",
+      "description": "ML prediction: GPA performance category"
+    }
+  },
+  "required": ["id", "Student_GUID", "Institution_ID", "Cohort"]
+}
+
