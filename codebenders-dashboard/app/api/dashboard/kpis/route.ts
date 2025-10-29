@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     `
 
     const [rows] = await pool.query(sql)
-    const kpis = Array.isArray(rows) && rows.length > 0 ? rows[0] : null
+    const kpis = (Array.isArray(rows) && rows.length > 0 ? rows[0] : null) as any
 
     if (!kpis) {
       return NextResponse.json({ error: "No data found" }, { status: 404 })

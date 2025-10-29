@@ -186,10 +186,9 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
               <CardTitle>Readiness Level Distribution</CardTitle>
               <CardDescription>Student readiness categorization</CardDescription>
             </div>
-            <InfoPopover
-              title="Readiness Assessment"
-              description="AI-powered assessment analyzing student preparation, engagement, and success indicators. High readiness indicates students are well-positioned for success."
-            />
+            <InfoPopover title="Readiness Assessment">
+              AI-powered assessment analyzing student preparation, engagement, and success indicators. High readiness indicates students are well-positioned for success.
+            </InfoPopover>
           </div>
         </CardHeader>
         <CardContent>
