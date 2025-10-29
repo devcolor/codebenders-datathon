@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { KPICard } from "@/components/kpi-card"
 import { RiskAlertChart } from "@/components/risk-alert-chart"
 import { RetentionRiskChart } from "@/components/retention-risk-chart"
+import { ExportButton } from "@/components/export-button"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, Users, AlertTriangle, BookOpen, Search } from "lucide-react"
 import Link from "next/link"
@@ -85,12 +86,22 @@ export default function DashboardPage() {
               KCTCS Student Analytics & Predictive Models
             </p>
           </div>
-          <Link href="/query">
-            <Button variant="outline" className="gap-2">
-              <Search className="h-4 w-4" />
-              SQL Query Interface
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <ExportButton 
+              data={{
+                kpis,
+                riskAlerts,
+                retentionRisk
+              }}
+              disabled={loading || !kpis}
+            />
+            <Link href="/query">
+              <Button variant="outline" className="gap-2">
+                <Search className="h-4 w-4" />
+                SQL Query Interface
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Error State */}
