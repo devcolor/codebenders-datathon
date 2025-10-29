@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import { InfoPopover } from "@/components/info-popover"
 
 interface RetentionRiskData {
   category: string
@@ -12,6 +13,7 @@ interface RetentionRiskData {
 interface RetentionRiskChartProps {
   data: RetentionRiskData[]
   loading?: boolean
+  info?: React.ReactNode
 }
 
 const COLORS = {
@@ -21,12 +23,15 @@ const COLORS = {
   "Low Risk": "#22c55e",        // green
 }
 
-export function RetentionRiskChart({ data, loading = false }: RetentionRiskChartProps) {
+export function RetentionRiskChart({ data, loading = false, info }: RetentionRiskChartProps) {
   if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Retention Risk Funnel</CardTitle>
+          <div className="flex items-center">
+            <CardTitle>Retention Risk Funnel</CardTitle>
+            {info && <InfoPopover title="Retention Risk Funnel">{info}</InfoPopover>}
+          </div>
           <CardDescription>Students by retention risk category</CardDescription>
         </CardHeader>
         <CardContent>
@@ -42,7 +47,10 @@ export function RetentionRiskChart({ data, loading = false }: RetentionRiskChart
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Retention Risk Funnel</CardTitle>
+          <div className="flex items-center">
+            <CardTitle>Retention Risk Funnel</CardTitle>
+            {info && <InfoPopover title="Retention Risk Funnel">{info}</InfoPopover>}
+          </div>
           <CardDescription>Students by retention risk category</CardDescription>
         </CardHeader>
         <CardContent>
@@ -63,7 +71,10 @@ export function RetentionRiskChart({ data, loading = false }: RetentionRiskChart
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Retention Risk Funnel</CardTitle>
+        <div className="flex items-center">
+          <CardTitle>Retention Risk Funnel</CardTitle>
+          {info && <InfoPopover title="Retention Risk Funnel">{info}</InfoPopover>}
+        </div>
         <CardDescription>
           {data.reduce((sum, item) => sum + item.count, 0).toLocaleString()} total students
         </CardDescription>

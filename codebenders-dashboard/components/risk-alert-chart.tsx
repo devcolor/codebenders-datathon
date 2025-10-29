@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
+import { InfoPopover } from "@/components/info-popover"
 
 interface RiskAlertData {
   category: string
@@ -12,6 +13,7 @@ interface RiskAlertData {
 interface RiskAlertChartProps {
   data: RiskAlertData[]
   loading?: boolean
+  info?: React.ReactNode
 }
 
 const COLORS = {
@@ -41,12 +43,15 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: an
   )
 }
 
-export function RiskAlertChart({ data, loading = false }: RiskAlertChartProps) {
+export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartProps) {
   if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Risk Alert Distribution</CardTitle>
+          <div className="flex items-center">
+            <CardTitle>Risk Alert Distribution</CardTitle>
+            {info && <InfoPopover title="Risk Alert Distribution">{info}</InfoPopover>}
+          </div>
           <CardDescription>Students by risk level</CardDescription>
         </CardHeader>
         <CardContent>
@@ -62,7 +67,10 @@ export function RiskAlertChart({ data, loading = false }: RiskAlertChartProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Risk Alert Distribution</CardTitle>
+          <div className="flex items-center">
+            <CardTitle>Risk Alert Distribution</CardTitle>
+            {info && <InfoPopover title="Risk Alert Distribution">{info}</InfoPopover>}
+          </div>
           <CardDescription>Students by risk level</CardDescription>
         </CardHeader>
         <CardContent>
@@ -83,7 +91,10 @@ export function RiskAlertChart({ data, loading = false }: RiskAlertChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Risk Alert Distribution</CardTitle>
+        <div className="flex items-center">
+          <CardTitle>Risk Alert Distribution</CardTitle>
+          {info && <InfoPopover title="Risk Alert Distribution">{info}</InfoPopover>}
+        </div>
         <CardDescription>
           {data.reduce((sum, item) => sum + item.count, 0).toLocaleString()} total students
         </CardDescription>

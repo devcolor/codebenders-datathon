@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LucideIcon } from "lucide-react"
+import { InfoPopover } from "@/components/info-popover"
 
 interface KPICardProps {
   title: string
@@ -11,14 +12,18 @@ interface KPICardProps {
     isPositive: boolean
   }
   loading?: boolean
+  info?: React.ReactNode
 }
 
-export function KPICard({ title, value, icon: Icon, subtitle, trend, loading = false }: KPICardProps) {
+export function KPICard({ title, value, icon: Icon, subtitle, trend, loading = false, info }: KPICardProps) {
   if (loading) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <div className="flex items-center">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            {info && <InfoPopover title={title}>{info}</InfoPopover>}
+          </div>
           {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
         </CardHeader>
         <CardContent>
@@ -34,7 +39,10 @@ export function KPICard({ title, value, icon: Icon, subtitle, trend, loading = f
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <div className="flex items-center">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          {info && <InfoPopover title={title}>{info}</InfoPopover>}
+        </div>
         {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
       </CardHeader>
       <CardContent>

@@ -109,6 +109,13 @@ export default function DashboardPage() {
             icon={TrendingUp}
             subtitle={kpis ? `${kpis.totalStudents.toLocaleString()} total students` : undefined}
             loading={loading}
+            info={
+              <>
+                <p><strong>What it shows:</strong> Percentage of students retained year-to-year based on historical data.</p>
+                <p className="mt-2"><strong>Data source:</strong> Retention field from student cohort records (0=Not Retained, 1=Retained).</p>
+                <p className="mt-2"><strong>Use for:</strong> Baseline institutional performance metric.</p>
+              </>
+            }
           />
           <KPICard
             title="Avg Predicted Retention"
@@ -116,6 +123,19 @@ export default function DashboardPage() {
             icon={Users}
             subtitle="ML model prediction"
             loading={loading}
+            info={
+              <>
+                <p><strong>Model:</strong> XGBoost Classifier trained on 31 features including demographics, academic prep, and course performance.</p>
+                <p className="mt-2"><strong>Accuracy:</strong> 52.2% (retention is inherently difficult to predict)</p>
+                <p className="mt-2"><strong>Top predictive factors:</strong></p>
+                <ul className="list-disc pl-4 mt-1">
+                  <li>Math Placement (35.1% importance)</li>
+                  <li>Passing Rate (3.0%)</li>
+                  <li>First Year GPA (2.9%)</li>
+                </ul>
+                <p className="mt-2"><strong>Use for:</strong> Early identification of at-risk students for proactive intervention.</p>
+              </>
+            }
           />
           <KPICard
             title="Students at High/Critical Risk"
@@ -123,6 +143,23 @@ export default function DashboardPage() {
             icon={AlertTriangle}
             subtitle="Require immediate intervention"
             loading={loading}
+            info={
+              <>
+                <p><strong>How it's calculated:</strong> Composite risk score combining:</p>
+                <ul className="list-disc pl-4 mt-1">
+                  <li>50%: Retention probability (inverted)</li>
+                  <li>20%: GPA thresholds (&lt;2.0, &lt;2.5)</li>
+                  <li>20%: Completion rate (&lt;50%, &lt;70%)</li>
+                  <li>10%: Credit progress (&lt;6, &lt;12 credits)</li>
+                </ul>
+                <p className="mt-2"><strong>Alert levels:</strong></p>
+                <ul className="list-disc pl-4 mt-1">
+                  <li><strong>URGENT:</strong> Immediate contact needed (1.5%)</li>
+                  <li><strong>HIGH:</strong> Priority intervention (25.4%)</li>
+                </ul>
+                <p className="mt-2"><strong>Recommended actions:</strong> Immediate advisor outreach, financial aid review, tutoring referrals.</p>
+              </>
+            }
           />
           <KPICard
             title="Avg Course Completion"
@@ -130,13 +167,67 @@ export default function DashboardPage() {
             icon={BookOpen}
             subtitle="Credits earned / attempted"
             loading={loading}
+            info={
+              <>
+                <p><strong>Formula:</strong> (Total credits earned ÷ Total credits attempted) × 100</p>
+                <p className="mt-2"><strong>Interpretation:</strong></p>
+                <ul className="list-disc pl-4 mt-1">
+                  <li>&gt;85%: Strong performance</li>
+                  <li>70-85%: Moderate risk</li>
+                  <li>&lt;70%: High risk indicator</li>
+                  <li>&lt;50%: Critical - failing nearly half of courses</li>
+                </ul>
+                <p className="mt-2"><strong>Why it matters:</strong> Strong predictor of retention and credential completion.</p>
+              </>
+            }
           />
         </div>
 
         {/* Charts */}
         <div className="grid gap-6 md:grid-cols-2">
-          <RiskAlertChart data={riskAlerts} loading={loading} />
-          <RetentionRiskChart data={retentionRisk} loading={loading} />
+          <RiskAlertChart 
+            data={riskAlerts} 
+            loading={loading}
+            info={
+              <>
+                <p><strong>What it shows:</strong> Distribution of students across risk alert levels (URGENT, HIGH, MODERATE, LOW).</p>
+                <p className="mt-2"><strong>How "At-Risk" is calculated:</strong></p>
+                <p className="mt-1 text-xs font-mono bg-muted p-2 rounded">
+                  at_risk = (Retention == 0) OR<br/>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Persistence == 0) OR<br/>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(GPA &lt; 2.0) OR<br/>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Completion Rate &lt; 60%)
+                </p>
+                <p className="mt-2">A student is flagged as "at-risk" if they meet ANY of these conditions:</p>
+                <ul className="list-disc pl-4 mt-1">
+                  <li>Not retained in subsequent year</li>
+                  <li>Did not persist term-to-term</li>
+                  <li>GPA below 2.0</li>
+                  <li>Completing less than 60% of courses</li>
+                </ul>
+                <p className="mt-2"><strong>Alert severity levels:</strong> Based on composite risk score combining retention probability, GPA, completion rate, and credit progress.</p>
+                <p className="mt-2"><strong>Use for:</strong> Daily advisor task lists, automated alerts, resource allocation.</p>
+              </>
+            }
+          />
+          <RetentionRiskChart 
+            data={retentionRisk} 
+            loading={loading}
+            info={
+              <>
+                <p><strong>What it shows:</strong> Distribution of students based on Model 1's retention probability predictions.</p>
+                <p className="mt-2"><strong>Model:</strong> XGBoost Classifier (52.2% accuracy, 0.54 AUC-ROC)</p>
+                <p className="mt-2"><strong>Risk categories:</strong></p>
+                <ul className="list-disc pl-4 mt-1">
+                  <li><strong>Critical Risk:</strong> Retention probability &lt;0.3</li>
+                  <li><strong>High Risk:</strong> Retention probability 0.3-0.5</li>
+                  <li><strong>Moderate Risk:</strong> Retention probability 0.5-0.7</li>
+                  <li><strong>Low Risk:</strong> Retention probability &gt;0.7</li>
+                </ul>
+                <p className="mt-2"><strong>Note:</strong> These are different from Risk Alerts above. This chart shows pure retention probability, while Risk Alerts combine retention with GPA and completion metrics.</p>
+              </>
+            }
+          />
         </div>
 
         {/* Additional Info */}
