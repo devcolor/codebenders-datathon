@@ -1,27 +1,163 @@
-.venv/Scripts/python.exe
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Python cache files
-*.pyc
-*.pyo
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Virtual environments
-.venv/
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 venv/
-ENV/
 env/
+ENV/
+.venv
+.venv/Scripts/python.exe
+*.sage.py
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+*.log
 
-# IDE
+# Node.js / React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+dist/
+dist-ssr/
+*.local
+
+# Build outputs
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+.vite/
+
+# IDE / Editor
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.tmproj
+*.iml
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Data files (sensitive/large datasets)
+*.csv
+*.xlsx
+*.xls
+*.json
+!package.json
+!tsconfig.json
+!*config.json
+!*schema.json
+data/
+datasets/
+*.db
+*.sqlite
+*.sqlite3
+
+# ML Models
+*.pkl
+*.pickle
+*.h5
+*.pt
+*.pth
+*.onnx
+models/
+checkpoints/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
+
+# Supabase
+.supabase/
+supabase/.env
+
+# Docker (if used for local dev)
+docker-compose.override.yml
+
+# Misc
+.cache/
+*.seed
+*.pid
+*.pid.lock
+.terraform/
+
+# Operations scripts (local utilities)
 operations/fix_institution_id.py
 operations/list_tables.py
 operations/convert_institution_id_to_string.py
