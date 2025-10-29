@@ -63,13 +63,13 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
                 }}
               />
               <Legend />
-              <Line
-                type="monotone"
+              <Line 
+                type="monotone" 
                 dataKey={metricKey}
                 stroke={CHART_COLORS[0]}
                 strokeWidth={2}
                 dot={{ fill: CHART_COLORS[0] }}
-                name={metricKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                name={metricKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -94,7 +94,7 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
                 dataKey={metricKey} 
                 fill={CHART_COLORS[0]} 
                 radius={[4, 4, 0, 0]}
-                name={metricKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                name={metricKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -127,7 +127,7 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
               <Legend 
                 verticalAlign="bottom" 
                 height={36}
-                formatter={(value) => value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                formatter={(value) => value.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
               />
             </PieChart>
           </ResponsiveContainer>
