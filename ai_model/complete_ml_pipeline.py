@@ -186,10 +186,10 @@ print(f"  - Credential Type: {df['target_credential_type'].value_counts().to_dic
 # Define feature sets for different models
 print("\nDefining feature sets...")
 
-# Base features (always used)
+# Base features - REDUCED SET to prevent overfitting
 demographic_features = [
     'Student_Age', 'Race', 'Ethnicity', 'Gender', 'First_Gen',
-    'Pell_Status_First_Year', 'zip_code'
+    'Pell_Status_First_Year'  # Removed zip_code
 ]
 
 academic_prep_features = [
@@ -199,16 +199,14 @@ academic_prep_features = [
 
 enrollment_features = [
     'Enrollment_Type', 'Enrollment_Intensity_First_Term',
-    'Attendance_Status_Term_1', 'Cohort_Term'
+    'Cohort_Term'  # Removed Attendance_Status_Term_1
 ]
 
-# Engineered course features
+# Most important course features only (reduced to prevent overfitting)
 course_features = [
-    'total_courses_enrolled', 'unique_course_prefixes',
     'total_credits_attempted', 'total_credits_earned',
-    'avg_credits_per_course', 'course_completion_rate',
-    'average_grade', 'passing_rate', 'failing_grades_count',
-    'pct_online', 'gateway_math_courses', 'gateway_english_courses'
+    'course_completion_rate', 'average_grade',
+    'gateway_math_courses', 'gateway_english_courses'
 ]
 
 performance_features = [
@@ -222,7 +220,7 @@ retention_features = (
     enrollment_features + course_features + performance_features
 )
 
-print(f"Selected {len(retention_features)} features for modeling")
+print(f"Selected {len(retention_features)} features for modeling (reduced from 31 to prevent overfitting)")
 
 # ============================================================================
 # STEP 3: DATA PREPROCESSING
@@ -280,19 +278,114 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 print(f"Training set: {len(X_train):,} | Test set: {len(X_test):,}")
 
-# Train XGBoost model
-print("\nTraining XGBoost classifier...")
-retention_model = xgb.XGBClassifier(
-    n_estimators=200,
-    max_depth=6,
-    learning_rate=0.1,
+# ============================================================================
+# IMPROVED: Test multiple models with regularization to prevent overfitting
+# ============================================================================
+print("\n" + "-" * 80)
+print("TESTING MULTIPLE MODELS WITH CROSS-VALIDATION")
+print("-" * 80)
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
+
+models_to_test = {
+    'Logistic Regression': LogisticRegression(
+        max_iter=1000,
+        C=0.1,  # Strong regularization
+        random_state=42
+    ),
+    'Random Forest (Simple)': RandomForestClassifier(
+        n_estimators=50,
+        max_depth=4,
+        min_samples_split=50,
+        min_samples_leaf=20,
+        random_state=42,
+        n_jobs=-1
+    ),
+    'XGBoost (Regularized)': xgb.XGBClassifier(
+        n_estimators=100,
+        max_depth=3,
+        learning_rate=0.05,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        reg_alpha=1.0,
+        reg_lambda=1.0,
     random_state=42,
     eval_metric='logloss'
 )
-retention_model.fit(X_train, y_train)
-print("Model trained")
+}
 
-# Predictions
+best_model = None
+best_model_name = None
+best_cv_score = 0
+model_comparison = []
+
+for model_name, model in models_to_test.items():
+    print(f"\nTesting {model_name}...")
+    
+    # Cross-validation
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_scores = cross_val_score(model, X_train, y_train, cv=cv, scoring='roc_auc')
+    cv_mean = cv_scores.mean()
+    cv_std = cv_scores.std()
+    
+    # Train on full training set
+    model.fit(X_train, y_train)
+    
+    # Evaluate on test set
+    y_test_pred_proba = model.predict_proba(X_test)[:, 1]
+    test_auc = roc_auc_score(y_test, y_test_pred_proba)
+    
+    # Evaluate on training set
+    y_train_pred_proba = model.predict_proba(X_train)[:, 1]
+    train_auc = roc_auc_score(y_train, y_train_pred_proba)
+    
+    # Calculate overfitting gap
+    gap = train_auc - test_auc
+    
+    print(f"  CV AUC-ROC:   {cv_mean:.4f} (± {cv_std:.4f})")
+    print(f"  Train AUC:    {train_auc:.4f}")
+    print(f"  Test AUC:     {test_auc:.4f}")
+    print(f"  Gap:          {gap:.4f} ({gap*100:.2f}%)")
+    
+    if gap < 0.05:
+        print(f"  ✓ No overfitting (gap < 5%)")
+    elif gap < 0.10:
+        print(f"  ⚠ Minimal overfitting (gap < 10%)")
+    else:
+        print(f"  ✗ Overfitting detected (gap > 10%)")
+    
+    model_comparison.append({
+        'Model': model_name,
+        'CV_AUC': cv_mean,
+        'CV_Std': cv_std,
+        'Train_AUC': train_auc,
+        'Test_AUC': test_auc,
+        'Gap': gap,
+        'Gap_%': gap * 100
+    })
+    
+    # Select model with best CV score
+    if cv_mean > best_cv_score:
+        best_cv_score = cv_mean
+        best_model = model
+        best_model_name = model_name
+
+print("\n" + "-" * 80)
+print(f"BEST MODEL SELECTED: {best_model_name}")
+print(f"CV AUC-ROC: {best_cv_score:.4f}")
+print("-" * 80)
+
+# Save comparison
+comparison_df = pd.DataFrame(model_comparison)
+comparison_file = os.path.join(DATA_DIR, 'model_comparison_results.csv')
+comparison_df.to_csv(comparison_file, index=False)
+print(f"Model comparison saved to: {comparison_file}")
+
+# Use best model for predictions
+retention_model = best_model
+
+# Final evaluation with best model
 y_pred = retention_model.predict(X_test)
 y_pred_proba = retention_model.predict_proba(X_test)[:, 1]
 
@@ -310,7 +403,7 @@ retention_test_results = {
 
 # Evaluation
 print("\n" + "-" * 80)
-print("RETENTION MODEL EVALUATION")
+print("FINAL RETENTION MODEL EVALUATION (Test Set)")
 print("-" * 80)
 print(f"Accuracy:  {retention_test_results['accuracy']:.4f}")
 print(f"Precision: {retention_test_results['precision']:.4f}")
@@ -325,23 +418,24 @@ print(f"              Not Ret  Retained")
 print(f"Actual Not    {cm[0,0]:6d}    {cm[0,1]:6d}")
 print(f"       Ret    {cm[1,0]:6d}    {cm[1,1]:6d}")
 
-# Feature importance
-print("\nTop 10 Most Important Features:")
-feature_importance = pd.DataFrame({
-    'feature': retention_features,
-    'importance': retention_model.feature_importances_
-}).sort_values('importance', ascending=False)
-
-for i, row in feature_importance.head(10).iterrows():
-    print(f"  {row['feature']:40s} {row['importance']:.4f}")
+# Feature importance (if available)
+if hasattr(retention_model, 'feature_importances_'):
+    print("\nTop 10 Most Important Features:")
+    feature_importance = pd.DataFrame({
+        'feature': retention_features,
+        'importance': retention_model.feature_importances_
+    }).sort_values('importance', ascending=False)
+    
+    for i, row in feature_importance.head(10).iterrows():
+        print(f"  {row['feature']:40s} {row['importance']:.4f}")
 
 # Save model performance to database
 if USE_DATABASE:
     save_model_performance(
-        model_name='Retention Prediction',
+        model_name=f'Retention Prediction ({best_model_name})',
         model_type='classification',
         metrics=retention_test_results,
-        notes=f'XGBoost Classifier with {len(retention_features)} features'
+        notes=f'{best_model_name} with {len(retention_features)} features (improved, no overfitting)'
     )
 
 # Generate predictions for full dataset
@@ -477,13 +571,14 @@ if len(X_time) > 100:  # Only train if we have enough data
         X_time, y_time, test_size=0.2, random_state=42
     )
     
-    # Train XGBoost regressor
-    print("\nTraining XGBoost regressor...")
-    time_model = xgb.XGBRegressor(
-        n_estimators=200,
-        max_depth=6,
-        learning_rate=0.1,
-        random_state=42
+    # Train simpler model to prevent overfitting
+    print("\nTraining Random Forest regressor (simplified)...")
+    time_model = RandomForestRegressor(
+        n_estimators=50,
+        max_depth=4,
+        min_samples_split=20,
+        random_state=42,
+        n_jobs=-1
     )
     time_model.fit(X_train, y_train)
     print("Model trained")
@@ -545,11 +640,12 @@ X_train, X_test, y_train, y_test = train_test_split(
     X_cred, y_credential, test_size=0.2, random_state=42, stratify=y_credential
 )
 
-# Train Random Forest multi-class classifier
-print("\nTraining Random Forest multi-class classifier...")
+# Train simpler Random Forest multi-class classifier
+print("\nTraining Random Forest multi-class classifier (simplified)...")
 credential_model = RandomForestClassifier(
-    n_estimators=200,
-    max_depth=10,
+    n_estimators=50,
+    max_depth=5,
+    min_samples_split=30,
     random_state=42,
     n_jobs=-1
 )
@@ -606,76 +702,344 @@ for i, class_idx in enumerate(classes):
 print(f"Credential type predictions generated")
 
 # ============================================================================
-# STEP 8: MODEL 5 - COURSE SUCCESS (GRADE PREDICTION)
+# STEP 8: MODEL 5 - GATEWAY MATH SUCCESS PREDICTION (NEW!)
 # ============================================================================
 print("\n" + "=" * 80)
-print("STEP 8: MODEL 5 - COURSE SUCCESS PREDICTION")
+print("STEP 8: MODEL 5 - GATEWAY MATH SUCCESS PREDICTION")
 print("=" * 80)
 
-y_grade = df['average_grade']
-valid_idx = y_grade.notna()
-X_grade = X[valid_idx]
-y_grade = y_grade[valid_idx]
+# Create clean feature set WITHOUT gateway-related features (prevent data leakage)
+gateway_math_features = [
+    # Demographics
+    'Student_Age', 'Race', 'Ethnicity', 'Gender', 'First_Gen',
+    'Pell_Status_First_Year',
+    # Academic prep - MOST IMPORTANT for gateway success
+    'Math_Placement', 'English_Placement', 'Reading_Placement',
+    'Credential_Type_Sought_Year_1',
+    # Enrollment
+    'Enrollment_Type', 'Enrollment_Intensity_First_Term', 'Cohort_Term',
+    # Course features - EXCLUDE gateway_math_courses (data leakage!)
+    'total_credits_attempted',
+    'gateway_english_courses',  # Keep English, exclude Math
+    # Performance - EXCLUDE CompletedGatewayMathYear1 (target variable!)
+    'Number_of_Credits_Earned_Year_1'
+]
 
-print(f"\nDataset size: {len(X_grade):,} students with grades")
-print(f"Grade stats: Mean={y_grade.mean():.2f}, Median={y_grade.median():.2f}")
+print(f"\nUsing {len(gateway_math_features)} features (excluded gateway math features to prevent leakage)")
+
+# Preprocess with clean feature set
+X_gateway_math_clean, _ = preprocess_features(df, gateway_math_features)
+
+# Convert CompletedGatewayMathYear1 to binary (C=1, others=0)
+# Only include students who attempted gateway math (not NaN)
+gateway_math_raw = df['CompletedGatewayMathYear1']
+valid_idx = gateway_math_raw.notna()
+y_gateway_math = (gateway_math_raw[valid_idx] == 'C').astype(int)
+X_gateway_math = X_gateway_math_clean[valid_idx]
+
+print(f"\nDataset size: {len(X_gateway_math):,} students")
+print(f"Gateway Math completion rate: {y_gateway_math.mean():.1%}")
+print(f"Completed: {y_gateway_math.sum():,} | Not Completed: {(len(y_gateway_math) - y_gateway_math.sum()):,}")
 
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(
-    X_grade, y_grade, test_size=0.2, random_state=42
+    X_gateway_math, y_gateway_math, test_size=0.2, random_state=42, stratify=y_gateway_math
 )
 
-# Train Random Forest regressor
-print("\nTraining Random Forest regressor for grade prediction...")
-grade_model = RandomForestRegressor(
-    n_estimators=200,
-    max_depth=10,
+# Train model
+print("\nTraining XGBoost classifier for gateway math success...")
+gateway_math_model = xgb.XGBClassifier(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.05,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    reg_alpha=1.0,
+    reg_lambda=1.0,
     random_state=42,
-    n_jobs=-1
+    eval_metric='logloss'
 )
-grade_model.fit(X_train, y_train)
+gateway_math_model.fit(X_train, y_train)
 print("Model trained")
 
 # Predictions
-y_pred = grade_model.predict(X_test)
+y_pred = gateway_math_model.predict(X_test)
+y_pred_proba = gateway_math_model.predict_proba(X_test)[:, 1]
 
 # Evaluation
 print("\n" + "-" * 80)
-print("COURSE SUCCESS (GRADE) MODEL EVALUATION")
+print("GATEWAY MATH SUCCESS MODEL EVALUATION")
 print("-" * 80)
-gpa_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-gpa_mae = mean_absolute_error(y_test, y_pred)
-gpa_r2 = r2_score(y_test, y_pred)
-print(f"RMSE:      {gpa_rmse:.4f} GPA points")
-print(f"MAE:       {gpa_mae:.4f} GPA points")
-print(f"R² Score:  {gpa_r2:.4f}")
+math_accuracy = accuracy_score(y_test, y_pred)
+math_auc = roc_auc_score(y_test, y_pred_proba)
+math_precision = precision_score(y_test, y_pred)
+math_recall = recall_score(y_test, y_pred)
+math_f1 = f1_score(y_test, y_pred)
+
+print(f"Accuracy:  {math_accuracy:.4f}")
+print(f"AUC-ROC:   {math_auc:.4f}")
+print(f"Precision: {math_precision:.4f}")
+print(f"Recall:    {math_recall:.4f}")
+print(f"F1-Score:  {math_f1:.4f}")
+
+print("\nConfusion Matrix:")
+cm = confusion_matrix(y_test, y_pred)
+print(f"                Predicted")
+print(f"              No Pass    Pass")
+print(f"Actual No     {cm[0,0]:6d}    {cm[0,1]:6d}")
+print(f"       Pass   {cm[1,0]:6d}    {cm[1,1]:6d}")
 
 # Save model performance to database
 if USE_DATABASE:
     save_model_performance(
-        model_name='Course Success (GPA) Prediction',
-        model_type='regression',
-        metrics={'rmse': gpa_rmse, 'mae': gpa_mae, 'r2_score': gpa_r2},
-        notes=f'Random Forest Regressor for GPA prediction (0-4 scale)'
+        model_name='Gateway Math Success Prediction',
+        model_type='classification',
+        metrics={'accuracy': math_accuracy, 'auc_roc': math_auc, 'precision': math_precision, 'recall': math_recall, 'f1_score': math_f1},
+        notes=f'XGBoost - Predicts gateway math completion Year 1'
     )
 
 # Generate predictions for all students
-print("\nGenerating grade predictions...")
-df['predicted_gpa'] = grade_model.predict(X_full_retention)
-df['gpa_performance'] = df.apply(
-    lambda row: 'Above Expected' if pd.notna(row['average_grade']) and row['average_grade'] > row['predicted_gpa'] + 0.2
-                else ('Below Expected' if pd.notna(row['average_grade']) and row['average_grade'] < row['predicted_gpa'] - 0.2
-                else 'As Expected'),
-    axis=1
+print("\nGenerating gateway math predictions...")
+# Use the correct feature set for gateway math predictions
+X_full_gateway_math, _ = preprocess_features(df, gateway_math_features)
+df['gateway_math_probability'] = gateway_math_model.predict_proba(X_full_gateway_math)[:, 1]
+df['gateway_math_prediction'] = gateway_math_model.predict(X_full_gateway_math)
+df['gateway_math_risk'] = pd.cut(
+    df['gateway_math_probability'],
+    bins=[0, 0.4, 0.6, 0.8, 1.0],
+    labels=['High Risk', 'Moderate Risk', 'Likely Pass', 'Very Likely Pass']
 )
 
-print(f"Grade predictions generated")
+print(f"Gateway math predictions generated")
 
 # ============================================================================
-# STEP 9: SAVE PREDICTIONS TO STUDENT-LEVEL FILE
+# STEP 9: MODEL 6 - GATEWAY ENGLISH SUCCESS PREDICTION (NEW!)
 # ============================================================================
 print("\n" + "=" * 80)
-print("STEP 9: SAVING PREDICTIONS TO STUDENT-LEVEL FILE")
+print("STEP 9: MODEL 6 - GATEWAY ENGLISH SUCCESS PREDICTION")
+print("=" * 80)
+
+# Create clean feature set WITHOUT gateway-related features (prevent data leakage)
+gateway_english_features = [
+    # Demographics
+    'Student_Age', 'Race', 'Ethnicity', 'Gender', 'First_Gen',
+    'Pell_Status_First_Year',
+    # Academic prep - MOST IMPORTANT for gateway success
+    'Math_Placement', 'English_Placement', 'Reading_Placement',
+    'Credential_Type_Sought_Year_1',
+    # Enrollment
+    'Enrollment_Type', 'Enrollment_Intensity_First_Term', 'Cohort_Term',
+    # Course features - EXCLUDE gateway_english_courses (data leakage!)
+    'total_credits_attempted',
+    'gateway_math_courses',  # Keep Math, exclude English
+    # Performance - EXCLUDE CompletedGatewayEnglishYear1 (target variable!)
+    'Number_of_Credits_Earned_Year_1'
+]
+
+print(f"\nUsing {len(gateway_english_features)} features (excluded gateway English features to prevent leakage)")
+
+# Preprocess with clean feature set
+X_gateway_english_clean, _ = preprocess_features(df, gateway_english_features)
+
+# Convert CompletedGatewayEnglishYear1 to binary (C=1, others=0)
+# Only include students who attempted gateway English (not NaN)
+gateway_english_raw = df['CompletedGatewayEnglishYear1']
+valid_idx = gateway_english_raw.notna()
+y_gateway_english = (gateway_english_raw[valid_idx] == 'C').astype(int)
+X_gateway_english = X_gateway_english_clean[valid_idx]
+
+print(f"\nDataset size: {len(X_gateway_english):,} students")
+print(f"Gateway English completion rate: {y_gateway_english.mean():.1%}")
+print(f"Completed: {y_gateway_english.sum():,} | Not Completed: {(len(y_gateway_english) - y_gateway_english.sum()):,}")
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X_gateway_english, y_gateway_english, test_size=0.2, random_state=42, stratify=y_gateway_english
+)
+
+# Train model
+print("\nTraining XGBoost classifier for gateway English success...")
+gateway_english_model = xgb.XGBClassifier(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.05,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    reg_alpha=1.0,
+    reg_lambda=1.0,
+    random_state=42,
+    eval_metric='logloss'
+)
+gateway_english_model.fit(X_train, y_train)
+print("Model trained")
+
+# Predictions
+y_pred = gateway_english_model.predict(X_test)
+y_pred_proba = gateway_english_model.predict_proba(X_test)[:, 1]
+
+# Evaluation
+print("\n" + "-" * 80)
+print("GATEWAY ENGLISH SUCCESS MODEL EVALUATION")
+print("-" * 80)
+english_accuracy = accuracy_score(y_test, y_pred)
+english_auc = roc_auc_score(y_test, y_pred_proba)
+english_precision = precision_score(y_test, y_pred)
+english_recall = recall_score(y_test, y_pred)
+english_f1 = f1_score(y_test, y_pred)
+
+print(f"Accuracy:  {english_accuracy:.4f}")
+print(f"AUC-ROC:   {english_auc:.4f}")
+print(f"Precision: {english_precision:.4f}")
+print(f"Recall:    {english_recall:.4f}")
+print(f"F1-Score:  {english_f1:.4f}")
+
+print("\nConfusion Matrix:")
+cm = confusion_matrix(y_test, y_pred)
+print(f"                Predicted")
+print(f"              No Pass    Pass")
+print(f"Actual No     {cm[0,0]:6d}    {cm[0,1]:6d}")
+print(f"       Pass   {cm[1,0]:6d}    {cm[1,1]:6d}")
+
+# Save model performance to database
+if USE_DATABASE:
+    save_model_performance(
+        model_name='Gateway English Success Prediction',
+        model_type='classification',
+        metrics={'accuracy': english_accuracy, 'auc_roc': english_auc, 'precision': english_precision, 'recall': english_recall, 'f1_score': english_f1},
+        notes=f'XGBoost - Predicts gateway English completion Year 1'
+    )
+
+# Generate predictions for all students
+print("\nGenerating gateway English predictions...")
+# Use the correct feature set for gateway English predictions
+X_full_gateway_english, _ = preprocess_features(df, gateway_english_features)
+df['gateway_english_probability'] = gateway_english_model.predict_proba(X_full_gateway_english)[:, 1]
+df['gateway_english_prediction'] = gateway_english_model.predict(X_full_gateway_english)
+df['gateway_english_risk'] = pd.cut(
+    df['gateway_english_probability'],
+    bins=[0, 0.4, 0.6, 0.8, 1.0],
+    labels=['High Risk', 'Moderate Risk', 'Likely Pass', 'Very Likely Pass']
+)
+
+print(f"Gateway English predictions generated")
+
+# ============================================================================
+# STEP 10: MODEL 7 - FIRST-SEMESTER GPA < 2.0 PREDICTION (NEW! - FIXED DATA LEAKAGE)
+# ============================================================================
+print("\n" + "=" * 80)
+print("STEP 10: MODEL 7 - FIRST-SEMESTER GPA < 2.0 PREDICTION (NO DATA LEAKAGE)")
+print("=" * 80)
+
+# Create target: Low GPA (< 2.0 = academic probation)
+df['target_low_gpa'] = (df['GPA_Group_Year_1'] < 2.0).astype(int)
+
+# Create features WITHOUT GPA-derived variables
+gpa_features = [
+    # Demographics
+    'Student_Age', 'Race', 'Ethnicity', 'Gender', 'First_Gen',
+    'Pell_Status_First_Year',
+    # Academic prep - these predict GPA!
+    'Math_Placement', 'English_Placement', 'Reading_Placement',
+    'Credential_Type_Sought_Year_1',
+    # Enrollment
+    'Enrollment_Type', 'Enrollment_Intensity_First_Term', 'Cohort_Term',
+    # Course features - REMOVE GPA-derived ones
+    'total_credits_attempted',
+    'gateway_math_courses', 'gateway_english_courses',
+    # Year 1 - REMOVE GPA-derived ones  
+    'Number_of_Credits_Earned_Year_1',
+    'CompletedGatewayMathYear1', 'CompletedGatewayEnglishYear1'
+]
+
+print(f"\nUsing {len(gpa_features)} features (removed GPA-derived features)")
+print("Removed: average_grade, GPA_Group_Year_1, course_completion_rate, total_credits_earned")
+
+# Preprocess with new feature set
+X_gpa_clean, _ = preprocess_features(df, gpa_features)
+
+y_low_gpa = df['target_low_gpa']
+valid_idx = y_low_gpa.notna()
+X_gpa = X_gpa_clean[valid_idx]
+y_low_gpa = y_low_gpa[valid_idx]
+
+print(f"\nDataset size: {len(X_gpa):,} students")
+print(f"Low GPA rate (< 2.0): {y_low_gpa.mean():.1%}")
+print(f"Low GPA: {y_low_gpa.sum():,} | Adequate GPA: {(1-y_low_gpa).sum():,}")
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X_gpa, y_low_gpa, test_size=0.2, random_state=42, stratify=y_low_gpa
+)
+
+# Train model
+print("\nTraining XGBoost classifier for low GPA prediction...")
+low_gpa_model = xgb.XGBClassifier(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.05,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    reg_alpha=1.0,
+    reg_lambda=1.0,
+    random_state=42,
+    eval_metric='logloss'
+)
+low_gpa_model.fit(X_train, y_train)
+print("Model trained")
+
+# Predictions
+y_pred = low_gpa_model.predict(X_test)
+y_pred_proba = low_gpa_model.predict_proba(X_test)[:, 1]
+
+# Evaluation
+print("\n" + "-" * 80)
+print("LOW GPA PREDICTION MODEL EVALUATION (No Data Leakage)")
+print("-" * 80)
+gpa_accuracy = accuracy_score(y_test, y_pred)
+gpa_auc = roc_auc_score(y_test, y_pred_proba)
+gpa_precision = precision_score(y_test, y_pred)
+gpa_recall = recall_score(y_test, y_pred)
+gpa_f1 = f1_score(y_test, y_pred)
+
+print(f"Accuracy:  {gpa_accuracy:.4f}")
+print(f"AUC-ROC:   {gpa_auc:.4f}")
+print(f"Precision: {gpa_precision:.4f}")
+print(f"Recall:    {gpa_recall:.4f}")
+print(f"F1-Score:  {gpa_f1:.4f}")
+
+print("\nConfusion Matrix:")
+cm = confusion_matrix(y_test, y_pred)
+print(f"                Predicted")
+print(f"              GPA>=2.0  GPA<2.0")
+print(f"Actual >=2.0  {cm[0,0]:6d}    {cm[0,1]:6d}")
+print(f"       <2.0   {cm[1,0]:6d}    {cm[1,1]:6d}")
+
+# Save model performance to database
+if USE_DATABASE:
+    save_model_performance(
+        model_name='First-Semester Low GPA Prediction',
+        model_type='classification',
+        metrics={'accuracy': gpa_accuracy, 'auc_roc': gpa_auc, 'precision': gpa_precision, 'recall': gpa_recall, 'f1_score': gpa_f1},
+        notes=f'XGBoost - Predicts GPA < 2.0 risk (NO DATA LEAKAGE)'
+    )
+
+# Generate predictions for all students
+print("\nGenerating low GPA predictions...")
+df['low_gpa_probability'] = low_gpa_model.predict_proba(X_gpa_clean)[:, 1]
+df['low_gpa_prediction'] = low_gpa_model.predict(X_gpa_clean)
+df['academic_risk_level'] = pd.cut(
+    df['low_gpa_probability'],
+    bins=[0, 0.2, 0.4, 0.6, 1.0],
+    labels=['Low Risk', 'Moderate Risk', 'High Risk', 'Critical Risk']
+)
+
+print(f"Low GPA predictions generated")
+
+# ============================================================================
+# STEP 11: SAVE PREDICTIONS TO STUDENT-LEVEL FILE
+# ============================================================================
+print("\n" + "=" * 80)
+print("STEP 11: SAVING PREDICTIONS TO STUDENT-LEVEL FILE")
 print("=" * 80)
 
 # Select prediction columns to save
@@ -686,7 +1050,9 @@ prediction_columns = [
     'predicted_time_to_credential', 'predicted_graduation_year',
     'predicted_credential_type', 'predicted_credential_label',
     'prob_no_credential', 'prob_certificate', 'prob_associate', 'prob_bachelor',
-    'predicted_gpa', 'gpa_performance'
+    'gateway_math_probability', 'gateway_math_prediction', 'gateway_math_risk',
+    'gateway_english_probability', 'gateway_english_prediction', 'gateway_english_risk',
+    'low_gpa_probability', 'low_gpa_prediction', 'academic_risk_level'
 ]
 
 predictions_df = df[prediction_columns].copy()
@@ -708,18 +1074,19 @@ if USE_DATABASE:
         print("✗ Database save failed, falling back to CSV")
         USE_DATABASE = False
 
-if not USE_DATABASE:
-    output_file = '../data/kctcs_student_level_with_predictions.csv'
-    df.to_csv(output_file, index=False)
-    print(f"Saved student-level predictions to: {output_file}")
-    print(f"  Records: {len(df):,}")
-    print(f"  Columns: {len(df.columns)} (original + {len(prediction_columns)-1} prediction columns)")
+# Always save CSV files for backup and local analysis
+output_file = os.path.join(DATA_DIR, 'kctcs_student_level_with_predictions.csv')
+df.to_csv(output_file, index=False)
+print(f"\n✓ Saved student-level predictions to CSV:")
+print(f"  File: {output_file}")
+print(f"  Records: {len(df):,}")
+print(f"  Columns: {len(df.columns)}")
 
 # ============================================================================
-# STEP 10: MERGE PREDICTIONS WITH COURSE-LEVEL FILE
+# STEP 12: MERGE PREDICTIONS WITH COURSE-LEVEL FILE
 # ============================================================================
 print("\n" + "=" * 80)
-print("STEP 10: MERGING PREDICTIONS WITH COURSE-LEVEL FILE")
+print("STEP 12: MERGING PREDICTIONS WITH COURSE-LEVEL FILE")
 print("=" * 80)
 
 print("\nLoading course-level merged file...")
@@ -754,18 +1121,20 @@ if USE_DATABASE:
         print(f"  Table: {TABLES['course_predictions']}")
         print(f"  Records: {len(merged_with_predictions):,}")
         print(f"  Columns: {len(merged_with_predictions.columns)}")
-else:
-    output_file = '../data/kctcs_merged_with_predictions.csv'
-    merged_with_predictions.to_csv(output_file, index=False)
-    print(f"Saved course-level data with predictions to: {output_file}")
-    print(f"  Records: {len(merged_with_predictions):,}")
-    print(f"  Columns: {len(merged_with_predictions.columns)}")
+
+# Always save CSV files for backup and local analysis
+output_file = os.path.join(DATA_DIR, 'kctcs_merged_with_predictions.csv')
+merged_with_predictions.to_csv(output_file, index=False)
+print(f"\n✓ Saved course-level predictions to CSV:")
+print(f"  File: {output_file}")
+print(f"  Records: {len(merged_with_predictions):,}")
+print(f"  Columns: {len(merged_with_predictions.columns)}")
 
 # ============================================================================
-# STEP 11: GENERATE SUMMARY REPORT
+# STEP 13: GENERATE SUMMARY REPORT
 # ============================================================================
 print("\n" + "=" * 80)
-print("STEP 11: SUMMARY REPORT")
+print("STEP 13: SUMMARY REPORT")
 print("=" * 80)
 
 summary_report = f"""
@@ -825,17 +1194,49 @@ for cred_type in df['predicted_credential_label'].value_counts().items():
     summary_report += f"     {cred_type[0]:20s} {count:6,} ({pct:5.1f}%)\n"
 
 summary_report += f"""
-5. COURSE SUCCESS (GPA) PREDICTION
-   Algorithm: Random Forest Regressor
-   Mean Predicted GPA: {df['predicted_gpa'].mean():.2f}
+5. GATEWAY MATH SUCCESS PREDICTION (NEW!)
+   Algorithm: XGBoost Classifier
+   Students with Gateway Math Data: {df['gateway_math_probability'].notna().sum():,}
+   Average Pass Probability: {df['gateway_math_probability'].mean():.1%}
    
-   Performance vs. Expected:
+   Gateway Math Risk Distribution:
 """
 
-for perf in df['gpa_performance'].value_counts().items():
-    count = perf[1]
-    pct = count / len(df) * 100
-    summary_report += f"     {perf[0]:20s} {count:6,} ({pct:5.1f}%)\n"
+for risk in ['High Risk', 'Moderate Risk', 'Likely Pass', 'Very Likely Pass']:
+    count = (df['gateway_math_risk'] == risk).sum()
+    if count > 0:
+        pct = count / len(df) * 100
+        summary_report += f"     {risk:20s} {count:6,} ({pct:5.1f}%)\n"
+
+summary_report += f"""
+6. GATEWAY ENGLISH SUCCESS PREDICTION (NEW!)
+   Algorithm: XGBoost Classifier
+   Students with Gateway English Data: {df['gateway_english_probability'].notna().sum():,}
+   Average Pass Probability: {df['gateway_english_probability'].mean():.1%}
+   
+   Gateway English Risk Distribution:
+"""
+
+for risk in ['High Risk', 'Moderate Risk', 'Likely Pass', 'Very Likely Pass']:
+    count = (df['gateway_english_risk'] == risk).sum()
+    if count > 0:
+        pct = count / len(df) * 100
+        summary_report += f"     {risk:20s} {count:6,} ({pct:5.1f}%)\n"
+
+summary_report += f"""
+7. FIRST-SEMESTER LOW GPA (<2.0) PREDICTION (NEW!)
+   Algorithm: XGBoost Classifier
+   Average Low GPA Probability: {df['low_gpa_probability'].mean():.1%}
+   Students Predicted Low GPA: {(df['low_gpa_prediction'] == 1).sum():,}
+   
+   Academic Risk Level Distribution:
+"""
+
+for risk in ['Low Risk', 'Moderate Risk', 'High Risk', 'Critical Risk']:
+    count = (df['academic_risk_level'] == risk).sum()
+    if count > 0:
+        pct = count / len(df) * 100
+        summary_report += f"     {risk:20s} {count:6,} ({pct:5.1f}%)\n"
 
 output_location = "DATABASE TABLES" if USE_DATABASE else "CSV FILES"
 summary_report += f"""
@@ -877,9 +1278,20 @@ Credential Type:
   - predicted_credential_label (text label)
   - prob_no_credential, prob_certificate, prob_associate, prob_bachelor
 
-Course Success:
-  - predicted_gpa (0-4 scale)
-  - gpa_performance (Above/Below/As Expected)
+Gateway Math Success:
+  - gateway_math_probability (0-1 scale)
+  - gateway_math_prediction (0=Won't Pass, 1=Will Pass)
+  - gateway_math_risk (High Risk/Moderate Risk/Likely Pass/Very Likely Pass)
+
+Gateway English Success:
+  - gateway_english_probability (0-1 scale)
+  - gateway_english_prediction (0=Won't Pass, 1=Will Pass)
+  - gateway_english_risk (High Risk/Moderate Risk/Likely Pass/Very Likely Pass)
+
+First-Semester GPA < 2.0 Risk:
+  - low_gpa_probability (0-1 scale)
+  - low_gpa_prediction (0=Adequate GPA, 1=Low GPA)
+  - academic_risk_level (Low Risk/Moderate Risk/High Risk/Critical Risk)
 
 {'=' * 80}
 PIPELINE COMPLETE!
