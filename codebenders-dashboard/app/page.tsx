@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { KPICard } from "@/components/kpi-card"
 import { RiskAlertChart } from "@/components/risk-alert-chart"
 import { RetentionRiskChart } from "@/components/retention-risk-chart"
+import { ReadinessAssessmentChart } from "@/components/readiness-assessment-chart"
 import { ExportButton } from "@/components/export-button"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, Users, AlertTriangle, BookOpen, Search } from "lucide-react"
@@ -29,12 +30,32 @@ interface RetentionRiskData {
   percentage: number
 }
 
+interface ReadinessData {
+  summary: {
+    total_students: number
+    avg_score: string
+    min_score: string
+    max_score: string
+    high_count: number
+    medium_count: number
+    low_count: number
+  }
+  distribution: any[]
+  score_distribution: any[]
+  assessments: any[]
+  top_risk_factors: any[]
+  cohort_breakdown: any[]
+}
+
 export default function DashboardPage() {
   const [kpis, setKpis] = useState<KPIData | null>(null)
   const [riskAlerts, setRiskAlerts] = useState<RiskAlertData[]>([])
   const [retentionRisk, setRetentionRisk] = useState<RetentionRiskData[]>([])
+  const [readinessData, setReadinessData] = useState<ReadinessData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [readinessLoading, setReadinessLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [readinessError, setReadinessError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -70,7 +91,34 @@ export default function DashboardPage() {
       }
     }
 
+    const fetchReadinessData = async () => {
+      try {
+        setReadinessLoading(true)
+        setReadinessError(null)
+
+        const response = await fetch("/api/dashboard/readiness")
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch readiness assessment data")
+        }
+
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          setReadinessData(result.data)
+        } else {
+          throw new Error(result.error || "Invalid readiness data format")
+        }
+      } catch (err) {
+        console.error("Error fetching readiness data:", err)
+        setReadinessError(err instanceof Error ? err.message : "Failed to load readiness assessment")
+      } finally {
+        setReadinessLoading(false)
+      }
+    }
+
     fetchDashboardData()
+    fetchReadinessData()
   }, [])
 
   return (
@@ -238,6 +286,23 @@ export default function DashboardPage() {
                 <p className="mt-2"><strong>Note:</strong> These are different from Risk Alerts above. This chart shows pure retention probability, while Risk Alerts combine retention with GPA and completion metrics.</p>
               </>
             }
+          />
+        </div>
+
+        {/* Readiness Assessment Section */}
+        <div className="border-t border-border pt-6">
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+              Student Readiness Assessment
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              AI-powered analysis identifying student preparation levels and intervention needs
+            </p>
+          </div>
+          <ReadinessAssessmentChart 
+            data={readinessData}
+            isLoading={readinessLoading}
+            error={readinessError || undefined}
           />
         </div>
 
