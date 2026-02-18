@@ -13,7 +13,7 @@ export function getPool(): Pool {
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      port: Number.parseInt(process.env.DB_PORT || "6543"),
+      port: Number.parseInt(process.env.DB_PORT || "54332"),
       database: process.env.DB_NAME || "postgres",
       ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
       max: 10,

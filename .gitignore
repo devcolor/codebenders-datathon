@@ -57,6 +57,7 @@ pnpm-lock.yaml
 # Exceptions: dashboard source files that conflict with Python ignores above
 !codebenders-dashboard/lib/
 !codebenders-dashboard/lib/**
+
 dist/
 dist-ssr/
 *.local
