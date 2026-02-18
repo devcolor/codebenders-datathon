@@ -18,6 +18,9 @@ export function getPool(): Pool {
       ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
       max: 10,
     })
+    pool.on("error", (err) => {
+      console.error("Unexpected pg pool error:", err)
+    })
   }
   return pool
 }

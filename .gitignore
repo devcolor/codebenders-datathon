@@ -162,6 +162,10 @@ docker-compose.override.yml
 *.pid.lock
 .terraform/
 
+# Exceptions: dashboard source files that conflict with Python ignores above
+!codebenders-dashboard/lib/
+!codebenders-dashboard/lib/**
+
 # Operations scripts (local utilities)
 operations/fix_institution_id.py
 operations/list_tables.py

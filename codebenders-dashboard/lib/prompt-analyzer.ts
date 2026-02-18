@@ -2,28 +2,28 @@ import type { QueryPlan } from "./types"
 
 // Database schema mapping
 const SCHEMA_CONFIG = {
-  // Map institution codes to database names
+  // Map institution codes to database names (Postgres uses single DB; table name is the key)
   institutionDbMap: {
-    kctcs: "Kentucky_Community_and_Technical_College_System",
+    bscc: "postgres",
     akron: "University_of_Akron",
   },
   // Primary table for student-level analytics
-  mainTable: "cohort",
+  mainTable: "student_level_with_predictions",
   // Map metric names to actual column names
   metricColumnMap: {
-    retention_rate: "Retention",
-    completion_rate: "Persistence",
-    gpa: "GPA_Group_Year_1",
-    credits_earned: "Number_of_Credits_Earned_Year_1",
+    retention_rate: "retention",
+    completion_rate: "persistence",
+    gpa: "gpa_group_year_1",
+    credits_earned: "number_of_credits_earned_year_1",
     count: "COUNT(*)",
   },
   // Map groupBy fields to actual column names
   groupByColumnMap: {
-    cohort: "Cohort",
-    term: "Cohort_Term",
-    program: "Program_of_Study_Year_1",
-    course_code: "Course_Prefix",
-    enrollment_status: "Enrollment_Type",
+    cohort: "cohort",
+    term: "cohort_term",
+    program: "program_of_study_year_1",
+    course_code: "course_prefix",
+    enrollment_status: "enrollment_type",
   },
 }
 
@@ -59,16 +59,15 @@ export function analyzePrompt(prompt: string, institutionCode: string): QueryPla
   // Determine filters
   const filters: Record<string, any> = {}
 
+  // NOTE: This non-LLM fallback path generates approximate filters.
+  // cohort is a numeric year (e.g. 2024); cohort_term is a string ("Fall", "Spring", "Summer").
+  // "Last two terms" maps to cohort = 2024 as an approximation; the LLM path handles this correctly.
   if (lowerPrompt.includes("last two terms") || lowerPrompt.includes("last 2 terms")) {
-    if (groupBy === "cohort") {
-      filters.cohort = ["2024-Fall", "2025-Spring"]
-    } else {
-      filters.term = ["Fall 2024", "Spring 2025"]
-    }
+    filters.cohort = 2024
   } else if (lowerPrompt.includes("2024")) {
-    filters.term = ["Spring 2024", "Fall 2024"]
+    filters.cohort = 2024
   } else if (lowerPrompt.includes("2025")) {
-    filters.term = ["Spring 2025", "Fall 2025"]
+    filters.cohort = 2025
   }
 
   // Status filters
@@ -101,14 +100,14 @@ export function analyzePrompt(prompt: string, institutionCode: string): QueryPla
   // Map to actual database columns
   const actualMetricColumn = metric ? SCHEMA_CONFIG.metricColumnMap[metric as keyof typeof SCHEMA_CONFIG.metricColumnMap] : undefined
   const actualGroupByColumn = groupBy ? SCHEMA_CONFIG.groupByColumnMap[groupBy as keyof typeof SCHEMA_CONFIG.groupByColumnMap] : undefined
-  
+
   // Generate SQL with actual schema
   const selectClause = actualGroupByColumn
     ? actualMetricColumn && actualMetricColumn !== "COUNT(*)"
       ? `${actualGroupByColumn}, AVG(${actualMetricColumn}) as ${metric}`
       : `${actualGroupByColumn}, COUNT(*) as count`
     : actualMetricColumn
-      ? actualMetricColumn === "COUNT(*)" 
+      ? actualMetricColumn === "COUNT(*)"
         ? "COUNT(*) as count"
         : `AVG(${actualMetricColumn}) as ${metric}`
       : "COUNT(*) as count"
@@ -132,27 +131,22 @@ export function analyzePrompt(prompt: string, institutionCode: string): QueryPla
   const groupByClause = actualGroupByColumn ? `GROUP BY ${actualGroupByColumn}` : ""
   const orderByColumn = actualGroupByColumn || (actualMetricColumn && actualMetricColumn !== "COUNT(*)" ? actualMetricColumn : "count")
 
-  // Get database name for institution
-  const dbName = SCHEMA_CONFIG.institutionDbMap[institutionCode as keyof typeof SCHEMA_CONFIG.institutionDbMap] || institutionCode
+  // Postgres: single-database, reference table directly (no cross-database backtick syntax)
   const tableName = SCHEMA_CONFIG.mainTable
 
   const sql = `SELECT ${selectClause}
-FROM \`${dbName}\`.${tableName}
+FROM ${tableName}
 ${whereClause ? `WHERE ${whereClause}` : ""}
 ${groupByClause}
 ORDER BY ${orderByColumn}`.trim()
 
   const queryParams = new URLSearchParams()
-
-  // Add limit parameter
   queryParams.append("limit", "1000")
   queryParams.append("offset", "0")
 
-  // Convert filters to query parameters
   if (filters && Object.keys(filters).length > 0) {
     Object.entries(filters).forEach(([key, value]) => {
       if (Array.isArray(value)) {
-        // For array values, add multiple parameters with the same key
         value.forEach((v) => queryParams.append(key, String(v)))
       } else {
         queryParams.append(key, String(value))

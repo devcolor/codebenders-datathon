@@ -1,31 +1,22 @@
 import type { QueryPlan, QueryResult } from "./types"
 
-const API_BASE_URL = "https://schools.syntex-ai.com"
-
 export async function executeQuery(
   plan: QueryPlan,
   institutionCode: string,
   useDirectDB = false,
 ): Promise<QueryResult> {
   try {
-    console.log("[v0] Executing query for institution:", institutionCode)
-    console.log("[v0] Query plan:", plan)
-    console.log("[v0] Using direct DB:", useDirectDB)
-
     if (useDirectDB) {
       return await executeDirectDB(plan, institutionCode)
     }
 
     const url = plan.queryString
-    console.log("[v0] Fetching from:", url)
-
     const response = await fetch(url)
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`)
     }
 
     const data: any[] = await response.json()
-    console.log("[v0] Received data:", data.length, "records")
 
     // If no groupBy, return raw data or single aggregate
     if (!plan.groupBy) {
@@ -44,7 +35,6 @@ export async function executeQuery(
 
     if (data.length > 0 && plan.groupBy in data[0]) {
       const grouped = groupBy(data, plan.groupBy)
-      console.log("[v0] Grouped into", Object.keys(grouped).length, "groups")
 
       const results = Object.entries(grouped).map(([key, records]) => {
         const result: Record<string, any> = {
@@ -69,8 +59,6 @@ export async function executeQuery(
         return aVal < bVal ? -1 : aVal > bVal ? 1 : 0
       })
 
-      console.log("[v0] Final results:", results)
-
       return {
         data: results,
         rowCount: results.length,
@@ -82,14 +70,12 @@ export async function executeQuery(
       rowCount: data.length,
     }
   } catch (error) {
-    console.error("[v0] Query execution error:", error)
+    console.error("Query execution error:", error)
     throw error
   }
 }
 
 async function executeDirectDB(plan: QueryPlan, institutionCode: string): Promise<QueryResult> {
-  console.log("[v0] Executing SQL directly:", plan.sql)
-
   const response = await fetch("/api/execute-sql", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -105,7 +91,6 @@ async function executeDirectDB(plan: QueryPlan, institutionCode: string): Promis
   }
 
   const result = await response.json()
-  console.log("[v0] Direct DB returned:", result.rowCount, "records")
 
   return {
     data: result.data,
