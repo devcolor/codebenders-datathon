@@ -1,14 +1,14 @@
 """
-KCTCS Student Success Prediction - AI Model Package
-====================================================
+Bishop State Student Success Prediction - AI Model Package
+==========================================================
 
 This package contains machine learning models for predicting student success
-at Kentucky Community and Technical College System (KCTCS).
+at Bishop State Community College (BSCC).
 
 Modules:
 --------
 - complete_ml_pipeline.py: Complete ML pipeline with 5 prediction models
-- merge_kctcs_data.py: Data merging and preprocessing script
+- merge_bishop_state_data.py: Data merging and preprocessing script
 
 Models:
 -------
