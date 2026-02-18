@@ -59,16 +59,15 @@ export function analyzePrompt(prompt: string, institutionCode: string): QueryPla
   // Determine filters
   const filters: Record<string, any> = {}
 
+  // NOTE: This non-LLM fallback path generates approximate filters.
+  // cohort is a numeric year (e.g. 2024); cohort_term is a string ("Fall", "Spring", "Summer").
+  // "Last two terms" maps to cohort = 2024 as an approximation; the LLM path handles this correctly.
   if (lowerPrompt.includes("last two terms") || lowerPrompt.includes("last 2 terms")) {
-    if (groupBy === "cohort") {
-      filters.cohort = ["2024-Fall", "2025-Spring"]
-    } else {
-      filters.term = ["Fall 2024", "Spring 2025"]
-    }
+    filters.cohort = 2024
   } else if (lowerPrompt.includes("2024")) {
-    filters.term = ["Spring 2024", "Fall 2024"]
+    filters.cohort = 2024
   } else if (lowerPrompt.includes("2025")) {
-    filters.term = ["Spring 2025", "Fall 2025"]
+    filters.cohort = 2025
   }
 
   // Status filters
