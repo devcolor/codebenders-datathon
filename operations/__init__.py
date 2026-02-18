@@ -1,7 +1,7 @@
 """
 Operations Package
 ==================
-Database utilities and configuration for KCTCS ML Pipeline
+Database utilities and configuration for Bishop State ML Pipeline
 """
 
 from .db_config import DB_CONFIG, TABLES

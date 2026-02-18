@@ -1,6 +1,6 @@
 """
-Complete ML Pipeline for KCTCS Student Success Prediction
-==========================================================
+Complete ML Pipeline for Bishop State Student Success Prediction
+================================================================
 Models:
 1. Retention Prediction (Binary Classification)
 2. Early Warning System (Binary Classification)
@@ -8,7 +8,7 @@ Models:
 4. Credential Type Prediction (Multi-class Classification)
 5. Course Success Prediction (Regression)
 
-Output: Predictions saved to MariaDB database tables
+Output: Predictions saved to Supabase Postgres tables
 """
 
 import pandas as pd
@@ -71,7 +71,7 @@ print("STEP 1: DATA LOADING")
 print("=" * 80)
 
 print("\nLoading student-level dataset...")
-student_file = os.path.join(DATA_DIR, 'kctcs_student_level_with_zip.csv')
+student_file = os.path.join(DATA_DIR, 'bishop_state_student_level_with_zip.csv')
 print(f"Reading from: {student_file}")
 df = pd.read_csv(student_file)
 print(f"Loaded {len(df):,} students with {len(df.columns)} features")
@@ -1075,7 +1075,7 @@ if USE_DATABASE:
         USE_DATABASE = False
 
 # Always save CSV files for backup and local analysis
-output_file = os.path.join(DATA_DIR, 'kctcs_student_level_with_predictions.csv')
+output_file = os.path.join(DATA_DIR, 'bishop_state_student_level_with_predictions.csv')
 df.to_csv(output_file, index=False)
 print(f"\n✓ Saved student-level predictions to CSV:")
 print(f"  File: {output_file}")
@@ -1090,7 +1090,7 @@ print("STEP 12: MERGING PREDICTIONS WITH COURSE-LEVEL FILE")
 print("=" * 80)
 
 print("\nLoading course-level merged file...")
-merged_file = os.path.join(DATA_DIR, 'kctcs_merged_with_zip.csv')
+merged_file = os.path.join(DATA_DIR, 'bishop_state_student_level_with_zip.csv')
 print(f"Reading from: {merged_file}")
 merged_df = pd.read_csv(merged_file)
 print(f"Loaded {len(merged_df):,} course records")
@@ -1123,7 +1123,7 @@ if USE_DATABASE:
         print(f"  Columns: {len(merged_with_predictions.columns)}")
 
 # Always save CSV files for backup and local analysis
-output_file = os.path.join(DATA_DIR, 'kctcs_merged_with_predictions.csv')
+output_file = os.path.join(DATA_DIR, 'bishop_state_merged_with_predictions.csv')
 merged_with_predictions.to_csv(output_file, index=False)
 print(f"\n✓ Saved course-level predictions to CSV:")
 print(f"  File: {output_file}")
@@ -1138,7 +1138,7 @@ print("STEP 13: SUMMARY REPORT")
 print("=" * 80)
 
 summary_report = f"""
-KCTCS ML PIPELINE - SUMMARY REPORT
+BISHOP STATE ML PIPELINE - SUMMARY REPORT
 {'=' * 80}
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
@@ -1324,7 +1324,7 @@ print("=" * 80)
 db_connected = 1 if USE_DATABASE else 0
 print(f"\nDatabase Connection Status: {db_connected}")
 if db_connected == 1:
-    print("  ✓ Successfully connected to MariaDB")
+    print("  ✓ Successfully connected to Supabase Postgres")
     print(f"  ✓ Database: {DB_CONFIG['database']}")
     print(f"  ✓ Host: {DB_CONFIG['host']}")
 else:
