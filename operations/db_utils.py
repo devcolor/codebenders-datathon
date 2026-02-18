@@ -4,10 +4,9 @@ Database Utilities for MariaDB
 Helper functions for database operations
 """
 
-import pandas as pd
 import pymysql
 from sqlalchemy import create_engine, text
-from .db_config import DB_CONFIG, TABLES
+from .db_config import DB_CONFIG
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -39,7 +38,7 @@ def get_sqlalchemy_engine():
             f"@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
         )
         engine = create_engine(connection_string, pool_pre_ping=True)
-        print(f"✓ SQLAlchemy engine created")
+        print("✓ SQLAlchemy engine created")
         return engine
     except Exception as e:
         print(f"✗ Engine creation failed: {e}")
@@ -145,7 +144,7 @@ def create_model_performance_table():
         
         cursor.execute(create_table_sql)
         connection.commit()
-        print(f"✓ Model performance table created/verified")
+        print("✓ Model performance table created/verified")
         
         cursor.close()
         connection.close()

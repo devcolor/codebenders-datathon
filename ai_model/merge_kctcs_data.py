@@ -1,5 +1,4 @@
 import pandas as pd
-from datetime import datetime
 
 print("=" * 80)
 print("MERGING KCTCS DATA FILES")
@@ -98,12 +97,12 @@ print(f"Unique students: {final_merged['Student_GUID'].nunique():,}")
 students_with_courses = final_merged[final_merged['course_id'].notna()]['Student_GUID'].nunique()
 students_without_courses = final_merged[final_merged['course_id'].isna()]['Student_GUID'].nunique()
 
-print(f"\nData breakdown:")
+print("\nData breakdown:")
 print(f"  - Students with course records: {students_with_courses:,}")
 print(f"  - Students without course records: {students_without_courses:,}")
 print(f"  - Average courses per student (for those with courses): {len(final_merged[final_merged['course_id'].notna()]) / students_with_courses:.1f}")
 
-print(f"\nColumn categories:")
+print("\nColumn categories:")
 cohort_cols = [col for col in final_merged.columns if not col.startswith('ar_') and not col.startswith('course_') and col not in ['ar_id', 'course_id']]
 ar_cols = [col for col in final_merged.columns if col.startswith('ar_') or col == 'ar_id']
 course_cols = [col for col in final_merged.columns if col.startswith('course_') or col == 'course_id']
@@ -112,7 +111,7 @@ print(f"  - Cohort columns: {len(cohort_cols)}")
 print(f"  - AR columns: {len(ar_cols)}")
 print(f"  - Course columns: {len(course_cols)}")
 
-print(f"\nFirst few column names:")
+print("\nFirst few column names:")
 print(f"  First 10 columns: {list(final_merged.columns[:10])}")
 
 print("\n" + "=" * 80)
