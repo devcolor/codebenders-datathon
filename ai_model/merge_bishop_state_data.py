@@ -11,7 +11,7 @@ Outputs:
   aggregated course-level features)
 
 The output schema matches what complete_ml_pipeline.py expects from
-kctcs_student_level_with_zip.csv.
+bishop_state_student_level_with_zip.csv.
 """
 
 import os
