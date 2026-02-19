@@ -16,8 +16,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
 const INSTITUTIONS = [
-  { name: "KCTCS", code: "kctcs" },
-  { name: "Bishop State", code: "al" },
+  { name: "Bishop State", code: "bscc" },
   { name: "University of Akron", code: "oh" },
   { name: "Cal State San Bernardino", code: "csusb" },
   { name: "Thomas More University", code: "ky" },
