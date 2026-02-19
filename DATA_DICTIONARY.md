@@ -1,7 +1,7 @@
-# KCTCS Student-Level Dataset - Data Dictionary
+# Bishop State Student-Level Dataset - Data Dictionary
 
-**File**: `kctcs_student_level_with_predictions.csv`  
-**Records**: 32,800 students (one row per student)  
+**File**: `bishop_state_student_level_with_predictions.csv`
+**Records**: 4,000 students (one row per student)  
 **Features**: 156 columns (including 22 ML prediction columns)  
 **Purpose**: Predictive modeling for student outcomes in education with comprehensive ML predictions
 
@@ -37,7 +37,7 @@
 ### 3. ENROLLMENT CHARACTERISTICS (10 features)
 | Feature | Description | Values/Type |
 |---------|-------------|-------------|
-| `Institution_ID` | KCTCS institution identifier | Integer |
+| `Institution_ID` | Institution identifier | Integer |
 | `Cohort` | Cohort year | "2019-20", "2018-19", etc. |
 | `Cohort_Term` | Initial enrollment term | "FALL", "SPRING", "SUMMER" |
 | `Enrollment_Type` | Type of enrollment | "First-Time", "Transfer-In" |
@@ -293,10 +293,10 @@ Information about institutions where students transferred or earned credentials:
 ### 12. METADATA (5 features)
 | Feature | Description | Type |
 |---------|-------------|------|
-| `school` | Institution name | "KCTCS" |
+| `school` | Institution name | "BSCC" |
 | `dataset_type` | Dataset type indicator | "S" |
 | `created_at` | Record creation timestamp | DateTime |
-| `ar_school` | AR data school | "KCTCS" |
+| `ar_school` | AR data school | "BSCC" |
 | `ar_created_at` | AR record timestamp | DateTime |
 
 ---
@@ -370,7 +370,7 @@ You can still build custom models for:
   - Credits earned: 12.7
   - Course completion rate: 82.3%
   - Average GPA: 2.07
-  - Retention rate: Available for all 32,800 students
+  - Retention rate: Available for all 4,000 students
 
 ---
 
@@ -398,43 +398,38 @@ You can still build custom models for:
 ## 📁 RELATED FILES IN DATASET
 
 ### Primary Analysis Files
-1. **`kctcs_student_level_with_predictions.csv`** (32,800 students, 156 columns)
+1. **`bishop_state_student_level_with_predictions.csv`** (4,000 students, 156 columns)
    - Student-level aggregated data with ML predictions
    - **THIS FILE** - primary dataset for analysis
    - Includes all 22 ML prediction columns
 
-2. **`kctcs_merged_with_predictions.csv`** (145,918 course records, 151 columns)
+2. **`bishop_state_merged_with_predictions.csv`** (~99,559 course records, 151 columns)
    - Course-level data with student predictions joined
    - Each row is a single course enrollment
    - Includes same ML predictions propagated to course level
 
 ### Enhanced Data Files (with ZIP codes)
-3. **`kctcs_student_level_with_zip.csv`** (32,800 students)
+3. **`bishop_state_student_level_with_zip.csv`** (4,000 students)
    - Student-level data with geographic (ZIP code) information
    - Use for geographic analysis and mapping
 
-4. **`kctcs_merged_with_zip.csv`** (145,918 course records)
-   - Course-level data with geographic information
-
-5. **`kctcs_cohorts_with_zip.csv`** (32,800 students)
+4. **`bishop_state_cohorts_with_zip.csv`** (4,000 students)
    - Original cohort data with ZIP codes added
 
-6. **`ar_kcts_with_zip.csv`** (32,800 students)
+5. **`ar_bscc_with_zip.csv`** (4,000 students)
    - AR (Academic Records) data with ZIP codes
 
 ### Original Source Files
-7. **`kctcs_courses.csv`** (145,918 course records)
-   - Original course-level data from API
+6. **`bishop_state_courses.csv`** (~99,559 course records)
+   - Original course-level data
    - Raw data before merging
 
-8. **`De-identified PDP AR Files.xlsx`**
+7. **`De-identified PDP AR Files.xlsx`**
    - Original Excel file with AR data
 
 ### Processing Scripts
-- **`merge_kctcs_data.py`** - Merges cohort, course, and AR data
-- **`create_ar_kcts.py`** - Processes AR data from Excel
-- **`complete_ml_pipeline.py`** - Trains all ML models and generates predictions
-- **`fetch_kctcs_data.py`** - Downloads data from KCTCS API
+- **`ai_model/merge_bishop_state_data.py`** - Merges cohort, course, and AR data
+- **`ai_model/complete_ml_pipeline.py`** - Trains all ML models and generates predictions
 
 ### Documentation
 - **`ML_MODELS_GUIDE.md`** - Detailed guide to ML models and their usage
@@ -446,9 +441,9 @@ You can still build custom models for:
 ## 📊 FILE SIZE REFERENCE
 | File | Rows | Size |
 |------|------|------|
-| `kctcs_student_level_with_predictions.csv` | 32,800 | ~7 MB |
-| `kctcs_merged_with_predictions.csv` | 145,918 | ~29 MB |
-| `kctcs_courses.csv` | 145,918 | ~27 MB |
+| `bishop_state_student_level_with_predictions.csv` | 4,000 | ~7 MB |
+| `bishop_state_merged_with_predictions.csv` | ~99,559 | ~29 MB |
+| `bishop_state_courses.csv` | ~99,559 | ~27 MB |
 
 ---
 

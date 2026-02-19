@@ -38,8 +38,9 @@ This guide will help you deploy the Student Success Dashboard to Vercel.
    DB_HOST=your-database-host
    DB_USER=your-database-user
    DB_PASSWORD=your-database-password
-   DB_PORT=3306
-   DB_NAME=pdp_analytics
+   DB_PORT=5432
+   DB_NAME=postgres
+   DB_SSL=true
    OPENAI_API_KEY=your-openai-key
    ```
 
@@ -101,7 +102,7 @@ Your database needs to be accessible from the internet. Options:
 1. **If using a cloud database** (AWS RDS, Google Cloud SQL, etc.):
    - Add Vercel's IP ranges to your security group/firewall
    - Vercel uses dynamic IPs, so you may need to allow all IPs (0.0.0.0/0) for serverless functions
-   - Better: Use connection pooling services like PlanetScale or Supabase
+   - Better: Use connection pooling services like Supabase
 
 2. **If using a local/private database**:
    - Consider using [Vercel Edge Config](https://vercel.com/docs/storage/edge-config) with a cloud database
@@ -110,10 +111,10 @@ Your database needs to be accessible from the internet. Options:
 
 ### Recommended Database Options for Production
 
-- **PlanetScale** - MySQL-compatible, excellent Vercel integration
-- **Supabase** - PostgreSQL, free tier available
-- **AWS RDS** - Traditional cloud database
-- **Railway** - Easy database hosting
+- **Supabase** - PostgreSQL, free tier available, excellent Vercel integration
+- **AWS RDS** - Traditional cloud database (Postgres)
+- **Railway** - Easy Postgres hosting
+- **Neon** - Serverless Postgres, ideal for Vercel
 
 ## After Deployment
 

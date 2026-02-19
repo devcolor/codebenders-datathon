@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-KCTCS Student Success Prediction - Full-stack ML + web application predicting student outcomes for Kentucky Community and Technical College System (KCTCS). Uses 5 ML models to generate retention predictions, early warnings, time-to-credential estimates, credential type forecasts, and GPA predictions for ~20K students.
+Bishop State Student Success Prediction - Full-stack ML + web application predicting student outcomes for Bishop State Community College. Uses 5 ML models to generate retention predictions, early warnings, time-to-credential estimates, credential type forecasts, and GPA predictions for ~4K students.
 
 ## Tech Stack
 
@@ -14,7 +14,7 @@ KCTCS Student Success Prediction - Full-stack ML + web application predicting st
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
 | Charts | Recharts |
 | UI Components | shadcn/ui (Radix UI) |
-| Database | MariaDB 10.11, MySQL2 driver |
+| Database | Postgres (Supabase), pg driver |
 | AI Features | OpenAI (natural language query analysis) |
 | Infrastructure | Docker Compose, Vercel |
 
@@ -50,15 +50,15 @@ npm run lint                              # Lint check
 
 ### Docker
 ```bash
-docker-compose up -d                      # Start MariaDB + phpMyAdmin
+docker-compose up -d                      # Start Postgres + pgAdmin
 docker-compose down -v                    # Stop and remove volumes
 ```
 
 ## Database Schema
 
-Three main tables in `Kentucky_Community_and_Technical_College_System`:
-- `student_predictions` - Student-level predictions (~20K records)
-- `course_predictions` - Course-level predictions (~500K records)
+Three main tables in the `bishop_state` Postgres database:
+- `student_predictions` - Student-level predictions (~4K records)
+- `course_predictions` - Course-level predictions (~100K records)
 - `ml_model_performance` - Model metrics and training history
 
 ## Key Entry Points
