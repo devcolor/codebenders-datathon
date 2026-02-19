@@ -1,6 +1,6 @@
 # 🚀 Quick Start Guide
 
-Get up and running with the KCTCS Student Success Prediction project in 5 minutes!
+Get up and running with the Bishop State Student Success Prediction project in 5 minutes!
 
 ## ⚡ Fast Track
 
@@ -24,14 +24,15 @@ python complete_ml_pipeline.py
 codebenders-datathon/
 ├── ai_model/              # ML scripts - START HERE
 │   ├── complete_ml_pipeline.py    # Main script (run this!)
-│   ├── merge_kctcs_data.py        # Data merging (optional)
-│   └── README.md                  # Detailed AI model docs
+│   ├── merge_bishop_state_data.py # Data merging (optional)
+│   └── generate_bishop_state_data.py  # Synthetic data generation
 │
 ├── data/                  # All CSV files and predictions
-│   ├── *_with_zip.csv            # Input data files
-│   ├── *_with_predictions.csv    # Output predictions
-│   └── README.md                 # Data documentation
+│   ├── bishop_state_*_with_zip.csv       # Input data files
+│   ├── bishop_state_*_with_predictions.csv  # Output predictions
+│   └── README.md                         # Data documentation
 │
+├── codebenders-dashboard/ # Next.js web dashboard
 ├── README.md              # Full project documentation
 ├── DATA_DICTIONARY.md     # Field descriptions
 └── ML_MODELS_GUIDE.md     # Model details
@@ -43,7 +44,7 @@ Running the pipeline generates predictions for **all students**:
 
 ### 5 Prediction Models
 
-1. **Retention** - Will they return? (85-90% accurate)
+1. **Retention** - Will they return? (53% AUC)
 2. **Early Warning** - Are they at risk? (4-level alert system)
 3. **Time-to-Credential** - When will they graduate?
 4. **Credential Type** - What will they earn?
@@ -51,8 +52,8 @@ Running the pipeline generates predictions for **all students**:
 
 ### Output Files
 
-- `kctcs_student_level_with_predictions.csv` - One row per student
-- `kctcs_merged_with_predictions.csv` - One row per course
+- `bishop_state_student_level_with_predictions.csv` - One row per student (~4,000)
+- `bishop_state_merged_with_predictions.csv` - One row per course (~99,559)
 - `ML_PIPELINE_REPORT.txt` - Performance summary
 
 ## ⏱️ Runtime
@@ -79,14 +80,14 @@ Running the pipeline generates predictions for **all students**:
 ### Find At-Risk Students
 ```python
 import pandas as pd
-df = pd.read_csv('data/kctcs_student_level_with_predictions.csv')
+df = pd.read_csv('data/bishop_state_student_level_with_predictions.csv')
 
 # Students needing urgent intervention
 urgent = df[df['at_risk_alert'] == 'URGENT']
 print(f"Urgent cases: {len(urgent)}")
 
 # High-risk students with low retention probability
-high_risk = df[(df['retention_probability'] < 0.3) & 
+high_risk = df[(df['retention_probability'] < 0.3) &
                (df['risk_score'] > 70)]
 ```
 
@@ -99,7 +100,7 @@ overperformers = df[df['gpa_performance'] == 'Above Expected']
 ### Predict Graduation Timeline
 ```python
 # Students likely to graduate in 2-3 years
-on_track = df[(df['predicted_time_to_credential'] >= 2) & 
+on_track = df[(df['predicted_time_to_credential'] >= 2) &
               (df['predicted_time_to_credential'] <= 3)]
 ```
 
@@ -128,10 +129,10 @@ n_jobs=-1  # Use all CPU cores
 ## 📚 Learn More
 
 - **[README.md](README.md)** - Full documentation
-- **[ai_model/README.md](ai_model/README.md)** - Model details
 - **[data/README.md](data/README.md)** - Data documentation
 - **[DATA_DICTIONARY.md](DATA_DICTIONARY.md)** - Field descriptions
 - **[ML_MODELS_GUIDE.md](ML_MODELS_GUIDE.md)** - Model guide
+- **[codebenders-dashboard/README.md](codebenders-dashboard/README.md)** - Dashboard docs
 
 ## 🎓 Next Steps
 

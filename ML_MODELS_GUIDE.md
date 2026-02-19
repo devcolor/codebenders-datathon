@@ -1,7 +1,7 @@
 # Student Success Prediction Models - Guide for Education Leaders
 
-**Generated**: October 30, 2025  
-**Dataset**: KCTCS Student Data (32,800 students, 145,918 course records)
+**Generated**: October 30, 2025
+**Dataset**: Bishop State Student Data (4,000 students, 99,559 course records)
 **Models**: 8 predictive models to identify at-risk students and improve retention
 
 ---
@@ -37,14 +37,14 @@ This guide explains our machine learning models that predict student success out
 ## 📊 Output Files - Which One Should I Use?
 
 ### For Student-Level Analysis (Dashboards, Reports)
-**File**: `kctcs_student_level_with_predictions.csv`
-- **32,800 rows** (one per student)
+**File**: `bishop_state_student_level_with_predictions.csv`
+- **4,000 rows** (one per student)
 - **166 columns** (original data + 31 prediction columns)
 - **Use when**: Creating student lists, advisor dashboards, retention reports
 
 ### For Course-Level Analysis (Course Performance)
-**File**: `kctcs_merged_with_predictions.csv`
-- **145,918 rows** (one per course enrollment)
+**File**: `bishop_state_merged_with_predictions.csv`
+- **99,559 rows** (one per course enrollment)
 - **160 columns** (original data + 25 prediction columns)
 - **Use when**: Analyzing which courses have high failure rates, tracking enrollment patterns
 
@@ -642,8 +642,8 @@ A: Wait for more data (3-5 years) or try SMOTE/oversampling. Current predictions
 ```
 codebenders-datathon/
 ├── data/
-│   ├── kctcs_student_level_with_predictions.csv ⭐ Main output (32,800 students)
-│   ├── kctcs_merged_with_predictions.csv (145,918 course records)
+│   ├── bishop_state_student_level_with_predictions.csv ⭐ Main output (4,000 students)
+│   ├── bishop_state_merged_with_predictions.csv (99,559 course records)
 │   └── model_comparison_results.csv (model performance)
 │
 ├── complete_ml_pipeline_csv_only.py (run this to generate predictions)
@@ -711,7 +711,7 @@ codebenders-datathon/
 
 **Version**: 5.0 (8 Models - October 30, 2025)  
 **Models**: 8 predictive models (3 high-performing, 3 moderate, 2 limited)  
-**Records**: 32,800 students with 166 total columns (31 prediction columns)  
+**Records**: 4,000 students with 166 total columns (31 prediction columns)  
 **Best Models**: Low GPA Risk (99% AUC), Gateway English (81% AUC), Gateway Math (64% AUC)
 
 **New in v5.0**: Added Model 6 (GPA Prediction) - predicts expected GPA and identifies over/underperformers

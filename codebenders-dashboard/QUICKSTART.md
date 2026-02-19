@@ -37,11 +37,12 @@ cp ../.env.example .env.local
 
 Edit `.env.local`:
 ```env
-DB_HOST=your-mysql-host
-DB_USER=your-mysql-user
-DB_PASSWORD=your-mysql-password
-DB_PORT=3306
-DB_NAME=pdp_analytics
+DB_HOST=127.0.0.1
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_PORT=54332
+DB_NAME=postgres
+DB_SSL=false
 ```
 
 ### 2. Install Dependencies (if not already done)
@@ -81,7 +82,7 @@ You should see:
   - http://localhost:3000/api/dashboard/retention-risk
 
 ### Table doesn't exist error
-The APIs expect a table named `student_predictions` with the schema defined in `/kctcs_student_level_with_predictions_schema.json`.
+The APIs expect a table named `student_predictions` in the `bishop_state` Postgres database (Supabase).
 
 Key columns used:
 - `Retention` (0 or 1)

@@ -1,16 +1,17 @@
 # Operations Package
 
-Database utilities and configuration for the KCTCS ML Pipeline.
+Database utilities and configuration for the Bishop State ML Pipeline.
 
 ## 📁 Files
 
 ### `db_config.py`
-Database configuration and credentials for MariaDB.
+Database configuration and credentials for Postgres (Supabase).
 
-**Configuration:**
-- Host: `devcolor00.czqeeakaypfi.us-west-2.rds.amazonaws.com`
-- Database: `Kentucky_Community_and_Technical_College_System`
-- Port: `3306`
+**Configuration (env vars):**
+- `DB_HOST` - Database host (default: `127.0.0.1`)
+- `DB_PORT` - Port (default: `54332` for local Supabase direct connection)
+- `DB_NAME` - Database name (default: `postgres`)
+- `DB_USER` / `DB_PASSWORD` - Credentials
 
 **Tables:**
 - `student_predictions` - Student-level predictions
@@ -21,7 +22,7 @@ Database configuration and credentials for MariaDB.
 Database utility functions for saving data and managing connections.
 
 **Functions:**
-- `get_connection()` - Create PyMySQL connection
+- `get_connection()` - Create psycopg2 connection
 - `get_sqlalchemy_engine()` - Create SQLAlchemy engine
 - `save_dataframe_to_db()` - Save DataFrame to database in batches (10k records per batch)
 - `create_model_performance_table()` - Create performance tracking table
@@ -73,9 +74,9 @@ Processing in 50 batches of 10,000 records each
 
 ## 🔒 Security
 
-- Database credentials are stored in `db_config.py`
-- Do not commit sensitive credentials to version control
-- Use environment variables for production deployments
+- Database credentials are stored as environment variables (never hardcoded)
+- Copy `codebenders-dashboard/env.example` to `.env` and fill in your values
+- Use environment variables for all deployments
 
 ## 📝 Notes
 

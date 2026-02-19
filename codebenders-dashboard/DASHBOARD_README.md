@@ -1,8 +1,8 @@
-# KCTCS Student Success Dashboard
+# Bishop State Student Success Dashboard
 
 ## Overview
 
-A modern, interactive dashboard for visualizing student success metrics and predictive analytics for KCTCS (Kentucky Community and Technical College System).
+A modern, interactive dashboard for visualizing student success metrics and predictive analytics for Bishop State Community College.
 
 ## Features
 
@@ -39,7 +39,7 @@ Color-coded from red (critical) to green (low risk).
 
 Advanced query interface for custom data analysis:
 - Natural language to SQL conversion
-- Support for multiple institutions (KCTCS, Bishop State, etc.)
+- Support for multiple institutions (Bishop State, University of Akron, Cal State San Bernardino, Thomas More)
 - Direct database or API mode
 - Interactive visualizations (line, bar, pie charts, tables)
 - Query plan visualization
@@ -52,7 +52,7 @@ Advanced query interface for custom data analysis:
 - **Charts**: Recharts 2.15
 - **Styling**: Tailwind CSS
 - **Components**: Radix UI (shadcn/ui)
-- **Database**: MySQL (via mysql2)
+- **Database**: Postgres (via pg)
 - **Icons**: Lucide React
 
 ## Project Structure
@@ -91,7 +91,7 @@ codebenders-dashboard/
 
 The dashboard queries the `student_predictions` table, which contains:
 
-- **32,800 students** from KCTCS
+- **32,800 students** from Bishop State Community College
 - **Demographics**: Age, race, gender, first-gen status, etc.
 - **Academic metrics**: GPA, credits earned, course completion rates
 - **Enrollment data**: Cohort, term, program of study
@@ -103,7 +103,7 @@ The dashboard queries the `student_predictions` table, which contains:
   - Predicted credential types and graduation years
   - Predicted GPA and performance categories
 
-See `/kctcs_student_level_with_predictions_schema.json` for the complete schema.
+See `codebenders-dashboard/env.example` for the database connection configuration.
 
 ## API Endpoints
 
@@ -164,12 +164,14 @@ Executes SQL queries directly against the database.
 Create a `.env.local` file:
 
 ```env
-# Database Configuration
-DB_HOST=your-database-host
-DB_USER=your-database-user
-DB_PASSWORD=your-database-password
-DB_PORT=3306
-DB_NAME=pdp_analytics
+# Database Configuration (Supabase Postgres)
+DB_HOST=127.0.0.1
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_PORT=54332
+DB_NAME=postgres
+# Set DB_SSL=true for hosted Supabase; leave false or unset for local dev
+DB_SSL=false
 
 # Optional: Enable LLM-powered query analysis
 NEXT_PUBLIC_ENABLE_LLM=0
@@ -181,8 +183,8 @@ OPENAI_API_KEY=your-openai-key
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
-- MySQL database with `student_predictions` table
+- Node.js 18+
+- Postgres database with `student_predictions` table (use `supabase start` for local dev)
 
 ### Installation
 
@@ -194,7 +196,7 @@ npm install
 
 2. Set up environment variables:
 ```bash
-cp ../env.example .env.local
+cp env.example .env.local
 # Edit .env.local with your database credentials
 ```
 
@@ -216,14 +218,14 @@ npm run dev
 
 ### Running Custom Queries
 1. Navigate to `/query` or click the "SQL Query Interface" button
-2. Select an institution (default: KCTCS)
+2. Select an institution (default: Bishop State)
 3. Enter a natural language prompt (e.g., "Show retention by cohort")
 4. Click "Analyze" to generate and execute the query
 5. View results as charts or tables
 
 ## Key Insights from Data
 
-Based on the KCTCS dataset:
+Based on the Bishop State dataset:
 
 - **Top Risk Predictor**: Math placement (35.1% feature importance)
 - **Risk Distribution**: 
@@ -251,7 +253,7 @@ See `/DASHBOARD_VISUALIZATIONS.md` for a comprehensive list of additional visual
 ## References
 
 - **Visualization Guide**: `/DASHBOARD_VISUALIZATIONS.md`
-- **Schema Documentation**: `/kctcs_student_level_with_predictions_schema.json`
+- **Schema Documentation**: `codebenders-dashboard/env.example`
 - **Project PRD**: `/AI_Powered_Student_Success_PRD.md`
 
 ## License
