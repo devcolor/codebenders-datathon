@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KCTCS Student Success Dashboard",
-  description: "AI-Powered Student Success Analytics & Predictive Models for KCTCS",
+  title: "Bishop State Student Success Dashboard",
+  description: "AI-Powered Student Success Analytics & Predictive Models for Bishop State Community College",
 };
 
 export default function RootLayout({

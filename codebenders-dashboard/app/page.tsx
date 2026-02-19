@@ -131,7 +131,7 @@ export default function DashboardPage() {
               Student Success Dashboard
             </h1>
             <p className="text-muted-foreground mt-2">
-              KCTCS Student Analytics & Predictive Models
+              Bishop State Community College Student Analytics & Predictive Models
             </p>
           </div>
           <div className="flex gap-2">
