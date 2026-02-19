@@ -2,7 +2,7 @@
 """
 Generate synthetic PDP-compliant student data for Bishop State Community College.
 
-Creates three CSV files matching the exact schema of existing KCTCS data:
+Creates three CSV files matching the PDP schema used by this project:
   1. data/bishop_state_cohorts_with_zip.csv  (~4,000 students)
   2. data/ar_bscc_with_zip.csv              (~4,000 AR records)
   3. data/bishop_state_courses.csv           (~100,000 course records)
@@ -38,9 +38,9 @@ def read_header(filename):
         return next(reader)
 
 
-COHORT_HEADER = read_header("kctcs_cohorts_with_zip.csv")
-AR_HEADER = read_header("ar_kcts_with_zip.csv")
-COURSE_HEADER = read_header("kctcs_courses.csv")
+COHORT_HEADER = read_header("bishop_state_cohorts_with_zip.csv")
+AR_HEADER = read_header("ar_bscc_with_zip.csv")
+COURSE_HEADER = read_header("bishop_state_courses.csv")
 
 print(f"Cohort columns: {len(COHORT_HEADER)}")
 print(f"AR columns:     {len(AR_HEADER)}")
