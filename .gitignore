@@ -155,6 +155,9 @@ supabase/.env
 # Docker (if used for local dev)
 docker-compose.override.yml
 
+# Git worktrees
+.worktrees/
+
 # Misc
 .cache/
 *.seed
