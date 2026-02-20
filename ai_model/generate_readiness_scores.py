@@ -20,12 +20,17 @@ import sys
 import os
 import time
 import uuid
+import argparse
+import litellm
+from litellm import completion as llm_completion
 from datetime import datetime, timezone
 
 import pandas as pd
 import numpy as np
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
+litellm.telemetry = False  # opt out of LiteLLM usage telemetry
 
 # Ensure project root is on sys.path so `operations` package resolves
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -426,10 +431,99 @@ def score_student(row) -> dict:
 
 
 # ============================================================================
+# LLM Enrichment (optional)
+# ============================================================================
+
+def enrich_with_llm(record: dict, model: str) -> dict:
+    """
+    Replace rationale and suggested_actions with LLM-generated content.
+    Only called for medium/low readiness students.
+    Input is the FERPA-safe profile — no PII sent to any external service.
+    Returns the record with enriched text fields (score unchanged).
+
+    Provider is determined by the model string:
+      "gpt-4o-mini"               -> OpenAI (requires OPENAI_API_KEY)
+      "ollama/llama3.2:3b"        -> local Ollama (no key needed)
+      "claude-haiku-4-5-20251001" -> Anthropic (requires ANTHROPIC_API_KEY)
+    """
+    profile = json.loads(record["input_features"]) if isinstance(record["input_features"], str) else record["input_features"]
+    risk_factors = json.loads(record["risk_factors"]) if isinstance(record["risk_factors"], str) else []
+
+    prompt = f"""You are an academic advisor assistant at Bishop State Community College.
+A student has a readiness score of {record['readiness_score']:.2f} ({record['readiness_level']} readiness).
+
+Student profile (no PII):
+- Enrollment: {profile.get('enrollment_type')} / {profile.get('enrollment_intensity')}
+- First-year GPA: {profile.get('gpa_year1')}
+- Course completion rate: {profile.get('course_completion_rate')}
+- Gateway math completed: {profile.get('gateway_math_completed')}
+- Gateway English completed: {profile.get('gateway_english_completed')}
+- Credits earned Year 1: {profile.get('credits_earned_y1')}
+- Math placement: {profile.get('math_placement')}
+- At-risk alert: {profile.get('at_risk_alert')}
+- Retention probability: {profile.get('retention_probability')}
+
+Identified risk factors:
+{chr(10).join(f'- {f}' for f in risk_factors)}
+
+Write two things:
+1. RATIONALE: A 2-sentence explanation of this student's readiness score for an advisor.
+2. ACTIONS: A JSON array of 3-5 specific, actionable intervention recommendations (strings only).
+
+Format your response exactly as:
+RATIONALE: <text>
+ACTIONS: <json array>"""
+
+    try:
+        response = llm_completion(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=400,
+            temperature=0.3,
+        )
+        text = response.choices[0].message.content.strip()
+
+        rationale_line = next((l for l in text.split("\n") if l.startswith("RATIONALE:")), None)
+        actions_line = next((l for l in text.split("\n") if l.startswith("ACTIONS:")), None)
+
+        if rationale_line:
+            record["rationale"] = rationale_line.replace("RATIONALE:", "").strip()
+        if actions_line:
+            record["suggested_actions"] = actions_line.replace("ACTIONS:", "").strip()
+
+    except Exception as e:
+        print(f"  ⚠ LLM enrichment failed for {record['Student_GUID']}: {e}")
+        # Falls back silently to rule-generated text
+
+    return record
+
+
+# ============================================================================
 # Main
 # ============================================================================
 
 def main():
+    parser = argparse.ArgumentParser(description="Generate student readiness scores")
+    parser.add_argument(
+        "--enrich-with-llm",
+        action="store_true",
+        help="Enrich rationale and suggested_actions for medium/low students via LiteLLM",
+    )
+    parser.add_argument(
+        "--llm-model",
+        default="gpt-4o-mini",
+        help=(
+            "LiteLLM model string (default: gpt-4o-mini). Examples: "
+            "'ollama/llama3.2:3b', 'claude-haiku-4-5-20251001'. "
+            "Credentials resolved automatically from environment variables."
+        ),
+    )
+    args = parser.parse_args()
+
+    if args.enrich_with_llm:
+        print(f"✓ LLM enrichment enabled — model: {args.llm_model}")
+        print("  (medium/low readiness students only; score is never changed)")
+
     print("=" * 70)
     print("READINESS SCORE RULE ENGINE")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -468,6 +562,8 @@ def main():
             elapsed_ms = int((time.monotonic() - t0) * 1000)
             record["generation_ms"] = elapsed_ms
             record["run_id"] = run_id
+            if args.enrich_with_llm and record["readiness_level"] in ("medium", "low"):
+                record = enrich_with_llm(record, args.llm_model)
             records.append(record)
         except Exception as e:
             errors += 1
