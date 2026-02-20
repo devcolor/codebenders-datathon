@@ -30,6 +30,7 @@ This guide explains our machine learning models that predict student success out
 | **6. GPA Prediction** | What GPA will student achieve? | R²=0.25 | Identify over/underperformers |
 | **7. Time to Credential** | How many years until graduation? | R²=0.35 | Graduation timeline planning |
 | **8. Credential Type** | What degree will student earn? | Limited | Limited by data availability |
+| **9. Readiness Score** | How prepared is this student for success? | Rule-based | Advisor prioritization & intervention planning |
 
 
 ---
@@ -342,6 +343,28 @@ Monitor: Students As Expected
 - Model can't learn patterns with so few examples
 
 **Recommendation**: Wait for more cohorts to graduate (3-5 years) before using this model
+
+---
+
+## 📐 Model 9: Student Readiness Score (Rule-Based)
+
+**Type:** Weighted rule engine (not ML)
+**Output:** `readiness_score` (0.0–1.0), `readiness_level` (high/medium/low)
+**Table:** `llm_recommendations`
+**Script:** `ai_model/generate_readiness_scores.py`
+
+Unlike the 8 ML models above, the readiness score is a **deterministic rule-based system** aligned with Postsecondary Data Partnership (PDP) momentum metrics. It combines:
+
+- **Academic sub-score (40%):** GPA, course completion rate, passing rate, gateway course completion, and Year 1 credit momentum (≥12 credits)
+- **Engagement sub-score (30%):** Enrollment intensity, total courses enrolled, math placement level
+- **ML risk sub-score (30%):** Retention probability and at-risk alert from Models 1 & 2 (inverted — higher retention probability = higher readiness)
+
+See [`docs/READINESS_METHODOLOGY.md`](docs/READINESS_METHODOLOGY.md) for full formula, research citations, and upgrade path.
+
+To regenerate scores:
+```bash
+venv/bin/python ai_model/generate_readiness_scores.py
+```
 
 ---
 
