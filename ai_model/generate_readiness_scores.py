@@ -9,7 +9,8 @@ before storage. The Student_GUID is kept only as a foreign key identifier.
 
 Upgrade path: Option A (Ollama LLM) can write to the same table using
 source='ollama' and model_version='llama3.2:3b'. No schema or frontend changes
-needed.
+needed. The UPSERT uses ON CONFLICT ("Student_GUID") — each run overwrites the
+previous score for that student (latest always wins per student).
 
 Usage:
     venv/bin/python ai_model/generate_readiness_scores.py
@@ -21,16 +22,12 @@ import os
 import time
 import uuid
 import argparse
-import litellm
-from litellm import completion as llm_completion
 from datetime import datetime, timezone
 
 import pandas as pd
 import numpy as np
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
-litellm.telemetry = False  # opt out of LiteLLM usage telemetry
 
 # Ensure project root is on sys.path so `operations` package resolves
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -86,6 +83,22 @@ def create_run_record(conn) -> str:
     """Insert a new run record and return its UUID."""
     run_id = str(uuid.uuid4())
     with conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS readiness_generation_runs (
+                run_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                completed_at    TIMESTAMPTZ,
+                source          TEXT NOT NULL,
+                model_version   TEXT NOT NULL,
+                students_input  INTEGER,
+                students_scored INTEGER,
+                errors          INTEGER DEFAULT 0,
+                error_sample    JSONB,
+                triggered_by    TEXT DEFAULT 'manual'
+            )
+            """
+        )
         cur.execute(
             """
             INSERT INTO readiness_generation_runs
@@ -445,7 +458,14 @@ def enrich_with_llm(record: dict, model: str) -> dict:
       "gpt-4o-mini"               -> OpenAI (requires OPENAI_API_KEY)
       "ollama/llama3.2:3b"        -> local Ollama (no key needed)
       "claude-haiku-4-5-20251001" -> Anthropic (requires ANTHROPIC_API_KEY)
+
+    litellm is imported lazily so the default (no-flag) run has no extra
+    dependencies and installs faster in minimal environments.
     """
+    import litellm as _litellm  # lazy import — only needed with --enrich-with-llm
+    from litellm import completion as llm_completion
+    _litellm.telemetry = False  # opt out of LiteLLM usage telemetry
+
     profile = json.loads(record["input_features"]) if isinstance(record["input_features"], str) else record["input_features"]
     risk_factors = json.loads(record["risk_factors"]) if isinstance(record["risk_factors"], str) else []
 
@@ -489,7 +509,12 @@ ACTIONS: <json array>"""
         if rationale_line:
             record["rationale"] = rationale_line.replace("RATIONALE:", "").strip()
         if actions_line:
-            record["suggested_actions"] = actions_line.replace("ACTIONS:", "").strip()
+            raw_actions = actions_line.replace("ACTIONS:", "").strip()
+            try:
+                json.loads(raw_actions)  # validate parseable JSON before storing
+                record["suggested_actions"] = raw_actions
+            except json.JSONDecodeError:
+                pass  # keep rule-generated suggested_actions on malformed LLM output
 
     except Exception as e:
         print(f"  ⚠ LLM enrichment failed for {record['Student_GUID']}: {e}")
