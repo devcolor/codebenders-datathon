@@ -1,9 +1,10 @@
+import type { Metadata } from "next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { ArrowLeft, BookOpen, Database, FlaskConical, ShieldCheck } from "lucide-react"
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Readiness Methodology — Bishop State Student Success Dashboard",
 }
 
@@ -280,7 +281,7 @@ export default function MethodologyPage() {
         {/* Citations */}
         <section className="space-y-4 border-t border-border pt-6">
           <h2 className="text-lg font-semibold">References</h2>
-          <ol className="space-y-2">
+          <ul className="space-y-2">
             {CITATIONS.map((c) => (
               <li key={c.id} className="text-sm">
                 <span className="font-medium">[{c.id}]</span>{" "}
@@ -295,7 +296,7 @@ export default function MethodologyPage() {
                 </a>
               </li>
             ))}
-          </ol>
+          </ul>
         </section>
       </div>
     </div>
