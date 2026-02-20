@@ -143,6 +143,12 @@ export default function DashboardPage() {
               }}
               disabled={loading || !kpis}
             />
+            <Link href="/methodology">
+              <Button variant="outline" className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                Methodology
+              </Button>
+            </Link>
             <Link href="/query">
               <Button variant="outline" className="gap-2">
                 <Search className="h-4 w-4" />
