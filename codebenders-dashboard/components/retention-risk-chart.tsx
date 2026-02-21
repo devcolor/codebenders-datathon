@@ -64,7 +64,7 @@ export function RetentionRiskChart({ data, loading = false, info }: RetentionRis
 
   const chartData = data.map(item => ({
     category: item.category,
-    count: item.count,
+    count: Number(item.count),
     percentage: item.percentage,
   }))
 

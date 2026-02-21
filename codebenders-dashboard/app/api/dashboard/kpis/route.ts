@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
 
     const sql = `
       SELECT
-        AVG(retention) * 100 as overall_retention_rate,
+        AVG("Retention") * 100 as overall_retention_rate,
         AVG(retention_probability) * 100 as avg_predicted_retention,
         SUM(CASE WHEN at_risk_alert IN ('HIGH', 'URGENT') THEN 1 ELSE 0 END) as high_critical_risk_count,
         AVG(course_completion_rate) * 100 as avg_course_completion_rate,

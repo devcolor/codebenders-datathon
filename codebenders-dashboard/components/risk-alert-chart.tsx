@@ -84,7 +84,7 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
 
   const chartData = data.map(item => ({
     name: item.category,
-    value: item.count,
+    value: Number(item.count),
     percentage: item.percentage,
   }))
 
