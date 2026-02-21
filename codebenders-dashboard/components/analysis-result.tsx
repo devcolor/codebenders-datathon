@@ -117,6 +117,7 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
                 <XAxis dataKey={groupByKey} stroke="var(--muted-foreground)" />
                 <YAxis stroke="var(--muted-foreground)" />
                 <Tooltip
+                  cursor={false}
                   wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
                   contentStyle={TOOLTIP_STYLE}
                 />
