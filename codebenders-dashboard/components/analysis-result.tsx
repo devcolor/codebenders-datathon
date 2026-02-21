@@ -31,10 +31,37 @@ const CHART_COLORS = [
 ]
 
 export function AnalysisResult({ result, plan }: AnalysisResultProps) {
+  const renderDataTable = () => {
+    if (!result.data || result.data.length === 0) return null
+    const columns = Object.keys(result.data[0] || {})
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((col) => (
+              <TableHead key={col} className="capitalize">
+                {col.replace(/_/g, " ")}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {result.data.map((row, idx) => (
+            <TableRow key={idx}>
+              {columns.map((col) => (
+                <TableCell key={col}>{typeof row[col] === "number" ? row[col].toFixed(2) : row[col]}</TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )
+  }
+
   const renderVisualization = () => {
     if (!result.data || result.data.length === 0) {
       return (
-        <div className="flex items-center justify-center h-[400px]">
+        <div className="flex items-center justify-center h-48">
           <div className="text-center space-y-2">
             <p className="text-muted-foreground">No data available</p>
           </div>
@@ -50,93 +77,102 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
     switch (plan.vizType) {
       case "line":
         return (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={result.data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey={groupByKey} stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--popover))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "var(--radius)",
-                }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey={metricKey}
-                stroke={CHART_COLORS[0]}
-                strokeWidth={2}
-                dot={{ fill: CHART_COLORS[0] }}
-                name={metricKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="overflow-visible">
+            <ResponsiveContainer width="100%" aspect={16 / 7}>
+              <LineChart data={result.data}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey={groupByKey} stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <Tooltip
+                  wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)",
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey={metricKey}
+                  stroke={CHART_COLORS[0]}
+                  strokeWidth={2}
+                  dot={{ fill: CHART_COLORS[0] }}
+                  name={metricKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         )
 
       case "bar":
         return (
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={result.data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey={groupByKey} stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--popover))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "var(--radius)",
-                }}
-              />
-              <Legend />
-              <Bar 
-                dataKey={metricKey} 
-                fill={CHART_COLORS[0]} 
-                radius={[4, 4, 0, 0]}
-                name={metricKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="overflow-visible">
+            <ResponsiveContainer width="100%" aspect={16 / 7}>
+              <BarChart data={result.data}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey={groupByKey} stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <Tooltip
+                  wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)",
+                  }}
+                />
+                <Legend />
+                <Bar
+                  dataKey={metricKey}
+                  fill={CHART_COLORS[0]}
+                  radius={[4, 4, 0, 0]}
+                  name={metricKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         )
 
       case "pie":
         return (
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-              <Pie
-                data={result.data}
-                dataKey={metricKey}
-                nameKey={groupByKey}
-                cx="50%"
-                cy="50%"
-                outerRadius={120}
-                label
-              >
-                {result.data.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--popover))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "var(--radius)",
-                }}
-              />
-              <Legend 
-                verticalAlign="bottom" 
-                height={36}
-                formatter={(value) => value.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="overflow-visible">
+            <ResponsiveContainer width="100%" aspect={4 / 3}>
+              <PieChart>
+                <Pie
+                  data={result.data}
+                  dataKey={metricKey}
+                  nameKey={groupByKey}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius="40%"
+                  label
+                >
+                  {result.data.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)",
+                  }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  formatter={(value) => value.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         )
 
       case "kpi":
-        const kpiValue = result.data[0]?.[metricKey] || 0
+        const kpiValue = result.data[0]?.[metricKey] ?? 0
         return (
-          <div className="flex items-center justify-center h-[400px]">
+          <div className="flex items-center justify-center h-48">
             <div className="text-center space-y-4">
               <div className="text-6xl font-bold text-foreground">
                 {typeof kpiValue === "number" ? kpiValue.toFixed(1) : kpiValue}
@@ -148,29 +184,9 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
         )
 
       case "table":
-        const columns = Object.keys(result.data[0] || {})
         return (
           <div className="rounded-md border border-border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {columns.map((col) => (
-                    <TableHead key={col} className="capitalize">
-                      {col.replace(/_/g, " ")}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {result.data.map((row, idx) => (
-                  <TableRow key={idx}>
-                    {columns.map((col) => (
-                      <TableCell key={col}>{typeof row[col] === "number" ? row[col].toFixed(2) : row[col]}</TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            {renderDataTable()}
           </div>
         )
 
@@ -187,7 +203,17 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
           {result.rowCount} {result.rowCount === 1 ? "record" : "records"} found
         </CardDescription>
       </CardHeader>
-      <CardContent>{renderVisualization()}</CardContent>
+      <CardContent>
+        {renderVisualization()}
+        {plan.vizType !== "table" && result.data && result.data.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground mb-2">Raw data ({result.rowCount} rows)</p>
+            <div className="max-h-64 overflow-y-auto rounded-md border border-border">
+              {renderDataTable()}
+            </div>
+          </div>
+        )}
+      </CardContent>
     </Card>
   )
 }
