@@ -13,6 +13,15 @@ export interface QueryResult {
   rowCount: number
 }
 
+export interface HistoryEntry {
+  id: string
+  timestamp: string   // ISO 8601
+  institution: string // institution code e.g. "bscc"
+  prompt: string
+  rowCount: number
+  vizType: QueryPlan["vizType"]
+}
+
 export interface PDPRecord {
   student_id: string
   institution: string
