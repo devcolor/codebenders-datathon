@@ -104,8 +104,8 @@ export default function DashboardPage() {
 
         const result = await response.json()
         
-        if (result.success && result.data) {
-          setReadinessData(result.data)
+        if (result.success) {
+          setReadinessData(result.data ?? null)
         } else {
           throw new Error(result.error || "Invalid readiness data format")
         }
@@ -143,6 +143,12 @@ export default function DashboardPage() {
               }}
               disabled={loading || !kpis}
             />
+            <Link href="/methodology">
+              <Button variant="outline" className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                Methodology
+              </Button>
+            </Link>
             <Link href="/query">
               <Button variant="outline" className="gap-2">
                 <Search className="h-4 w-4" />
@@ -213,8 +219,8 @@ export default function DashboardPage() {
                 </ul>
                 <p className="mt-2"><strong>Alert levels:</strong></p>
                 <ul className="list-disc pl-4 mt-1">
-                  <li><strong>URGENT:</strong> Immediate contact needed (1.5%)</li>
-                  <li><strong>HIGH:</strong> Priority intervention (25.4%)</li>
+                  <li><strong>URGENT:</strong> Immediate contact needed</li>
+                  <li><strong>HIGH:</strong> Priority intervention</li>
                 </ul>
                 <p className="mt-2"><strong>Recommended actions:</strong> Immediate advisor outreach, financial aid review, tutoring referrals.</p>
               </>
@@ -310,7 +316,7 @@ export default function DashboardPage() {
         <div className="border-t border-border pt-6">
           <div className="text-sm text-muted-foreground">
             <p>
-              <strong>Data Source:</strong> student_predictions table (32,800 students)
+              <strong>Data Source:</strong> student_level_with_predictions ({kpis ? kpis.totalStudents.toLocaleString() : "4,000"} students)
             </p>
             <p className="mt-1">
               <strong>Last Updated:</strong> {new Date().toLocaleDateString()}

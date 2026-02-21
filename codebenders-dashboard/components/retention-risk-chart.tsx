@@ -76,7 +76,7 @@ export function RetentionRiskChart({ data, loading = false, info }: RetentionRis
           {info && <InfoPopover title="Retention Risk Funnel">{info}</InfoPopover>}
         </div>
         <CardDescription>
-          {data.reduce((sum, item) => sum + item.count, 0).toLocaleString()} total students
+          {data.reduce((sum, item) => sum + Number(item.count), 0).toLocaleString()} total students
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -9,7 +9,8 @@ before storage. The Student_GUID is kept only as a foreign key identifier.
 
 Upgrade path: Option A (Ollama LLM) can write to the same table using
 source='ollama' and model_version='llama3.2:3b'. No schema or frontend changes
-needed.
+needed. The UPSERT uses ON CONFLICT ("Student_GUID") — each run overwrites the
+previous score for that student (latest always wins per student).
 
 Usage:
     venv/bin/python ai_model/generate_readiness_scores.py
@@ -20,6 +21,7 @@ import sys
 import os
 import time
 import uuid
+import argparse
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -81,6 +83,22 @@ def create_run_record(conn) -> str:
     """Insert a new run record and return its UUID."""
     run_id = str(uuid.uuid4())
     with conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS readiness_generation_runs (
+                run_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                completed_at    TIMESTAMPTZ,
+                source          TEXT NOT NULL,
+                model_version   TEXT NOT NULL,
+                students_input  INTEGER,
+                students_scored INTEGER,
+                errors          INTEGER DEFAULT 0,
+                error_sample    JSONB,
+                triggered_by    TEXT DEFAULT 'manual'
+            )
+            """
+        )
         cur.execute(
             """
             INSERT INTO readiness_generation_runs
@@ -236,7 +254,18 @@ def compute_readiness(row) -> tuple:
     english_done = str(row.get("CompletedGatewayEnglishYear1", "")).strip().upper() in ("1", "Y", "YES", "TRUE", "C")
     gateway_component = 0.5 + (0.25 if math_done else 0.0) + (0.25 if english_done else 0.0)
 
-    academic_score = np.mean([gpa_component, completion_component, passing_component, gateway_component])
+    credits_y1 = _safe_float(row.get("Number_of_Credits_Earned_Year_1"))
+    if credits_y1 is None:
+        credit_momentum_component = 0.5
+    elif credits_y1 >= 12:
+        credit_momentum_component = 1.0   # PDP 12-credit momentum milestone
+    elif credits_y1 >= 6:
+        credit_momentum_component = 0.6
+    else:
+        credit_momentum_component = 0.3
+
+    academic_score = np.mean([gpa_component, completion_component, passing_component,
+                              gateway_component, credit_momentum_component])
 
     # --- Engagement sub-score ---
     intensity = str(row.get("Enrollment_Intensity_First_Term", "")).strip().upper()
@@ -250,7 +279,10 @@ def compute_readiness(row) -> tuple:
     total_courses = _safe_float(row.get("total_courses_enrolled"))
     courses_score = min(total_courses / 10.0, 1.0) if total_courses is not None else 0.5
 
-    engagement_score = np.mean([intensity_score, courses_score])
+    math_placement = str(row.get("Math_Placement", "")).strip().upper()
+    math_placement_score = {"C": 1.0, "R": 0.2, "N": 0.5}.get(math_placement, 0.5)
+
+    engagement_score = np.mean([intensity_score, courses_score, math_placement_score])
 
     # --- ML sub-score (inverted risk = readiness) ---
     retention_prob = _safe_float(row.get("retention_probability"))
@@ -305,6 +337,10 @@ def build_risk_factors(row) -> list:
     if not english_done:
         factors.append("Gateway English not completed in Year 1")
 
+    credits_y1 = _safe_float(row.get("Number_of_Credits_Earned_Year_1"))
+    if credits_y1 is not None and credits_y1 < 12:
+        factors.append(f"Below 12-credit Year 1 milestone ({int(credits_y1)} credits earned)")
+
     alert = str(row.get("at_risk_alert", "")).strip().upper()
     if alert in ("URGENT", "HIGH"):
         display_alert = alert.capitalize()
@@ -342,6 +378,9 @@ def build_suggested_actions(risk_factors: list) -> list:
 
     if "below average course completion" in factor_text:
         actions.append("Review course withdrawal patterns with advisor")
+
+    if "12-credit year 1 milestone" in factor_text:
+        actions.append("Increase credit load to reach 12-credit first-year milestone")
 
     return actions
 
@@ -405,10 +444,111 @@ def score_student(row) -> dict:
 
 
 # ============================================================================
+# LLM Enrichment (optional)
+# ============================================================================
+
+def enrich_with_llm(record: dict, model: str) -> dict:
+    """
+    Replace rationale and suggested_actions with LLM-generated content.
+    Only called for medium/low readiness students.
+    Input is the FERPA-safe profile — no PII sent to any external service.
+    Returns the record with enriched text fields (score unchanged).
+
+    Provider is determined by the model string:
+      "gpt-4o-mini"               -> OpenAI (requires OPENAI_API_KEY)
+      "ollama/llama3.2:3b"        -> local Ollama (no key needed)
+      "claude-haiku-4-5-20251001" -> Anthropic (requires ANTHROPIC_API_KEY)
+
+    litellm is imported lazily so the default (no-flag) run has no extra
+    dependencies and installs faster in minimal environments.
+    """
+    import litellm as _litellm  # lazy import — only needed with --enrich-with-llm
+    from litellm import completion as llm_completion
+    _litellm.telemetry = False  # opt out of LiteLLM usage telemetry
+
+    profile = json.loads(record["input_features"]) if isinstance(record["input_features"], str) else record["input_features"]
+    risk_factors = json.loads(record["risk_factors"]) if isinstance(record["risk_factors"], str) else []
+
+    prompt = f"""You are an academic advisor assistant at Bishop State Community College.
+A student has a readiness score of {record['readiness_score']:.2f} ({record['readiness_level']} readiness).
+
+Student profile (no PII):
+- Enrollment: {profile.get('enrollment_type')} / {profile.get('enrollment_intensity')}
+- First-year GPA: {profile.get('gpa_year1')}
+- Course completion rate: {profile.get('course_completion_rate')}
+- Gateway math completed: {profile.get('gateway_math_completed')}
+- Gateway English completed: {profile.get('gateway_english_completed')}
+- Credits earned Year 1: {profile.get('credits_earned_y1')}
+- Math placement: {profile.get('math_placement')}
+- At-risk alert: {profile.get('at_risk_alert')}
+- Retention probability: {profile.get('retention_probability')}
+
+Identified risk factors:
+{chr(10).join(f'- {f}' for f in risk_factors)}
+
+Write two things:
+1. RATIONALE: A 2-sentence explanation of this student's readiness score for an advisor.
+2. ACTIONS: A JSON array of 3-5 specific, actionable intervention recommendations (strings only).
+
+Format your response exactly as:
+RATIONALE: <text>
+ACTIONS: <json array>"""
+
+    try:
+        response = llm_completion(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=400,
+            temperature=0.3,
+        )
+        text = response.choices[0].message.content.strip()
+
+        rationale_line = next((l for l in text.split("\n") if l.startswith("RATIONALE:")), None)
+        actions_line = next((l for l in text.split("\n") if l.startswith("ACTIONS:")), None)
+
+        if rationale_line:
+            record["rationale"] = rationale_line.replace("RATIONALE:", "").strip()
+        if actions_line:
+            raw_actions = actions_line.replace("ACTIONS:", "").strip()
+            try:
+                json.loads(raw_actions)  # validate parseable JSON before storing
+                record["suggested_actions"] = raw_actions
+            except json.JSONDecodeError:
+                pass  # keep rule-generated suggested_actions on malformed LLM output
+
+    except Exception as e:
+        print(f"  ⚠ LLM enrichment failed for {record['Student_GUID']}: {e}")
+        # Falls back silently to rule-generated text
+
+    return record
+
+
+# ============================================================================
 # Main
 # ============================================================================
 
 def main():
+    parser = argparse.ArgumentParser(description="Generate student readiness scores")
+    parser.add_argument(
+        "--enrich-with-llm",
+        action="store_true",
+        help="Enrich rationale and suggested_actions for medium/low students via LiteLLM",
+    )
+    parser.add_argument(
+        "--llm-model",
+        default="gpt-4o-mini",
+        help=(
+            "LiteLLM model string (default: gpt-4o-mini). Examples: "
+            "'ollama/llama3.2:3b', 'claude-haiku-4-5-20251001'. "
+            "Credentials resolved automatically from environment variables."
+        ),
+    )
+    args = parser.parse_args()
+
+    if args.enrich_with_llm:
+        print(f"✓ LLM enrichment enabled — model: {args.llm_model}")
+        print("  (medium/low readiness students only; score is never changed)")
+
     print("=" * 70)
     print("READINESS SCORE RULE ENGINE")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -447,6 +587,8 @@ def main():
             elapsed_ms = int((time.monotonic() - t0) * 1000)
             record["generation_ms"] = elapsed_ms
             record["run_id"] = run_id
+            if args.enrich_with_llm and record["readiness_level"] in ("medium", "low"):
+                record = enrich_with_llm(record, args.llm_model)
             records.append(record)
         except Exception as e:
             errors += 1
