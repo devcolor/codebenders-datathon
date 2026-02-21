@@ -23,12 +23,19 @@ interface AnalysisResultProps {
 }
 
 const CHART_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ]
+
+const TOOLTIP_STYLE = {
+  backgroundColor: "var(--popover)",
+  border: "1px solid var(--border)",
+  borderRadius: "var(--radius)",
+  color: "var(--popover-foreground)",
+}
 
 export function AnalysisResult({ result, plan }: AnalysisResultProps) {
   const renderDataTable = () => {
@@ -80,16 +87,12 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
           <div className="overflow-visible">
             <ResponsiveContainer width="100%" aspect={16 / 7}>
               <LineChart data={result.data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey={groupByKey} stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey={groupByKey} stroke="var(--muted-foreground)" />
+                <YAxis stroke="var(--muted-foreground)" />
                 <Tooltip
                   wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
-                  }}
+                  contentStyle={TOOLTIP_STYLE}
                 />
                 <Legend />
                 <Line
@@ -110,22 +113,19 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
           <div className="overflow-visible">
             <ResponsiveContainer width="100%" aspect={16 / 7}>
               <BarChart data={result.data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey={groupByKey} stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey={groupByKey} stroke="var(--muted-foreground)" />
+                <YAxis stroke="var(--muted-foreground)" />
                 <Tooltip
                   wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
-                  }}
+                  contentStyle={TOOLTIP_STYLE}
                 />
                 <Legend />
                 <Bar
                   dataKey={metricKey}
                   fill={CHART_COLORS[0]}
                   radius={[4, 4, 0, 0]}
+                  maxBarSize={48}
                   name={metricKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                 />
               </BarChart>
@@ -153,11 +153,7 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
                 </Pie>
                 <Tooltip
                   wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
-                  }}
+                  contentStyle={TOOLTIP_STYLE}
                 />
                 <Legend
                   verticalAlign="bottom"
