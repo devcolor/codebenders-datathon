@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowLeft, BookOpen, Database, FlaskConical, ShieldCheck } from "lucide-react"
+import { ArrowLeft, BookOpen, FlaskConical, GraduationCap, ShieldCheck } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Readiness Methodology — Bishop State Student Success Dashboard",
@@ -67,8 +67,6 @@ export default function MethodologyPage() {
           </p>
           <div className="flex gap-2 mt-3">
             <Badge variant="outline">Version: rules_v1</Badge>
-            <Badge variant="outline">Script: generate_readiness_scores.py</Badge>
-            <Badge variant="outline">Table: llm_recommendations</Badge>
           </div>
         </div>
 
@@ -112,7 +110,7 @@ export default function MethodologyPage() {
               <CardContent className="text-sm text-muted-foreground">
                 This study found that advisors distrusted and underused opaque machine learning predictions in higher education settings.
                 Transparent, rule-based scoring with human-readable explanations improves advisor adoption and student intervention rates.
-                Every readiness score in this system is fully traceable to its inputs via the <code className="text-xs bg-muted px-1 rounded">input_features</code> column.
+                Every readiness score in this system is fully traceable to its inputs.
               </CardContent>
             </Card>
           </div>
@@ -163,21 +161,21 @@ export default function MethodologyPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-1">Component</th>
-                      <th className="text-left py-1">Source Field</th>
+                      <th className="text-left py-1">Input</th>
                       <th className="text-left py-1">Calculation</th>
                     </tr>
                   </thead>
                   <tbody className="text-muted-foreground">
-                    <tr className="border-b"><td className="py-1.5">GPA</td><td className="py-1.5 font-mono text-xs">GPA_Group_Year_1</td><td className="py-1.5">min(gpa / 4.0, 1.0)</td></tr>
-                    <tr className="border-b"><td className="py-1.5">Course completion</td><td className="py-1.5 font-mono text-xs">course_completion_rate</td><td className="py-1.5">direct (0.0–1.0)</td></tr>
-                    <tr className="border-b"><td className="py-1.5">Passing rate</td><td className="py-1.5 font-mono text-xs">passing_rate</td><td className="py-1.5">direct (0.0–1.0)</td></tr>
-                    <tr className="border-b"><td className="py-1.5">Gateway completion</td><td className="py-1.5 font-mono text-xs">CompletedGateway*Year1</td><td className="py-1.5">0.5 + 0.25 per gateway</td></tr>
+                    <tr className="border-b"><td className="py-1.5">GPA</td><td className="py-1.5">GPA Year 1</td><td className="py-1.5">min(gpa / 4.0, 1.0)</td></tr>
+                    <tr className="border-b"><td className="py-1.5">Course completion</td><td className="py-1.5">Completion rate</td><td className="py-1.5">direct (0.0–1.0)</td></tr>
+                    <tr className="border-b"><td className="py-1.5">Passing rate</td><td className="py-1.5">Passing rate</td><td className="py-1.5">direct (0.0–1.0)</td></tr>
+                    <tr className="border-b"><td className="py-1.5">Gateway completion</td><td className="py-1.5">Math &amp; English Year 1</td><td className="py-1.5">0.5 + 0.25 per gateway</td></tr>
                     <tr>
                       <td className="py-1.5 font-medium text-foreground">
                         Credit momentum{" "}
                         <Badge variant="outline" className="ml-1 text-xs">PDP</Badge>
                       </td>
-                      <td className="py-1.5 font-mono text-xs">Credits_Earned_Year_1</td>
+                      <td className="py-1.5">Credits earned Year 1</td>
                       <td className="py-1.5">&ge;12&rarr;1.0, &ge;6&rarr;0.6, &lt;6&rarr;0.3</td>
                     </tr>
                   </tbody>
@@ -198,14 +196,14 @@ export default function MethodologyPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-1">Component</th>
-                      <th className="text-left py-1">Source Field</th>
+                      <th className="text-left py-1">Input</th>
                       <th className="text-left py-1">Calculation</th>
                     </tr>
                   </thead>
                   <tbody className="text-muted-foreground">
-                    <tr className="border-b"><td className="py-1.5">Enrollment intensity</td><td className="py-1.5 font-mono text-xs">Enrollment_Intensity_First_Term</td><td className="py-1.5">FT&rarr;1.0, PT&rarr;0.5, unknown&rarr;0.3</td></tr>
-                    <tr className="border-b"><td className="py-1.5">Courses enrolled</td><td className="py-1.5 font-mono text-xs">total_courses_enrolled</td><td className="py-1.5">min(courses / 10, 1.0)</td></tr>
-                    <tr><td className="py-1.5 font-medium text-foreground">Math placement</td><td className="py-1.5 font-mono text-xs">Math_Placement</td><td className="py-1.5">C&rarr;1.0, N&rarr;0.5, R&rarr;0.2</td></tr>
+                    <tr className="border-b"><td className="py-1.5">Enrollment intensity</td><td className="py-1.5">First term status</td><td className="py-1.5">FT&rarr;1.0, PT&rarr;0.5, unknown&rarr;0.3</td></tr>
+                    <tr className="border-b"><td className="py-1.5">Courses enrolled</td><td className="py-1.5">Total courses</td><td className="py-1.5">min(courses / 10, 1.0)</td></tr>
+                    <tr><td className="py-1.5 font-medium text-foreground">Math placement</td><td className="py-1.5">Placement level</td><td className="py-1.5">College&rarr;1.0, Non-placed&rarr;0.5, Remedial&rarr;0.2</td></tr>
                   </tbody>
                 </table>
               </CardContent>
@@ -224,15 +222,148 @@ export default function MethodologyPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-1">Component</th>
-                      <th className="text-left py-1">Source Field</th>
+                      <th className="text-left py-1">Input</th>
                       <th className="text-left py-1">Calculation</th>
                     </tr>
                   </thead>
                   <tbody className="text-muted-foreground">
-                    <tr className="border-b"><td className="py-1.5">Retention probability</td><td className="py-1.5 font-mono text-xs">retention_probability</td><td className="py-1.5">direct (Model 1 output)</td></tr>
-                    <tr><td className="py-1.5">At-risk alert</td><td className="py-1.5 font-mono text-xs">at_risk_alert</td><td className="py-1.5">URGENT&rarr;0.1, HIGH&rarr;0.3, MODERATE&rarr;0.6, LOW&rarr;0.9</td></tr>
+                    <tr className="border-b"><td className="py-1.5">Retention probability</td><td className="py-1.5">ML Model 1 output</td><td className="py-1.5">direct (0.0–1.0)</td></tr>
+                    <tr><td className="py-1.5">At-risk alert</td><td className="py-1.5">Risk tier</td><td className="py-1.5">URGENT&rarr;0.1, HIGH&rarr;0.3, MODERATE&rarr;0.6, LOW&rarr;0.9</td></tr>
                   </tbody>
                 </table>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* Worked Examples */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-5 w-5 text-indigo-500" />
+            <h2 className="text-xl font-semibold">Worked Examples</h2>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Two hypothetical students illustrate how the same formula produces very different outcomes based on academic momentum and engagement signals.
+          </p>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* High Readiness Example */}
+            <Card className="border-green-200">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Maria T.</CardTitle>
+                  <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">High Readiness</Badge>
+                </div>
+                <CardDescription>First-generation student, part-time enrollment</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                {/* Inputs */}
+                <div>
+                  <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Inputs</p>
+                  <table className="w-full text-xs">
+                    <tbody className="text-muted-foreground">
+                      <tr className="border-b"><td className="py-1">GPA (Year 1)</td><td className="py-1 text-right font-mono">3.2</td></tr>
+                      <tr className="border-b"><td className="py-1">Course completion</td><td className="py-1 text-right font-mono">0.83</td></tr>
+                      <tr className="border-b"><td className="py-1">Passing rate</td><td className="py-1 text-right font-mono">0.78</td></tr>
+                      <tr className="border-b"><td className="py-1">Gateways completed</td><td className="py-1 text-right font-mono">1 of 2 (Math)</td></tr>
+                      <tr className="border-b"><td className="py-1">Credits earned</td><td className="py-1 text-right font-mono">9</td></tr>
+                      <tr className="border-b"><td className="py-1">Enrollment intensity</td><td className="py-1 text-right font-mono">Part-time</td></tr>
+                      <tr className="border-b"><td className="py-1">Courses enrolled</td><td className="py-1 text-right font-mono">5</td></tr>
+                      <tr className="border-b"><td className="py-1">Math placement</td><td className="py-1 text-right font-mono">College-level</td></tr>
+                      <tr className="border-b"><td className="py-1">Retention probability</td><td className="py-1 text-right font-mono">0.72</td></tr>
+                      <tr><td className="py-1">At-risk alert</td><td className="py-1 text-right font-mono">MODERATE</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Sub-scores */}
+                <div className="space-y-2">
+                  <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Calculation</p>
+                  <div className="bg-muted rounded-md p-3 space-y-2 font-mono text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Academic (avg of 5)</p>
+                      <p>0.80 + 0.83 + 0.78 + 0.75 + 0.60</p>
+                      <p className="font-semibold">= 0.752 &times; 0.40 = 0.301</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Engagement (avg of 3)</p>
+                      <p>0.50 + 0.50 + 1.00</p>
+                      <p className="font-semibold">= 0.667 &times; 0.30 = 0.200</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">ML Risk (avg of 2)</p>
+                      <p>0.72 + 0.60</p>
+                      <p className="font-semibold">= 0.660 &times; 0.30 = 0.198</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Final score */}
+                <div className="bg-green-50 border border-green-200 rounded-md p-3 text-center">
+                  <p className="text-xs text-green-700 mb-0.5">0.301 + 0.200 + 0.198</p>
+                  <p className="text-2xl font-bold text-green-700">0.699</p>
+                  <p className="text-sm font-medium text-green-600">High Readiness</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Low Readiness Example */}
+            <Card className="border-red-200">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Jordan M.</CardTitle>
+                  <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100">Low Readiness</Badge>
+                </div>
+                <CardDescription>Remedial-track student, part-time enrollment</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                {/* Inputs */}
+                <div>
+                  <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Inputs</p>
+                  <table className="w-full text-xs">
+                    <tbody className="text-muted-foreground">
+                      <tr className="border-b"><td className="py-1">GPA (Year 1)</td><td className="py-1 text-right font-mono">1.8</td></tr>
+                      <tr className="border-b"><td className="py-1">Course completion</td><td className="py-1 text-right font-mono">0.55</td></tr>
+                      <tr className="border-b"><td className="py-1">Passing rate</td><td className="py-1 text-right font-mono">0.50</td></tr>
+                      <tr className="border-b"><td className="py-1">Gateways completed</td><td className="py-1 text-right font-mono">0 of 2</td></tr>
+                      <tr className="border-b"><td className="py-1">Credits earned</td><td className="py-1 text-right font-mono">4</td></tr>
+                      <tr className="border-b"><td className="py-1">Enrollment intensity</td><td className="py-1 text-right font-mono">Part-time</td></tr>
+                      <tr className="border-b"><td className="py-1">Courses enrolled</td><td className="py-1 text-right font-mono">3</td></tr>
+                      <tr className="border-b"><td className="py-1">Math placement</td><td className="py-1 text-right font-mono">Remedial</td></tr>
+                      <tr className="border-b"><td className="py-1">Retention probability</td><td className="py-1 text-right font-mono">0.38</td></tr>
+                      <tr><td className="py-1">At-risk alert</td><td className="py-1 text-right font-mono">HIGH</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Sub-scores */}
+                <div className="space-y-2">
+                  <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground">Calculation</p>
+                  <div className="bg-muted rounded-md p-3 space-y-2 font-mono text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Academic (avg of 5)</p>
+                      <p>0.45 + 0.55 + 0.50 + 0.50 + 0.30</p>
+                      <p className="font-semibold">= 0.460 &times; 0.40 = 0.184</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Engagement (avg of 3)</p>
+                      <p>0.50 + 0.30 + 0.20</p>
+                      <p className="font-semibold">= 0.333 &times; 0.30 = 0.100</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">ML Risk (avg of 2)</p>
+                      <p>0.38 + 0.30</p>
+                      <p className="font-semibold">= 0.340 &times; 0.30 = 0.102</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Final score */}
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 text-center">
+                  <p className="text-xs text-red-700 mb-0.5">0.184 + 0.100 + 0.102</p>
+                  <p className="text-2xl font-bold text-red-700">0.386</p>
+                  <p className="text-sm font-medium text-red-600">Low Readiness</p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -247,32 +378,12 @@ export default function MethodologyPage() {
           <Card>
             <CardContent className="pt-6 text-sm text-muted-foreground space-y-2">
               <p>
-                The <code className="text-xs bg-muted px-1 rounded">input_features</code> column stores a stripped profile with <strong>no PII</strong>: Student_GUID and zip code are excluded before storage.
+                Readiness scores are computed from a stripped profile with <strong>no PII</strong>: student identifiers and zip code are excluded before processing.
                 Only aggregate behavioral metrics (GPA group, completion rate, placement level, enrollment type) are retained.
               </p>
               <p>
-                When LLM narrative enrichment is enabled, only the FERPA-safe profile is transmitted to the LLM provider — never the Student_GUID, name, date of birth, or address.
+                When LLM narrative enrichment is enabled, only the FERPA-safe profile is transmitted to the LLM provider — never the student identifier, name, date of birth, or address.
                 This satisfies FERPA §99.31(a)(1) for legitimate educational interest use.
-              </p>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Data Source */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-orange-500" />
-            <h2 className="text-xl font-semibold">Data Source</h2>
-          </div>
-          <Card>
-            <CardContent className="pt-6 text-sm space-y-1">
-              <p><strong>Input table:</strong> <code className="text-xs bg-muted px-1 rounded">student_level_with_predictions</code> (~4,000 students)</p>
-              <p><strong>Output table:</strong> <code className="text-xs bg-muted px-1 rounded">llm_recommendations</code></p>
-              <p><strong>Scoring script:</strong> <code className="text-xs bg-muted px-1 rounded">ai_model/generate_readiness_scores.py</code></p>
-              <p><strong>Re-run command:</strong> <code className="text-xs bg-muted px-1 rounded">venv/bin/python ai_model/generate_readiness_scores.py</code></p>
-              <p className="text-muted-foreground mt-2">
-                Re-running the script upserts scores — no duplicates are created. Each run is logged in{" "}
-                <code className="text-xs bg-muted px-1 rounded">readiness_generation_runs</code>.
               </p>
             </CardContent>
           </Card>
