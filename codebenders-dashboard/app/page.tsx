@@ -7,7 +7,7 @@ import { RetentionRiskChart } from "@/components/retention-risk-chart"
 import { ReadinessAssessmentChart } from "@/components/readiness-assessment-chart"
 import { ExportButton } from "@/components/export-button"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, Users, AlertTriangle, BookOpen, Search } from "lucide-react"
+import { TrendingUp, Users, AlertTriangle, BookOpen, Search, Table2 } from "lucide-react"
 import Link from "next/link"
 
 interface KPIData {
@@ -147,6 +147,12 @@ export default function DashboardPage() {
               <Button variant="outline" className="gap-2">
                 <BookOpen className="h-4 w-4" />
                 Methodology
+              </Button>
+            </Link>
+            <Link href="/students">
+              <Button variant="outline" className="gap-2">
+                <Table2 className="h-4 w-4" />
+                Student Roster
               </Button>
             </Link>
             <Link href="/query">
