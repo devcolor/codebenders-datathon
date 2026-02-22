@@ -4,31 +4,49 @@ import { getPool } from "@/lib/db"
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const institution = searchParams.get("institution")
-    const cohort = searchParams.get("cohort")
-    const level = searchParams.get("level") // high, medium, low
+    const institution    = searchParams.get("institution")
+    const cohort         = searchParams.get("cohort")
+    const level          = searchParams.get("level")          // high, medium, low
+    const enrollmentType = searchParams.get("enrollmentType")
+    const credentialType = searchParams.get("credentialType")
 
     const pool = getPool()
 
-    // Build WHERE clause with $N Postgres placeholders
+    // Build WHERE clause with $N Postgres placeholders.
+    // llm_recommendations is aliased as lr; when enrollment/credential filters are
+    // present we JOIN student_level_with_predictions as s.
     const conditions: string[] = []
-    const params: any[] = []
+    const params: unknown[]    = []
 
     if (institution) {
       params.push(institution)
-      conditions.push(`"Institution_ID" = $${params.length}`)
+      conditions.push(`lr."Institution_ID" = $${params.length}`)
     }
 
     if (cohort) {
       params.push(cohort)
-      conditions.push(`"Cohort" = $${params.length}`)
+      conditions.push(`lr."Cohort" = $${params.length}`)
     }
 
     if (level) {
       params.push(level)
-      conditions.push(`readiness_level = $${params.length}`)
+      conditions.push(`lr.readiness_level = $${params.length}`)
     }
 
+    if (enrollmentType) {
+      params.push(enrollmentType)
+      conditions.push(`s."Enrollment_Intensity_First_Term" = $${params.length}`)
+    }
+
+    if (credentialType) {
+      params.push(credentialType)
+      conditions.push(`s.predicted_credential_label = $${params.length}`)
+    }
+
+    const needsJoin  = !!(enrollmentType || credentialType)
+    const joinClause = needsJoin
+      ? `JOIN student_level_with_predictions s ON s."Student_GUID" = lr."Student_GUID"`
+      : ""
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
 
     // Get overall statistics
@@ -36,13 +54,14 @@ export async function GET(request: Request) {
       `
       SELECT
         COUNT(*) as total_students,
-        AVG(readiness_score) as avg_score,
-        MIN(readiness_score) as min_score,
-        MAX(readiness_score) as max_score,
-        SUM(CASE WHEN readiness_level = 'high' THEN 1 ELSE 0 END) as high_count,
-        SUM(CASE WHEN readiness_level = 'medium' THEN 1 ELSE 0 END) as medium_count,
-        SUM(CASE WHEN readiness_level = 'low' THEN 1 ELSE 0 END) as low_count
-      FROM llm_recommendations
+        AVG(lr.readiness_score) as avg_score,
+        MIN(lr.readiness_score) as min_score,
+        MAX(lr.readiness_score) as max_score,
+        SUM(CASE WHEN lr.readiness_level = 'high'   THEN 1 ELSE 0 END) as high_count,
+        SUM(CASE WHEN lr.readiness_level = 'medium' THEN 1 ELSE 0 END) as medium_count,
+        SUM(CASE WHEN lr.readiness_level = 'low'    THEN 1 ELSE 0 END) as low_count
+      FROM llm_recommendations lr
+      ${joinClause}
       ${whereClause}
     `,
       params
@@ -58,19 +77,20 @@ export async function GET(request: Request) {
     const distributionResult = await pool.query(
       `
       SELECT
-        readiness_level,
+        lr.readiness_level,
         COUNT(*) as count,
-        AVG(readiness_score) as avg_score,
-        MIN(readiness_score) as min_score,
-        MAX(readiness_score) as max_score
-      FROM llm_recommendations
+        AVG(lr.readiness_score) as avg_score,
+        MIN(lr.readiness_score) as min_score,
+        MAX(lr.readiness_score) as max_score
+      FROM llm_recommendations lr
+      ${joinClause}
       ${whereClause}
-      GROUP BY readiness_level
+      GROUP BY lr.readiness_level
       ORDER BY
-        CASE readiness_level
-          WHEN 'high' THEN 1
+        CASE lr.readiness_level
+          WHEN 'high'   THEN 1
           WHEN 'medium' THEN 2
-          WHEN 'low' THEN 3
+          WHEN 'low'    THEN 3
         END
     `,
       params
@@ -81,21 +101,22 @@ export async function GET(request: Request) {
       `
       SELECT
         CASE
-          WHEN readiness_score >= 0.8 THEN '0.8-1.0'
-          WHEN readiness_score >= 0.6 THEN '0.6-0.8'
-          WHEN readiness_score >= 0.4 THEN '0.4-0.6'
-          WHEN readiness_score >= 0.2 THEN '0.2-0.4'
+          WHEN lr.readiness_score >= 0.8 THEN '0.8-1.0'
+          WHEN lr.readiness_score >= 0.6 THEN '0.6-0.8'
+          WHEN lr.readiness_score >= 0.4 THEN '0.4-0.6'
+          WHEN lr.readiness_score >= 0.2 THEN '0.2-0.4'
           ELSE '0.0-0.2'
         END as score_range,
         COUNT(*) as count
-      FROM llm_recommendations
+      FROM llm_recommendations lr
+      ${joinClause}
       ${whereClause}
       GROUP BY
         CASE
-          WHEN readiness_score >= 0.8 THEN '0.8-1.0'
-          WHEN readiness_score >= 0.6 THEN '0.6-0.8'
-          WHEN readiness_score >= 0.4 THEN '0.4-0.6'
-          WHEN readiness_score >= 0.2 THEN '0.2-0.4'
+          WHEN lr.readiness_score >= 0.8 THEN '0.8-1.0'
+          WHEN lr.readiness_score >= 0.6 THEN '0.6-0.8'
+          WHEN lr.readiness_score >= 0.4 THEN '0.4-0.6'
+          WHEN lr.readiness_score >= 0.2 THEN '0.2-0.4'
           ELSE '0.0-0.2'
         END
       ORDER BY score_range DESC
@@ -120,6 +141,7 @@ export async function GET(request: Request) {
         lr.generated_at,
         lr.model_name
       FROM llm_recommendations lr
+      ${joinClause}
       ${whereClause}
       ORDER BY lr.generated_at DESC
       LIMIT 100
@@ -130,15 +152,16 @@ export async function GET(request: Request) {
     // Parse JSON fields in recent assessments
     const assessments = recentResult.rows.map((row) => ({
       ...row,
-      risk_factors: row.risk_factors ? JSON.parse(row.risk_factors) : [],
+      risk_factors:      row.risk_factors      ? JSON.parse(row.risk_factors)      : [],
       suggested_actions: row.suggested_actions ? JSON.parse(row.suggested_actions) : [],
     }))
 
     // Get most common risk factors
     const riskFactorResult = await pool.query(
       `
-      SELECT risk_factors
-      FROM llm_recommendations
+      SELECT lr.risk_factors
+      FROM llm_recommendations lr
+      ${joinClause}
       ${whereClause}
     `,
       params
@@ -172,16 +195,17 @@ export async function GET(request: Request) {
     const cohortResult = await pool.query(
       `
       SELECT
-        "Cohort",
+        lr."Cohort",
         COUNT(*) as total,
-        AVG(readiness_score) as avg_score,
-        SUM(CASE WHEN readiness_level = 'high' THEN 1 ELSE 0 END) as high_count,
-        SUM(CASE WHEN readiness_level = 'medium' THEN 1 ELSE 0 END) as medium_count,
-        SUM(CASE WHEN readiness_level = 'low' THEN 1 ELSE 0 END) as low_count
-      FROM llm_recommendations
+        AVG(lr.readiness_score) as avg_score,
+        SUM(CASE WHEN lr.readiness_level = 'high'   THEN 1 ELSE 0 END) as high_count,
+        SUM(CASE WHEN lr.readiness_level = 'medium' THEN 1 ELSE 0 END) as medium_count,
+        SUM(CASE WHEN lr.readiness_level = 'low'    THEN 1 ELSE 0 END) as low_count
+      FROM llm_recommendations lr
+      ${joinClause}
       ${whereClause}
-      GROUP BY "Cohort"
-      ORDER BY "Cohort" DESC
+      GROUP BY lr."Cohort"
+      ORDER BY lr."Cohort" DESC
     `,
       params
     )
@@ -191,16 +215,16 @@ export async function GET(request: Request) {
       data: {
         summary: {
           total_students: stats.total_students,
-          avg_score: parseFloat(stats.avg_score || 0).toFixed(4),
-          min_score: parseFloat(stats.min_score || 0).toFixed(4),
-          max_score: parseFloat(stats.max_score || 0).toFixed(4),
-          high_count: stats.high_count,
-          medium_count: stats.medium_count,
-          low_count: stats.low_count,
+          avg_score:      parseFloat(stats.avg_score || 0).toFixed(4),
+          min_score:      parseFloat(stats.min_score || 0).toFixed(4),
+          max_score:      parseFloat(stats.max_score || 0).toFixed(4),
+          high_count:     stats.high_count,
+          medium_count:   stats.medium_count,
+          low_count:      stats.low_count,
         },
-        distribution: distributionResult.rows,
+        distribution:     distributionResult.rows,
         score_distribution: scoreDistResult.rows,
-        assessments: assessments,
+        assessments:      assessments,
         top_risk_factors: topRiskFactors,
         cohort_breakdown: cohortResult.rows,
       },
@@ -211,7 +235,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch readiness assessment data",
+        error:   "Failed to fetch readiness assessment data",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
