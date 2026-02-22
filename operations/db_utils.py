@@ -191,17 +191,20 @@ def save_model_performance(model_name, model_type, metrics, notes=""):
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
+        def _f(v):
+            return float(v) if v is not None else None
+
         values = (
             model_name,
             model_type,
-            metrics.get('accuracy'),
-            metrics.get('precision'),
-            metrics.get('recall'),
-            metrics.get('f1'),
-            metrics.get('auc_roc'),
-            metrics.get('rmse'),
-            metrics.get('mae'),
-            metrics.get('r2_score'),
+            _f(metrics.get('accuracy')),
+            _f(metrics.get('precision')),
+            _f(metrics.get('recall')),
+            _f(metrics.get('f1')),
+            _f(metrics.get('auc_roc')),
+            _f(metrics.get('rmse')),
+            _f(metrics.get('mae')),
+            _f(metrics.get('r2_score')),
             notes
         )
 

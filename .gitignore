@@ -174,3 +174,5 @@ operations/fix_institution_id.py
 operations/list_tables.py
 operations/convert_institution_id_to_string.py
 operations/verify_institution_id.py
+.vercel
+.env.deploy
