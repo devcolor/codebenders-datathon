@@ -414,7 +414,7 @@ export default function StudentsPage() {
                 />
                 <ThSort
                   label="Credential Type" col="credential_type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
-                  info={<InfoPopover title="Predicted Credential Type"><p>Most likely credential this student will earn: <strong>Associate</strong>, <strong>Certificate</strong>, or <strong>Bachelor</strong>. Predicted by a Random Forest Classifier based on program of study, enrollment intensity, and academic preparation.</p></InfoPopover>}
+                  info={<InfoPopover title="Predicted Credential Type"><p>Most likely credential this student will earn: <strong>Certificate</strong>, <strong>Associate</strong>, or <strong>Bachelor</strong>. Predicted by a Random Forest Classifier trained on program of study, enrollment intensity, academic preparation, and the credential the student is pursuing. Students without a completion record are classified based on their declared credential goal.</p></InfoPopover>}
                 />
               </tr>
             </thead>
