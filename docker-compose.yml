@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: codebenders-postgres
+    restart: unless-stopped
+    env_file:
+      - path: .docker.env
+        required: false
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devcolor2025}
+      POSTGRES_DB: ${POSTGRES_DB:-bishop_state}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database_dumps:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - codebenders-network
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: codebenders-pgadmin
+    restart: unless-stopped
+    env_file:
+      - path: .docker.env
+        required: false
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@bishopstate.edu}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-devcolor2025}
+    ports:
+      - "${PGADMIN_PORT:-8080}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - codebenders-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  codebenders-network:
+    driver: bridge

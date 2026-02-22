@@ -53,6 +53,11 @@ lerna-debug.log*
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Exceptions: dashboard source files that conflict with Python ignores above
+!codebenders-dashboard/lib/
+!codebenders-dashboard/lib/**
+
 dist/
 dist-ssr/
 *.local
@@ -150,6 +155,9 @@ supabase/.env
 # Docker (if used for local dev)
 docker-compose.override.yml
 
+# Git worktrees
+.worktrees/
+
 # Misc
 .cache/
 *.seed
@@ -157,8 +165,14 @@ docker-compose.override.yml
 *.pid.lock
 .terraform/
 
+# Exceptions: dashboard source files that conflict with Python ignores above
+!codebenders-dashboard/lib/
+!codebenders-dashboard/lib/**
+
 # Operations scripts (local utilities)
 operations/fix_institution_id.py
 operations/list_tables.py
 operations/convert_institution_id_to_string.py
 operations/verify_institution_id.py
+.vercel
+.env.deploy

@@ -1,27 +1,28 @@
 """
-Database Utilities for MariaDB
-===============================
+Database Utilities for PostgreSQL
+==================================
 Helper functions for database operations
 """
 
-import pymysql
+import pandas as pd
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from sqlalchemy import create_engine, text
-from .db_config import DB_CONFIG
+from .db_config import DB_CONFIG, TABLES
 import warnings
 warnings.filterwarnings('ignore')
 
 
 def get_connection():
-    """Create a PyMySQL connection to MariaDB"""
+    """Create a psycopg2 connection to PostgreSQL"""
     try:
-        connection = pymysql.connect(
+        connection = psycopg2.connect(
             host=DB_CONFIG['host'],
             user=DB_CONFIG['user'],
             password=DB_CONFIG['password'],
-            database=DB_CONFIG['database'],
+            dbname=DB_CONFIG['database'],
             port=DB_CONFIG['port'],
-            charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor
+            cursor_factory=RealDictCursor
         )
         print(f"✓ Connected to database: {DB_CONFIG['database']}")
         return connection
@@ -34,11 +35,11 @@ def get_sqlalchemy_engine():
     """Create SQLAlchemy engine for pandas operations"""
     try:
         connection_string = (
-            f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}"
+            f"postgresql+psycopg2://{DB_CONFIG['user']}:{DB_CONFIG['password']}"
             f"@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
         )
         engine = create_engine(connection_string, pool_pre_ping=True)
-        print("✓ SQLAlchemy engine created")
+        print(f"✓ SQLAlchemy engine created")
         return engine
     except Exception as e:
         print(f"✗ Engine creation failed: {e}")
@@ -47,8 +48,8 @@ def get_sqlalchemy_engine():
 
 def save_dataframe_to_db(df, table_name, if_exists='replace', chunksize=1000):
     """
-    Save pandas DataFrame to MariaDB table
-    
+    Save pandas DataFrame to PostgreSQL table
+
     Parameters:
     -----------
     df : pandas.DataFrame
@@ -62,26 +63,26 @@ def save_dataframe_to_db(df, table_name, if_exists='replace', chunksize=1000):
     """
     try:
         engine = get_sqlalchemy_engine()
-        
+
         print(f"\nSaving {len(df):,} records to table '{table_name}'...")
-        
+
         # Add upload timestamp
         from datetime import datetime
         df_to_save = df.copy()
         df_to_save['upload_timestamp'] = datetime.now()
-        
+
         # Save to database with progress tracking
         total_rows = len(df_to_save)
         rows_saved = 0
         status_interval = 10000
-        
+
         # Manual chunking to track progress
         for i in range(0, total_rows, chunksize):
             chunk = df_to_save.iloc[i:i+chunksize]
-            
+
             # Determine if_exists for this chunk
             chunk_if_exists = if_exists if i == 0 else 'append'
-            
+
             chunk.to_sql(
                 name=table_name,
                 con=engine,
@@ -90,27 +91,27 @@ def save_dataframe_to_db(df, table_name, if_exists='replace', chunksize=1000):
                 chunksize=None,  # Already chunked
                 method='multi'
             )
-            
+
             rows_saved += len(chunk)
-            
+
             # Show status every 10,000 records
             if rows_saved % status_interval == 0 or rows_saved == total_rows:
                 progress_pct = (rows_saved / total_rows) * 100
                 print(f"  Progress: {rows_saved:,} / {total_rows:,} records ({progress_pct:.1f}%)")
-        
+
         print(f"✓ Successfully saved to '{table_name}'")
         print(f"  - Records: {len(df):,}")
         print(f"  - Columns: {len(df.columns)}")
-        
+
         # Verify the save
         with engine.connect() as conn:
             result = conn.execute(text(f"SELECT COUNT(*) as count FROM {table_name}"))
             count = result.fetchone()[0]
             print(f"  - Verified: {count:,} records in database")
-        
+
         engine.dispose()
         return True
-        
+
     except Exception as e:
         print(f"✗ Failed to save to database: {e}")
         return False
@@ -121,10 +122,10 @@ def create_model_performance_table():
     try:
         connection = get_connection()
         cursor = connection.cursor()
-        
+
         create_table_sql = """
         CREATE TABLE IF NOT EXISTS ml_model_performance (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             model_name VARCHAR(100) NOT NULL,
             model_type VARCHAR(50) NOT NULL,
             accuracy FLOAT,
@@ -136,20 +137,29 @@ def create_model_performance_table():
             mae FLOAT,
             r2_score FLOAT,
             training_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            notes TEXT,
-            INDEX idx_model_name (model_name),
-            INDEX idx_training_date (training_date)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            notes TEXT
+        );
         """
-        
+
         cursor.execute(create_table_sql)
+
+        # Create indexes separately for Postgres
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_model_name
+            ON ml_model_performance (model_name);
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_training_date
+            ON ml_model_performance (training_date);
+        """)
+
         connection.commit()
-        print("✓ Model performance table created/verified")
-        
+        print(f"✓ Model performance table created/verified")
+
         cursor.close()
         connection.close()
         return True
-        
+
     except Exception as e:
         print(f"✗ Failed to create performance table: {e}")
         return False
@@ -158,7 +168,7 @@ def create_model_performance_table():
 def save_model_performance(model_name, model_type, metrics, notes=""):
     """
     Save model performance metrics to database
-    
+
     Parameters:
     -----------
     model_name : str
@@ -173,37 +183,40 @@ def save_model_performance(model_name, model_type, metrics, notes=""):
     try:
         connection = get_connection()
         cursor = connection.cursor()
-        
+
         insert_sql = """
-        INSERT INTO ml_model_performance 
-        (model_name, model_type, accuracy, precision_score, recall_score, 
+        INSERT INTO ml_model_performance
+        (model_name, model_type, accuracy, precision_score, recall_score,
          f1_score, auc_roc, rmse, mae, r2_score, notes)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        
+
+        def _f(v):
+            return float(v) if v is not None else None
+
         values = (
             model_name,
             model_type,
-            metrics.get('accuracy'),
-            metrics.get('precision'),
-            metrics.get('recall'),
-            metrics.get('f1'),
-            metrics.get('auc_roc'),
-            metrics.get('rmse'),
-            metrics.get('mae'),
-            metrics.get('r2_score'),
+            _f(metrics.get('accuracy')),
+            _f(metrics.get('precision')),
+            _f(metrics.get('recall')),
+            _f(metrics.get('f1')),
+            _f(metrics.get('auc_roc')),
+            _f(metrics.get('rmse')),
+            _f(metrics.get('mae')),
+            _f(metrics.get('r2_score')),
             notes
         )
-        
+
         cursor.execute(insert_sql, values)
         connection.commit()
-        
+
         print(f"✓ Saved performance metrics for '{model_name}'")
-        
+
         cursor.close()
         connection.close()
         return True
-        
+
     except Exception as e:
         print(f"✗ Failed to save model performance: {e}")
         return False
@@ -214,21 +227,23 @@ def test_connection():
     try:
         connection = get_connection()
         cursor = connection.cursor()
-        
-        cursor.execute("SELECT VERSION()")
+
+        cursor.execute("SELECT version()")
         version = cursor.fetchone()
-        print(f"✓ MariaDB version: {version}")
-        
-        cursor.execute("SHOW TABLES")
+        print(f"✓ PostgreSQL version: {version}")
+
+        cursor.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
+        )
         tables = cursor.fetchall()
         print(f"✓ Existing tables: {len(tables)}")
         for table in tables:
-            print(f"  - {list(table.values())[0]}")
-        
+            print(f"  - {table['table_name']}")
+
         cursor.close()
         connection.close()
         return True
-        
+
     except Exception as e:
         print(f"✗ Connection test failed: {e}")
         return False

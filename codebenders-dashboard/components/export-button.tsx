@@ -74,7 +74,7 @@ export function ExportButton({ data, disabled = false }: ExportButtonProps) {
     
     const exportData = {
       generated: new Date().toISOString(),
-      institution: "KCTCS",
+      institution: "Bishop State Community College",
       kpis: data.kpis,
       riskAlerts: data.riskAlerts,
       retentionRisk: data.retentionRisk,
@@ -103,7 +103,7 @@ export function ExportButton({ data, disabled = false }: ExportButtonProps) {
     md.push("# Student Success Dashboard Report")
     md.push("")
     md.push(`**Generated:** ${new Date().toLocaleString()}`)
-    md.push(`**Institution:** KCTCS`)
+    md.push(`**Institution:** Bishop State Community College`)
     md.push(`**Data Source:** student_predictions table (${data.kpis?.totalStudents?.toLocaleString()} students)`)
     md.push("")
     md.push("---")

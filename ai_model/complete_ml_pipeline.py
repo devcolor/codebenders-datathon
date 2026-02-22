@@ -1,6 +1,6 @@
 """
-Complete ML Pipeline for KCTCS Student Success Prediction
-==========================================================
+Complete ML Pipeline for Bishop State Student Success Prediction
+================================================================
 Models:
 1. Retention Prediction (Binary Classification)
 2. Early Warning System (Binary Classification)
@@ -8,16 +8,17 @@ Models:
 4. Credential Type Prediction (Multi-class Classification)
 5. Course Success Prediction (Regression)
 
-Output: Predictions saved to MariaDB database tables
+Output: Predictions saved to Supabase Postgres tables
 """
 
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score, 
-    roc_auc_score, confusion_matrix, mean_squared_error, mean_absolute_error, r2_score
+    roc_auc_score, confusion_matrix, classification_report,
+    mean_squared_error, mean_absolute_error, r2_score
 )
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import xgboost as xgb
@@ -26,17 +27,17 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Database utilities
-import sys  # noqa: E402
-import os  # noqa: E402
+import sys
+import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from operations.db_utils import (  # noqa: E402
-    save_dataframe_to_db,
-    save_model_performance,
+from operations.db_utils import (
+    save_dataframe_to_db, 
+    save_model_performance, 
     create_model_performance_table,
     test_connection
 )
-from operations.db_config import TABLES, DB_CONFIG  # noqa: E402
+from operations.db_config import TABLES, DB_CONFIG
 
 # Get the project root directory
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -70,7 +71,7 @@ print("STEP 1: DATA LOADING")
 print("=" * 80)
 
 print("\nLoading student-level dataset...")
-student_file = os.path.join(DATA_DIR, 'kctcs_student_level_with_zip.csv')
+student_file = os.path.join(DATA_DIR, 'bishop_state_student_level_with_zip.csv')
 print(f"Reading from: {student_file}")
 df = pd.read_csv(student_file)
 print(f"Loaded {len(df):,} students with {len(df.columns)} features")
@@ -177,7 +178,7 @@ def assign_credential_type(row):
 
 df['target_credential_type'] = df.apply(assign_credential_type, axis=1)
 
-print("Created target variables:")
+print(f"Created target variables:")
 print(f"  - Retention: {df['target_retention'].value_counts().to_dict()}")
 print(f"  - At Risk: {df['target_at_risk'].value_counts().to_dict()}")
 print(f"  - Credential Type: {df['target_credential_type'].value_counts().to_dict()}")
@@ -284,8 +285,8 @@ print("\n" + "-" * 80)
 print("TESTING MULTIPLE MODELS WITH CROSS-VALIDATION")
 print("-" * 80)
 
-from sklearn.linear_model import LogisticRegression  # noqa: E402
-from sklearn.model_selection import StratifiedKFold  # noqa: E402
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
 
 models_to_test = {
     'Logistic Regression': LogisticRegression(
@@ -348,11 +349,11 @@ for model_name, model in models_to_test.items():
     print(f"  Gap:          {gap:.4f} ({gap*100:.2f}%)")
     
     if gap < 0.05:
-        print("  ✓ No overfitting (gap < 5%)")
+        print(f"  ✓ No overfitting (gap < 5%)")
     elif gap < 0.10:
-        print("  ⚠ Minimal overfitting (gap < 10%)")
+        print(f"  ⚠ Minimal overfitting (gap < 10%)")
     else:
-        print("  ✗ Overfitting detected (gap > 10%)")
+        print(f"  ✗ Overfitting detected (gap > 10%)")
     
     model_comparison.append({
         'Model': model_name,
@@ -412,8 +413,8 @@ print(f"AUC-ROC:   {retention_test_results['auc_roc']:.4f}")
 
 print("\nConfusion Matrix:")
 cm = confusion_matrix(y_test, y_pred)
-print("                Predicted")
-print("              Not Ret  Retained")
+print(f"                Predicted")
+print(f"              Not Ret  Retained")
 print(f"Actual Not    {cm[0,0]:6d}    {cm[0,1]:6d}")
 print(f"       Ret    {cm[1,0]:6d}    {cm[1,1]:6d}")
 
@@ -544,8 +545,8 @@ print(f"Students with >80% retention flagged as URGENT: {len(high_retention_urge
 low_retention_low_risk = df[(df['retention_probability'] < 0.3) & (df['at_risk_alert'] == 'LOW')]
 print(f"Students with <30% retention flagged as LOW: {len(low_retention_low_risk)} (should be very few)")
 
-print("\nEarly warning system aligned with retention predictions")
-print("\nAlert distribution:")
+print(f"\nEarly warning system aligned with retention predictions")
+print(f"\nAlert distribution:")
 print(df['at_risk_alert'].value_counts().sort_index())
 
 # ============================================================================
@@ -610,7 +611,7 @@ if len(X_time) > 100:  # Only train if we have enough data
     df['predicted_time_to_credential'] = time_model.predict(X_full_retention)
     df['predicted_graduation_year'] = df['Cohort'].str[:4].astype(float) + df['predicted_time_to_credential']
     
-    print("Time predictions generated")
+    print(f"Time predictions generated")
 else:
     print("Warning: Insufficient data for time-to-credential model")
     df['predicted_time_to_credential'] = np.nan
@@ -629,7 +630,7 @@ X_cred = X[valid_idx]
 y_credential = y_credential[valid_idx]
 
 print(f"\nDataset size: {len(X_cred):,} students")
-print("Credential type distribution:")
+print(f"Credential type distribution:")
 cred_labels = {0: 'No Credential', 1: 'Certificate', 2: 'Associate', 3: 'Bachelor'}
 for k, v in y_credential.value_counts().sort_index().items():
     print(f"  {cred_labels.get(k, k)}: {v:,} ({v/len(y_credential)*100:.1f}%)")
@@ -676,7 +677,7 @@ if USE_DATABASE:
         model_name='Credential Type Prediction',
         model_type='classification',
         metrics={'accuracy': cred_accuracy, 'f1': cred_f1},
-        notes='Random Forest Classifier - 4 classes (No Credential, Certificate, Associate, Bachelor)'
+        notes=f'Random Forest Classifier - 4 classes (No Credential, Certificate, Associate, Bachelor)'
     )
 
 # Generate predictions for all students
@@ -698,7 +699,7 @@ for i, class_idx in enumerate(classes):
     if class_idx < len(prob_labels):
         df[prob_labels[int(class_idx)]] = proba[:, i]
 
-print("Credential type predictions generated")
+print(f"Credential type predictions generated")
 
 # ============================================================================
 # STEP 8: MODEL 5 - GATEWAY MATH SUCCESS PREDICTION
@@ -782,9 +783,9 @@ print(f"Recall:    {math_recall:.4f}")
 print(f"F1-Score:  {math_f1:.4f}")
 
 print("\nConfusion Matrix:")
-cm = confusion_matrix(y_test, y_pred)
-print("                Predicted")
-print("              No Pass    Pass")
+cm = confusion_matrix(y_test, y_pred, labels=[0, 1])
+print(f"                Predicted")
+print(f"              No Pass    Pass")
 print(f"Actual No     {cm[0,0]:6d}    {cm[0,1]:6d}")
 print(f"       Pass   {cm[1,0]:6d}    {cm[1,1]:6d}")
 
@@ -794,7 +795,7 @@ if USE_DATABASE:
         model_name='Gateway Math Success Prediction',
         model_type='classification',
         metrics={'accuracy': math_accuracy, 'auc_roc': math_auc, 'precision': math_precision, 'recall': math_recall, 'f1_score': math_f1},
-        notes='XGBoost - Predicts gateway math completion Year 1'
+        notes=f'XGBoost - Predicts gateway math completion Year 1'
     )
 
 # Generate predictions for all students
@@ -809,7 +810,7 @@ df['gateway_math_risk'] = pd.cut(
     labels=['High Risk', 'Moderate Risk', 'Likely Pass', 'Very Likely Pass']
 )
 
-print("Gateway math predictions generated")
+print(f"Gateway math predictions generated")
 
 # ============================================================================
 # STEP 9: MODEL 6 - GATEWAY ENGLISH SUCCESS PREDICTION (NEW!)
@@ -893,9 +894,9 @@ print(f"Recall:    {english_recall:.4f}")
 print(f"F1-Score:  {english_f1:.4f}")
 
 print("\nConfusion Matrix:")
-cm = confusion_matrix(y_test, y_pred)
-print("                Predicted")
-print("              No Pass    Pass")
+cm = confusion_matrix(y_test, y_pred, labels=[0, 1])
+print(f"                Predicted")
+print(f"              No Pass    Pass")
 print(f"Actual No     {cm[0,0]:6d}    {cm[0,1]:6d}")
 print(f"       Pass   {cm[1,0]:6d}    {cm[1,1]:6d}")
 
@@ -905,7 +906,7 @@ if USE_DATABASE:
         model_name='Gateway English Success Prediction',
         model_type='classification',
         metrics={'accuracy': english_accuracy, 'auc_roc': english_auc, 'precision': english_precision, 'recall': english_recall, 'f1_score': english_f1},
-        notes='XGBoost - Predicts gateway English completion Year 1'
+        notes=f'XGBoost - Predicts gateway English completion Year 1'
     )
 
 # Generate predictions for all students
@@ -920,7 +921,7 @@ df['gateway_english_risk'] = pd.cut(
     labels=['High Risk', 'Moderate Risk', 'Likely Pass', 'Very Likely Pass']
 )
 
-print("Gateway English predictions generated")
+print(f"Gateway English predictions generated")
 
 # ============================================================================
 # STEP 10: MODEL 7 - FIRST-SEMESTER GPA < 2.0 PREDICTION (NEW! - FIXED DATA LEAKAGE)
@@ -1007,9 +1008,9 @@ print(f"Recall:    {gpa_recall:.4f}")
 print(f"F1-Score:  {gpa_f1:.4f}")
 
 print("\nConfusion Matrix:")
-cm = confusion_matrix(y_test, y_pred)
-print("                Predicted")
-print("              GPA>=2.0  GPA<2.0")
+cm = confusion_matrix(y_test, y_pred, labels=[0, 1])
+print(f"                Predicted")
+print(f"              GPA>=2.0  GPA<2.0")
 print(f"Actual >=2.0  {cm[0,0]:6d}    {cm[0,1]:6d}")
 print(f"       <2.0   {cm[1,0]:6d}    {cm[1,1]:6d}")
 
@@ -1019,7 +1020,7 @@ if USE_DATABASE:
         model_name='First-Semester Low GPA Prediction',
         model_type='classification',
         metrics={'accuracy': gpa_accuracy, 'auc_roc': gpa_auc, 'precision': gpa_precision, 'recall': gpa_recall, 'f1_score': gpa_f1},
-        notes='XGBoost - Predicts GPA < 2.0 risk (NO DATA LEAKAGE)'
+        notes=f'XGBoost - Predicts GPA < 2.0 risk (NO DATA LEAKAGE)'
     )
 
 # Generate predictions for all students
@@ -1032,7 +1033,7 @@ df['academic_risk_level'] = pd.cut(
     labels=['Low Risk', 'Moderate Risk', 'High Risk', 'Critical Risk']
 )
 
-print("Low GPA predictions generated")
+print(f"Low GPA predictions generated")
 
 # ============================================================================
 # STEP 11: SAVE PREDICTIONS TO STUDENT-LEVEL FILE
@@ -1065,7 +1066,7 @@ if USE_DATABASE:
         if_exists='replace'
     )
     if success:
-        print("✓ Student-level predictions saved to database")
+        print(f"✓ Student-level predictions saved to database")
         print(f"  Table: {TABLES['student_predictions']}")
         print(f"  Records: {len(df):,}")
         print(f"  Columns: {len(df.columns)}")
@@ -1074,9 +1075,9 @@ if USE_DATABASE:
         USE_DATABASE = False
 
 # Always save CSV files for backup and local analysis
-output_file = os.path.join(DATA_DIR, 'kctcs_student_level_with_predictions.csv')
+output_file = os.path.join(DATA_DIR, 'bishop_state_student_level_with_predictions.csv')
 df.to_csv(output_file, index=False)
-print("\n✓ Saved student-level predictions to CSV:")
+print(f"\n✓ Saved student-level predictions to CSV:")
 print(f"  File: {output_file}")
 print(f"  Records: {len(df):,}")
 print(f"  Columns: {len(df.columns)}")
@@ -1089,7 +1090,7 @@ print("STEP 12: MERGING PREDICTIONS WITH COURSE-LEVEL FILE")
 print("=" * 80)
 
 print("\nLoading course-level merged file...")
-merged_file = os.path.join(DATA_DIR, 'kctcs_merged_with_zip.csv')
+merged_file = os.path.join(DATA_DIR, 'bishop_state_student_level_with_zip.csv')
 print(f"Reading from: {merged_file}")
 merged_df = pd.read_csv(merged_file)
 print(f"Loaded {len(merged_df):,} course records")
@@ -1116,15 +1117,15 @@ if USE_DATABASE:
         if_exists='replace'
     )
     if success:
-        print("✓ Course-level predictions saved to database")
+        print(f"✓ Course-level predictions saved to database")
         print(f"  Table: {TABLES['course_predictions']}")
         print(f"  Records: {len(merged_with_predictions):,}")
         print(f"  Columns: {len(merged_with_predictions.columns)}")
 
 # Always save CSV files for backup and local analysis
-output_file = os.path.join(DATA_DIR, 'kctcs_merged_with_predictions.csv')
+output_file = os.path.join(DATA_DIR, 'bishop_state_merged_with_predictions.csv')
 merged_with_predictions.to_csv(output_file, index=False)
-print("\n✓ Saved course-level predictions to CSV:")
+print(f"\n✓ Saved course-level predictions to CSV:")
 print(f"  File: {output_file}")
 print(f"  Records: {len(merged_with_predictions):,}")
 print(f"  Columns: {len(merged_with_predictions.columns)}")
@@ -1137,7 +1138,7 @@ print("STEP 13: SUMMARY REPORT")
 print("=" * 80)
 
 summary_report = f"""
-KCTCS ML PIPELINE - SUMMARY REPORT
+BISHOP STATE ML PIPELINE - SUMMARY REPORT
 {'=' * 80}
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
@@ -1164,7 +1165,7 @@ for cat in ['Critical Risk', 'High Risk', 'Moderate Risk', 'Low Risk']:
     pct = count / len(df) * 100
     summary_report += f"     {cat:20s} {count:6,} ({pct:5.1f}%)\n"
 
-summary_report += """
+summary_report += f"""
 2. EARLY WARNING SYSTEM
    Algorithm: Composite Risk Score (Retention + Performance Metrics)
    Approach: Aligned with retention predictions to eliminate contradictions
@@ -1323,21 +1324,21 @@ print("=" * 80)
 db_connected = 1 if USE_DATABASE else 0
 print(f"\nDatabase Connection Status: {db_connected}")
 if db_connected == 1:
-    print("  ✓ Successfully connected to MariaDB")
+    print("  ✓ Successfully connected to Supabase Postgres")
     print(f"  ✓ Database: {DB_CONFIG['database']}")
     print(f"  ✓ Host: {DB_CONFIG['host']}")
 else:
     print("  ✗ Database connection failed - used CSV fallback")
 
 # Record counts loaded to database
-print("\nRecords Loaded to Database:")
+print(f"\nRecords Loaded to Database:")
 if db_connected == 1:
     print(f"  - student_predictions table: {len(df):,} records")
     print(f"  - course_predictions table: {len(merged_with_predictions):,} records")
-    print("  - ml_model_performance table: 4 model records")
+    print(f"  - ml_model_performance table: 4 model records")
     print(f"\n  Total records saved: {len(df) + len(merged_with_predictions) + 4:,}")
 else:
-    print("  - No records loaded to database (CSV fallback used)")
+    print(f"  - No records loaded to database (CSV fallback used)")
     print(f"  - student_predictions.csv: {len(df):,} records")
     print(f"  - course_predictions.csv: {len(merged_with_predictions):,} records")
 

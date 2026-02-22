@@ -9,15 +9,15 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { AnalysisResult } from "@/components/analysis-result"
 import { QueryPlanPanel } from "@/components/query-plan-panel"
+import { QueryHistoryPanel } from "@/components/query-history-panel"
 import { analyzePrompt } from "@/lib/prompt-analyzer"
 import { executeQuery } from "@/lib/query-executor"
-import type { QueryPlan, QueryResult } from "@/lib/types"
+import type { QueryPlan, QueryResult, HistoryEntry } from "@/lib/types"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
 const INSTITUTIONS = [
-  { name: "KCTCS", code: "kctcs" },
-  { name: "Bishop State", code: "al" },
+  { name: "Bishop State", code: "bscc" },
   { name: "University of Akron", code: "oh" },
   { name: "Cal State San Bernardino", code: "csusb" },
   { name: "Thomas More University", code: "ky" },
@@ -30,10 +30,25 @@ export default function QueryPage() {
   const [queryPlan, setQueryPlan] = useState<QueryPlan | null>(null)
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null)
   const [useDirectDB, setUseDirectDB] = useState(true)
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    // Read from localStorage on mount (client-only)
+    if (typeof window === "undefined") return []
+    try {
+      return JSON.parse(localStorage.getItem("bishop_query_history") || "[]")
+    } catch {
+      return []
+    }
+  })
 
-  const handleAnalyze = async () => {
-    console.log("handleAnalyze", prompt, institution)
-    if (!prompt.trim()) return
+  const handleAnalyze = async (
+    overridePrompt?: string,
+    overrideInstitution?: string,
+  ) => {
+    const activePrompt = overridePrompt ?? prompt
+    const activeInstitution = overrideInstitution ?? institution
+
+    console.log("handleAnalyze", activePrompt, activeInstitution)
+    if (!activePrompt.trim()) return
 
     setIsAnalyzing(true)
     try {
@@ -46,11 +61,11 @@ export default function QueryPage() {
         const response = await fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, institution }),
+          body: JSON.stringify({ prompt: activePrompt, institution: activeInstitution }),
         })
 
         console.log("response status:", response.status)
-        
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
           console.error("response error", response.status, errorData)
@@ -60,20 +75,54 @@ export default function QueryPage() {
         plan = await response.json()
         console.log("plan received:", plan)
       } else {
-        plan = analyzePrompt(prompt, institution)
+        plan = analyzePrompt(activePrompt, activeInstitution)
       }
 
       setQueryPlan(plan)
       console.log("executing query with plan:", plan)
-      const result = await executeQuery(plan, institution, useDirectDB)
+      const result = await executeQuery(plan, activeInstitution, useDirectDB)
       console.log("query result:", result)
       setQueryResult(result)
+
+      // Persist history entry
+      const entry: HistoryEntry = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        institution: activeInstitution,
+        prompt: activePrompt,
+        rowCount: result.rowCount,
+        vizType: plan.vizType,
+      }
+      // Prepend and cap at 50 entries
+      setHistory(prev => {
+        const updated = [entry, ...prev].slice(0, 50)
+        localStorage.setItem("bishop_query_history", JSON.stringify(updated))
+        return updated
+      })
+
+      // Fire-and-forget audit log — don't await or block on failure
+      fetch("/api/query-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      }).catch(() => {/* ignore audit failures */})
     } catch (error) {
       console.error("Error analyzing prompt:", error)
       alert("Error: " + (error instanceof Error ? error.message : String(error)))
     } finally {
       setIsAnalyzing(false)
     }
+  }
+
+  const handleRerun = (entry: HistoryEntry) => {
+    setInstitution(entry.institution)
+    setPrompt(entry.prompt)
+    handleAnalyze(entry.prompt, entry.institution)
+  }
+
+  const handleClear = () => {
+    setHistory([])
+    localStorage.removeItem("bishop_query_history")
   }
 
   return (
@@ -137,13 +186,21 @@ export default function QueryPage() {
               </div>
 
               <div className="flex items-end">
-                <Button onClick={handleAnalyze} disabled={isAnalyzing || !prompt.trim()} className="w-full md:w-auto">
+                <Button onClick={() => handleAnalyze()} disabled={isAnalyzing || !prompt.trim()} className="w-full md:w-auto">
                   {isAnalyzing ? "Analyzing..." : "Analyze"}
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {history.length > 0 && (
+          <QueryHistoryPanel
+            entries={history}
+            onRerun={handleRerun}
+            onClear={handleClear}
+          />
+        )}
 
         {queryResult && queryPlan && (
           <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
@@ -166,4 +223,3 @@ export default function QueryPage() {
     </div>
   )
 }
-

@@ -1,6 +1,6 @@
-# KCTCS Student Success Prediction
+# Bishop State Student Success Prediction
 
-A comprehensive machine learning pipeline for predicting student success outcomes at Kentucky Community and Technical College System (KCTCS).
+A comprehensive machine learning pipeline for predicting student success outcomes at Bishop State Community College.
 
 ## 📋 Table of Contents
 
@@ -34,23 +34,25 @@ codebenders-datathon/
 ├── ai_model/                          # Machine learning models and scripts
 │   ├── __init__.py                    # Package initialization
 │   ├── complete_ml_pipeline.py        # Main ML pipeline (5 models)
-│   └── merge_kctcs_data.py           # Data merging script
+│   ├── generate_bishop_state_data.py  # Synthetic data generation
+│   └── merge_bishop_state_data.py     # Data merging script
 │
 ├── data/                              # Data files (CSV and Excel)
-│   ├── ar_kcts_with_zip.csv          # AR data with zip codes
-│   ├── kctcs_cohorts_with_zip.csv    # Student cohort data
-│   ├── kctcs_courses.csv             # Course enrollment data
-│   ├── kctcs_merged_with_zip.csv     # Merged dataset
-│   ├── kctcs_student_level_with_zip.csv              # Student-level aggregated data
-│   ├── kctcs_merged_with_predictions.csv             # Course-level with predictions
-│   ├── kctcs_student_level_with_predictions.csv      # Student-level with predictions
-│   └── De-identified PDP AR Files.xlsx               # Original Excel data
+│   ├── ar_bscc_with_zip.csv          # AR data with zip codes
+│   ├── bishop_state_cohorts_with_zip.csv    # Student cohort data
+│   ├── bishop_state_courses.csv             # Course enrollment data
+│   ├── bishop_state_student_level_with_zip.csv              # Student-level aggregated data
+│   ├── bishop_state_student_level_with_predictions.csv      # Student-level with predictions
+│   ├── bishop_state_merged_with_predictions.csv             # Course-level with predictions
+│   └── De-identified PDP AR Files.xlsx                      # Original Excel data
 │
+├── codebenders-dashboard/             # Next.js web application
+├── operations/                        # Database utilities and configuration
 ├── DATA_DICTIONARY.md                 # Detailed data field descriptions
-├── ML_MODELS_GUIDE.md                # Machine learning models guide
+├── ML_MODELS_GUIDE.md                 # Machine learning models guide
 ├── requirements.txt                   # Python dependencies
-├── LICENSE                           # MIT License
-└── README.md                         # This file
+├── LICENSE                            # MIT License
+└── README.md                          # This file
 ```
 
 ## ✨ Features
@@ -77,41 +79,50 @@ codebenders-datathon/
 
 - Python 3.8 or higher
 - pip package manager
-- MariaDB database access (for saving predictions)
+- Postgres database access via Supabase (for saving predictions)
 
 ### Setup
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/codebenders-datathon.git
+   git clone https://github.com/devcolor/codebenders-datathon.git
    cd codebenders-datathon
    ```
 
-2. **Install dependencies**
+2. **Create and activate virtualenv**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   ```
+
+3. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Configure database** (Optional - will fallback to CSV if not configured)
-   
-   Database credentials are stored in `ai_model/db_config.py`:
-   ```python
-   DB_CONFIG = {
-       'host': 'devcolor00.czqeeakaypfi.us-west-2.rds.amazonaws.com',
-       'user': 'admin',
-       'password': 'devcolor2025',
-       'database': 'Kentucky_Community_and_Technical_College_System',
-       'port': 3306
-   }
+4. **Configure database** (Optional - will fallback to CSV if not configured)
+
+   Copy `codebenders-dashboard/env.example` to `.env` and update:
+   ```env
+   DB_HOST=127.0.0.1
+   DB_USER=postgres
+   DB_PASSWORD=postgres
+   DB_PORT=54332
+   DB_NAME=postgres
+   DB_SSL=false
    ```
 
-4. **Test database connection**
+5. **Start local Supabase** (for local development)
    ```bash
-   cd ai_model
-   python test_db_connection.py
+   supabase start
    ```
 
-5. **Verify data files**
+6. **Test database connection**
+   ```bash
+   python -m operations.test_db_connection
+   ```
+
+7. **Verify data files**
    Ensure all required CSV files are in the `data/` folder.
 
 ## 💻 Usage
@@ -130,7 +141,7 @@ This will:
 2. Load and preprocess data
 3. Train all 5 models
 4. Generate predictions for all students
-5. Save results to **MariaDB database** (or CSV files as fallback)
+5. Save results to **Postgres database** (or CSV files as fallback)
 6. Save model performance metrics to database
 7. Create a summary report
 
@@ -140,7 +151,7 @@ If you need to re-merge the source data files:
 
 ```bash
 cd ai_model
-python merge_kctcs_data.py
+python merge_bishop_state_data.py
 ```
 
 ### Expected Runtime
@@ -152,7 +163,7 @@ python merge_kctcs_data.py
 
 ### Batch Upload to Database
 
-The pipeline uses an efficient batch upload system to save predictions to MariaDB:
+The pipeline uses an efficient batch upload system to save predictions to Postgres:
 
 **Features**:
 - **Automatic batching**: Large datasets are split into manageable chunks (1,000 records per batch)
@@ -163,11 +174,11 @@ The pipeline uses an efficient batch upload system to save predictions to MariaD
 
 **Example Output**:
 ```
-Saving 500,000 records to table 'course_predictions'...
+Saving 99,559 records to table 'course_predictions'...
 ✓ Successfully saved to 'course_predictions'
-  - Records: 500,000
+  - Records: 99,559
   - Columns: 45
-  - Verified: 500,000 records in database
+  - Verified: 99,559 records in database
 ```
 
 **Configuration**:
@@ -176,8 +187,8 @@ Saving 500,000 records to table 'course_predictions'...
 - Located in `operations/db_utils.py`
 
 **Tables Created**:
-1. `student_predictions` - Student-level predictions (~20K records)
-2. `course_predictions` - Course-level predictions (~500K records)
+1. `student_predictions` - Student-level predictions (~4,000 records)
+2. `course_predictions` - Course-level predictions (~99,559 records)
 3. `ml_model_performance` - Model metrics and training history
 
 For more details, see [operations/README.md](operations/README.md).
@@ -186,14 +197,9 @@ For more details, see [operations/README.md](operations/README.md).
 
 ### 1. Retention Prediction Model
 
-**Algorithm**: XGBoost Classifier  
-**Target**: Binary (Retained / Not Retained)  
+**Algorithm**: XGBoost Classifier
+**Target**: Binary (Retained / Not Retained)
 **Features**: 40+ demographic, academic, and performance features
-
-**Performance Metrics**:
-- Accuracy: ~85-90%
-- AUC-ROC: ~0.85-0.92
-- Precision/Recall: Balanced for both classes
 
 **Output**:
 - `retention_probability`: Probability of retention (0-1)
@@ -202,8 +208,8 @@ For more details, see [operations/README.md](operations/README.md).
 
 ### 2. Early Warning System
 
-**Algorithm**: Composite Risk Score  
-**Target**: Binary (At Risk / Not At Risk)  
+**Algorithm**: Composite Risk Score
+**Target**: Binary (At Risk / Not At Risk)
 **Approach**: Combines retention probability with performance metrics
 
 **Risk Factors**:
@@ -220,14 +226,8 @@ For more details, see [operations/README.md](operations/README.md).
 
 ### 3. Time-to-Credential Model
 
-**Algorithm**: XGBoost Regressor  
-**Target**: Continuous (Years to credential)  
-**Training Set**: Students who completed credentials
-
-**Performance Metrics**:
-- RMSE: ~0.5-1.0 years
-- MAE: ~0.4-0.8 years
-- R² Score: ~0.6-0.75
+**Algorithm**: XGBoost Regressor
+**Target**: Continuous (Years to credential)
 
 **Output**:
 - `predicted_time_to_credential`: Years to completion
@@ -235,14 +235,8 @@ For more details, see [operations/README.md](operations/README.md).
 
 ### 4. Credential Type Model
 
-**Algorithm**: Random Forest Classifier  
-**Target**: Multi-class (No Credential / Certificate / Associate's / Bachelor's)  
-**Classes**: 4 credential types
-
-**Performance Metrics**:
-- Overall Accuracy: ~70-80%
-- Macro F1-Score: ~0.65-0.75
-- Per-class accuracy varies by credential type
+**Algorithm**: Random Forest Classifier
+**Target**: Multi-class (No Credential / Certificate / Associate's / Bachelor's)
 
 **Output**:
 - `predicted_credential_type`: Numeric code (0-3)
@@ -251,14 +245,8 @@ For more details, see [operations/README.md](operations/README.md).
 
 ### 5. Course Success Model
 
-**Algorithm**: Random Forest Regressor  
-**Target**: Continuous (GPA 0-4 scale)  
-**Training Set**: Students with grade data
-
-**Performance Metrics**:
-- RMSE: ~0.3-0.5 GPA points
-- MAE: ~0.2-0.4 GPA points
-- R² Score: ~0.5-0.65
+**Algorithm**: Random Forest Regressor
+**Target**: Continuous (GPA 0-4 scale)
 
 **Output**:
 - `predicted_gpa`: Expected GPA (0-4 scale)
@@ -270,10 +258,10 @@ For more details, see [operations/README.md](operations/README.md).
 
 | File | Description | Records |
 |------|-------------|---------|
-| `ar_kcts_with_zip.csv` | AR data with zip codes | ~20K |
-| `kctcs_cohorts_with_zip.csv` | Student cohort information | ~20K |
-| `kctcs_courses.csv` | Course enrollment records | ~500K |
-| `kctcs_student_level_with_zip.csv` | Aggregated student-level data | ~20K |
+| `ar_bscc_with_zip.csv` | AR data with zip codes | ~4K |
+| `bishop_state_cohorts_with_zip.csv` | Student cohort information | ~4K |
+| `bishop_state_courses.csv` | Course enrollment records | ~100K |
+| `bishop_state_student_level_with_zip.csv` | Aggregated student-level data | ~4K |
 
 ### Feature Categories
 
@@ -284,76 +272,36 @@ For more details, see [operations/README.md](operations/README.md).
 5. **Financial**: Pell grant status
 6. **Geographic**: Zip code information
 
-### Data Quality
-
-- Missing values handled via median imputation (numeric) and "Unknown" category (categorical)
-- Categorical variables encoded using Label Encoding
-- Features standardized where appropriate
-- Outliers retained to preserve real-world distribution
-
 ## 📈 Output
 
 ### Database Tables (Primary Output)
 
-Predictions are saved to MariaDB database:
+Predictions are saved to Postgres (Supabase):
 
-1. **`kctcs_student_level_with_predictions`** (Table)
+1. **`student_predictions`** (Table)
    - Student-level data with all predictions
-   - One row per student (~20K records)
-   - Original features + 17 prediction columns
+   - One row per student (~4,000 records)
 
-2. **`kctcs_merged_with_predictions`** (Table)
+2. **`course_predictions`** (Table)
    - Course-level data with predictions
-   - One row per course enrollment (~500K records)
-   - Predictions merged from student level
+   - One row per course enrollment (~99,559 records)
 
 3. **`ml_model_performance`** (Table)
    - Model performance metrics for each training run
-   - Tracks accuracy, precision, recall, F1, AUC-ROC, RMSE, MAE, R²
-   - Includes training date and model notes
 
 ### Generated Files (Fallback)
 
 If database connection fails, predictions are saved to CSV:
 
-1. **`kctcs_student_level_with_predictions.csv`**
-   - Student-level data with all predictions
-
-2. **`kctcs_merged_with_predictions.csv`**
-   - Course-level data with predictions
-
+1. **`bishop_state_student_level_with_predictions.csv`**
+2. **`bishop_state_merged_with_predictions.csv`**
 3. **`ML_PIPELINE_REPORT.txt`**
-   - Comprehensive summary report
-   - Model performance metrics
-   - Distribution statistics
-   - Feature importance rankings
-
-### Prediction Columns
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `retention_probability` | Float (0-1) | Probability of retention |
-| `retention_prediction` | Binary (0/1) | Retention prediction |
-| `retention_risk_category` | Category | Risk level for retention |
-| `risk_score` | Float (0-100) | Comprehensive risk score |
-| `at_risk_alert` | Category | Alert level (URGENT/HIGH/MODERATE/LOW) |
-| `at_risk_probability` | Float (0-1) | At-risk probability |
-| `at_risk_prediction` | Binary (0/1) | At-risk prediction |
-| `predicted_time_to_credential` | Float | Years to credential |
-| `predicted_graduation_year` | Float | Expected graduation year |
-| `predicted_credential_type` | Integer (0-3) | Credential type code |
-| `predicted_credential_label` | String | Credential type label |
-| `prob_no_credential` | Float (0-1) | Probability of no credential |
-| `prob_certificate` | Float (0-1) | Probability of certificate |
-| `prob_associate` | Float (0-1) | Probability of associate's |
-| `prob_bachelor` | Float (0-1) | Probability of bachelor's |
-| `predicted_gpa` | Float (0-4) | Expected GPA |
-| `gpa_performance` | Category | Performance vs. expected |
 
 ## 📚 Documentation
 
 - **[DATA_DICTIONARY.md](DATA_DICTIONARY.md)**: Detailed descriptions of all data fields
 - **[ML_MODELS_GUIDE.md](ML_MODELS_GUIDE.md)**: In-depth guide to machine learning models
+- **[DOCKER_SETUP.md](DOCKER_SETUP.md)**: Docker Compose setup for local Postgres
 - **Model Code**: Extensively commented Python scripts in `ai_model/`
 
 ## 🔧 Configuration
@@ -367,18 +315,9 @@ Edit `complete_ml_pipeline.py` to adjust:
 - **Train-test split**: `test_size`, `random_state`
 - **Risk thresholds**: Alert levels in `assign_alert_level()`
 
-### Feature Selection
-
-Modify feature lists in the "Feature Engineering" section:
-- `demographic_features`
-- `academic_prep_features`
-- `enrollment_features`
-- `course_features`
-- `performance_features`
-
 ## 🤝 Contributing
 
-This project was developed for the KCTCS Datathon. Contributions are welcome!
+This project was developed for the Bishop State Datathon. Contributions are welcome!
 
 ### Development Workflow
 
@@ -394,12 +333,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Team
 
-**CodeBenders Team**  
-KCTCS Datathon 2025
+**CodeBenders Team**
+Bishop State Datathon 2025
 
 ## 🙏 Acknowledgments
 
-- Kentucky Community and Technical College System (KCTCS)
+- Bishop State Community College
 - Datathon organizers and mentors
 - Open-source ML community (scikit-learn, XGBoost, pandas)
 

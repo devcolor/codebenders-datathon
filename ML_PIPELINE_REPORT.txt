@@ -1,68 +1,86 @@
 
-KCTCS ML PIPELINE - SUMMARY REPORT
+BISHOP STATE ML PIPELINE - SUMMARY REPORT
 ================================================================================
-Generated: 2025-10-28 17:29:21
+Generated: 2026-02-21 12:59:23
 
 DATASET OVERVIEW
 --------------------------------------------------------------------------------
-Total Students: 32,800
-Total Course Records: 145,918
+Total Students: 4,000
+Total Course Records: 4,000
 
 MODEL PERFORMANCE SUMMARY
 --------------------------------------------------------------------------------
 
 1. RETENTION PREDICTION MODEL
    Algorithm: XGBoost Classifier
-   Features Used: 31
+   Features Used: 23
    Test Set Performance:
-     - Accuracy: 0.5224
-     - AUC-ROC: 0.5355
+     - Accuracy: 0.7238
+     - AUC-ROC: 0.6134
    
    Risk Distribution:
-     Critical Risk           242 (  0.7%)
-     High Risk            15,755 ( 48.0%)
-     Moderate Risk        15,202 ( 46.3%)
-     Low Risk              1,601 (  4.9%)
+     Critical Risk             0 (  0.0%)
+     High Risk                82 (  2.1%)
+     Moderate Risk         2,195 ( 54.9%)
+     Low Risk              1,723 ( 43.1%)
 
 2. EARLY WARNING SYSTEM
    Algorithm: Composite Risk Score (Retention + Performance Metrics)
    Approach: Aligned with retention predictions to eliminate contradictions
    Alert Distribution:
-     URGENT        487 (  1.5%)
-     HIGH        8,344 ( 25.4%)
-     MODERATE   19,823 ( 60.4%)
-     LOW         4,146 ( 12.6%)
+     URGENT          0 (  0.0%)
+     HIGH           21 (  0.5%)
+     MODERATE    2,210 ( 55.2%)
+     LOW         1,769 ( 44.2%)
 
 3. TIME TO CREDENTIAL PREDICTION
    Algorithm: XGBoost Regressor
-   Mean Predicted Time: 4.29 years
-   Median Predicted Time: 4.39 years
+   Mean Predicted Time: 2.97 years
+   Median Predicted Time: 2.96 years
 
 4. CREDENTIAL TYPE PREDICTION
    Algorithm: Random Forest Classifier
    Predicted Distribution:
-     No Credential        32,735 ( 99.8%)
-     Associate                59 (  0.2%)
-     Bachelor                  6 (  0.0%)
+     No Credential         4,000 (100.0%)
 
-5. COURSE SUCCESS (GPA) PREDICTION
-   Algorithm: Random Forest Regressor
-   Mean Predicted GPA: 2.06
+5. GATEWAY MATH SUCCESS PREDICTION (NEW!)
+   Algorithm: XGBoost Classifier
+   Students with Gateway Math Data: 4,000
+   Average Pass Probability: 0.0%
    
-   Performance vs. Expected:
-     As Expected          32,800 (100.0%)
+   Gateway Math Risk Distribution:
+     High Risk             4,000 (100.0%)
+
+6. GATEWAY ENGLISH SUCCESS PREDICTION (NEW!)
+   Algorithm: XGBoost Classifier
+   Students with Gateway English Data: 4,000
+   Average Pass Probability: 0.0%
+   
+   Gateway English Risk Distribution:
+     High Risk             4,000 (100.0%)
+
+7. FIRST-SEMESTER LOW GPA (<2.0) PREDICTION (NEW!)
+   Algorithm: XGBoost Classifier
+   Average Low GPA Probability: 13.1%
+   Students Predicted Low GPA: 231
+   
+   Academic Risk Level Distribution:
+     Low Risk              3,078 ( 77.0%)
+     Moderate Risk           597 ( 14.9%)
+     High Risk               258 (  6.5%)
+     Critical Risk            67 (  1.7%)
 
 OUTPUT: DATABASE TABLES
 --------------------------------------------------------------------------------
 1. student_predictions (Table)
    - Student-level data with all predictions
-   - 32,800 students
-   - 156 columns
+   - 4,000 students
+   - 164 columns
 
 2. course_predictions (Table)
    - Course-level data with predictions
-   - 145,918 records
-   - 151 columns
+   - 4,000 records
+   - 159 columns
 
 3. ml_model_performance (Table)
    - Model performance metrics
@@ -90,9 +108,20 @@ Credential Type:
   - predicted_credential_label (text label)
   - prob_no_credential, prob_certificate, prob_associate, prob_bachelor
 
-Course Success:
-  - predicted_gpa (0-4 scale)
-  - gpa_performance (Above/Below/As Expected)
+Gateway Math Success:
+  - gateway_math_probability (0-1 scale)
+  - gateway_math_prediction (0=Won't Pass, 1=Will Pass)
+  - gateway_math_risk (High Risk/Moderate Risk/Likely Pass/Very Likely Pass)
+
+Gateway English Success:
+  - gateway_english_probability (0-1 scale)
+  - gateway_english_prediction (0=Won't Pass, 1=Will Pass)
+  - gateway_english_risk (High Risk/Moderate Risk/Likely Pass/Very Likely Pass)
+
+First-Semester GPA < 2.0 Risk:
+  - low_gpa_probability (0-1 scale)
+  - low_gpa_prediction (0=Adequate GPA, 1=Low GPA)
+  - academic_risk_level (Low Risk/Moderate Risk/High Risk/Critical Risk)
 
 ================================================================================
 PIPELINE COMPLETE!

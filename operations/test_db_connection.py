@@ -1,14 +1,14 @@
 """
 Test Database Connection
 =========================
-Simple script to test MariaDB connection and verify credentials
+Simple script to test PostgreSQL connection and verify credentials
 """
 
 from .db_utils import test_connection, create_model_performance_table
 from .db_config import DB_CONFIG
 
 print("=" * 80)
-print("TESTING MARIADB CONNECTION")
+print("TESTING POSTGRES CONNECTION")
 print("=" * 80)
 print(f"\nDatabase: {DB_CONFIG['database']}")
 print(f"Host: {DB_CONFIG['host']}")

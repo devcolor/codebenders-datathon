@@ -1,7 +1,7 @@
 # Student Success Prediction Models - Guide for Education Leaders
 
-**Generated**: October 30, 2025  
-**Dataset**: KCTCS Student Data (32,800 students, 145,918 course records)
+**Generated**: October 30, 2025
+**Dataset**: Bishop State Student Data (4,000 students, 99,559 course records)
 **Models**: 8 predictive models to identify at-risk students and improve retention
 
 ---
@@ -30,6 +30,7 @@ This guide explains our machine learning models that predict student success out
 | **6. GPA Prediction** | What GPA will student achieve? | R²=0.25 | Identify over/underperformers |
 | **7. Time to Credential** | How many years until graduation? | R²=0.35 | Graduation timeline planning |
 | **8. Credential Type** | What degree will student earn? | Limited | Limited by data availability |
+| **9. Readiness Score** | How prepared is this student for success? | Rule-based | Advisor prioritization & intervention planning |
 
 
 ---
@@ -37,14 +38,14 @@ This guide explains our machine learning models that predict student success out
 ## 📊 Output Files - Which One Should I Use?
 
 ### For Student-Level Analysis (Dashboards, Reports)
-**File**: `kctcs_student_level_with_predictions.csv`
-- **32,800 rows** (one per student)
+**File**: `bishop_state_student_level_with_predictions.csv`
+- **4,000 rows** (one per student)
 - **166 columns** (original data + 31 prediction columns)
 - **Use when**: Creating student lists, advisor dashboards, retention reports
 
 ### For Course-Level Analysis (Course Performance)
-**File**: `kctcs_merged_with_predictions.csv`
-- **145,918 rows** (one per course enrollment)
+**File**: `bishop_state_merged_with_predictions.csv`
+- **99,559 rows** (one per course enrollment)
 - **160 columns** (original data + 25 prediction columns)
 - **Use when**: Analyzing which courses have high failure rates, tracking enrollment patterns
 
@@ -345,6 +346,28 @@ Monitor: Students As Expected
 
 ---
 
+## 📐 Model 9: Student Readiness Score (Rule-Based)
+
+**Type:** Weighted rule engine (not ML)
+**Output:** `readiness_score` (0.0–1.0), `readiness_level` (high/medium/low)
+**Table:** `llm_recommendations`
+**Script:** `ai_model/generate_readiness_scores.py`
+
+Unlike the 8 ML models above, the readiness score is a **deterministic rule-based system** aligned with Postsecondary Data Partnership (PDP) momentum metrics. It combines:
+
+- **Academic sub-score (40%):** GPA, course completion rate, passing rate, gateway course completion, and Year 1 credit momentum (≥12 credits)
+- **Engagement sub-score (30%):** Enrollment intensity, total courses enrolled, math placement level
+- **ML risk sub-score (30%):** Retention probability and at-risk alert from Models 1 & 2 (inverted — higher retention probability = higher readiness)
+
+See [`docs/READINESS_METHODOLOGY.md`](docs/READINESS_METHODOLOGY.md) for full formula, research citations, and upgrade path.
+
+To regenerate scores:
+```bash
+venv/bin/python ai_model/generate_readiness_scores.py
+```
+
+---
+
 ## 🎯 Which Students Should I Focus On?
 
 ### Priority 1: URGENT Students (206 students)
@@ -642,8 +665,8 @@ A: Wait for more data (3-5 years) or try SMOTE/oversampling. Current predictions
 ```
 codebenders-datathon/
 ├── data/
-│   ├── kctcs_student_level_with_predictions.csv ⭐ Main output (32,800 students)
-│   ├── kctcs_merged_with_predictions.csv (145,918 course records)
+│   ├── bishop_state_student_level_with_predictions.csv ⭐ Main output (4,000 students)
+│   ├── bishop_state_merged_with_predictions.csv (99,559 course records)
 │   └── model_comparison_results.csv (model performance)
 │
 ├── complete_ml_pipeline_csv_only.py (run this to generate predictions)
@@ -711,7 +734,7 @@ codebenders-datathon/
 
 **Version**: 5.0 (8 Models - October 30, 2025)  
 **Models**: 8 predictive models (3 high-performing, 3 moderate, 2 limited)  
-**Records**: 32,800 students with 166 total columns (31 prediction columns)  
+**Records**: 4,000 students with 166 total columns (31 prediction columns)  
 **Best Models**: Low GPA Risk (99% AUC), Gateway English (81% AUC), Gateway Math (64% AUC)
 
 **New in v5.0**: Added Model 6 (GPA Prediction) - predicts expected GPA and identifies over/underperformers

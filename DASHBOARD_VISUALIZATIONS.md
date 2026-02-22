@@ -1,7 +1,7 @@
 # Dashboard Visualizations Guide
-## KCTCS Student Success Analytics & Predictive Models
+## Bishop State Community College Student Success Analytics & Predictive Models
 
-**Dataset**: `kctcs_student_level_with_predictions.csv`  
+**Dataset**: `bishop_state_student_level_with_predictions.csv`
 **Students**: 32,800  
 **Date**: October 28, 2025  
 **Purpose**: Comprehensive visualization guide for retention, graduation, and student success metrics
@@ -680,7 +680,7 @@ Average(risk_score) by Program_of_Study_Year_1
 
 - **Model Performance Details**: See `ML_MODELS_GUIDE.md`
 - **Data Dictionary**: See `DATA_DICTIONARY.md`
-- **Raw Data**: `kctcs_student_level_with_predictions.csv`
+- **Raw Data**: `bishop_state_student_level_with_predictions.csv`
 
 ---
 

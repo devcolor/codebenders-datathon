@@ -1,5 +1,5 @@
 """
-Complete ML Pipeline for KCTCS Student Success Prediction (CSV Output Only)
+Complete ML Pipeline for Bishop State Student Success Prediction (CSV Output Only)
 ==========================================================
 Models:
 1. Retention Prediction (Binary Classification)
@@ -49,7 +49,7 @@ print("STEP 1: DATA LOADING")
 print("=" * 80)
 
 print("\nLoading student-level dataset...")
-student_file = os.path.join(DATA_DIR, 'kctcs_student_level_with_zip.csv')
+student_file = os.path.join(DATA_DIR, 'bishop_state_student_level_with_zip.csv')
 print(f"Reading from: {student_file}")
 df = pd.read_csv(student_file)
 print(f"Loaded {len(df):,} students with {len(df.columns)} features")
@@ -1039,7 +1039,7 @@ print("STEP 12: SAVING PREDICTIONS TO CSV FILES")
 print("=" * 80)
 
 # Save student-level predictions with all columns
-output_file = os.path.join(DATA_DIR, 'kctcs_student_level_with_predictions.csv')
+output_file = os.path.join(DATA_DIR, 'bishop_state_student_level_with_predictions.csv')
 df.to_csv(output_file, index=False)
 print("\n✓ Saved student-level predictions to CSV:")
 print(f"  File: {output_file}")
@@ -1070,7 +1070,7 @@ prediction_columns = [
 predictions_df = df[prediction_columns].copy()
 
 print("\nLoading course-level merged file...")
-merged_file = os.path.join(DATA_DIR, 'kctcs_merged_with_zip.csv')
+merged_file = os.path.join(DATA_DIR, 'bishop_state_student_level_with_zip.csv')
 print(f"Reading from: {merged_file}")
 merged_df = pd.read_csv(merged_file)
 print(f"Loaded {len(merged_df):,} course records")
@@ -1090,7 +1090,7 @@ merged_with_predictions = pd.merge(
 )
 
 # Save course-level predictions
-output_file = os.path.join(DATA_DIR, 'kctcs_merged_with_predictions.csv')
+output_file = os.path.join(DATA_DIR, 'bishop_state_merged_with_predictions.csv')
 merged_with_predictions.to_csv(output_file, index=False)
 print("\n✓ Saved course-level predictions to CSV:")
 print(f"  File: {output_file}")
@@ -1105,7 +1105,7 @@ print("STEP 14: SUMMARY REPORT")
 print("=" * 80)
 
 summary_report = f"""
-KCTCS ML PIPELINE - SUMMARY REPORT (CSV OUTPUT ONLY)
+BISHOP STATE ML PIPELINE - SUMMARY REPORT (CSV OUTPUT ONLY)
 {'=' * 80}
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
@@ -1220,12 +1220,12 @@ for perf in df['gpa_performance'].value_counts().items():
 summary_report += f"""
 OUTPUT: CSV FILES
 {'-' * 80}
-1. kctcs_student_level_with_predictions.csv
+1. bishop_state_student_level_with_predictions.csv
    - Student-level data with all predictions
    - {len(df):,} students
    - {len(df.columns)} columns
 
-2. kctcs_merged_with_predictions.csv
+2. bishop_state_merged_with_predictions.csv
    - Course-level data with predictions
    - {len(merged_with_predictions):,} records
    - {len(merged_with_predictions.columns)} columns
@@ -1293,8 +1293,8 @@ print("ALL MODELS TRAINED AND PREDICTIONS SAVED TO CSV!")
 print("=" * 80)
 print(f"\nCompleted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("\nOutput files:")
-print(f"  1. {os.path.join(DATA_DIR, 'kctcs_student_level_with_predictions.csv')}")
-print(f"  2. {os.path.join(DATA_DIR, 'kctcs_merged_with_predictions.csv')}")
+print(f"  1. {os.path.join(DATA_DIR, 'bishop_state_student_level_with_predictions.csv')}")
+print(f"  2. {os.path.join(DATA_DIR, 'bishop_state_merged_with_predictions.csv')}")
 print(f"  3. {os.path.join(DATA_DIR, 'model_comparison_results.csv')}")
 print(f"  4. {report_file}")
 print("=" * 80)

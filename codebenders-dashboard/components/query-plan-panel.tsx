@@ -56,13 +56,6 @@ export function QueryPlanPanel({ plan }: QueryPlanPanelProps) {
         </div>
 
         <div className="space-y-2">
-          <div className="text-sm font-medium text-foreground">API Query String</div>
-          <div className="rounded-md bg-muted p-3 font-mono text-xs text-muted-foreground overflow-x-auto whitespace-pre-wrap break-all">
-            {plan.queryString}
-          </div>
-        </div>
-
-        <div className="space-y-2">
           <div className="text-sm font-medium text-foreground">SQL (Reference)</div>
           <div className="rounded-md bg-muted p-3 font-mono text-xs text-muted-foreground overflow-x-auto whitespace-pre-wrap break-words">
             {plan.sql}

@@ -179,9 +179,9 @@ The system provides targeted, actionable recommendations including:
 ## Technical Details
 
 ### Database Connection
-- Uses MySQL2 connection pool
-- Connects to MariaDB database on AWS RDS
-- Database: `Kentucky_Community_and_Technical_College_System`
+- Uses pg connection pool
+- Connects to Postgres database (Supabase)
+- Database: `bishop_state`
 - Table: `llm_recommendations`
 
 ### Performance Considerations

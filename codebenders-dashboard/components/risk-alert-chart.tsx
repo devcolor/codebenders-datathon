@@ -84,7 +84,7 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
 
   const chartData = data.map(item => ({
     name: item.category,
-    value: item.count,
+    value: Number(item.count),
     percentage: item.percentage,
   }))
 
@@ -96,7 +96,7 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
           {info && <InfoPopover title="Risk Alert Distribution">{info}</InfoPopover>}
         </div>
         <CardDescription>
-          {data.reduce((sum, item) => sum + item.count, 0).toLocaleString()} total students
+          {data.reduce((sum, item) => sum + Number(item.count), 0).toLocaleString()} total students
         </CardDescription>
       </CardHeader>
       <CardContent>
