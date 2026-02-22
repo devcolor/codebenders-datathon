@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { readFile } from "fs/promises"
 import path from "path"
+import { canAccess, type Role } from "@/lib/roles"
 
 const LOG_FILE = path.join(process.cwd(), "logs", "query-history.jsonl")
 
@@ -13,6 +14,11 @@ function escapeCsvField(value: unknown): string {
 }
 
 export async function GET(request: NextRequest) {
+  const role = request.headers.get("x-user-role") as Role | null
+  if (!role || !canAccess("/api/query-history/export", role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
   const { searchParams } = new URL(request.url)
   const fromParam = searchParams.get("from")
   const toParam   = searchParams.get("to")
