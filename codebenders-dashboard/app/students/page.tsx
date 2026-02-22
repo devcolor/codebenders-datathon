@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowUpDown, ArrowUp, ArrowDown, Download, Search, X } from 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { InfoPopover } from "@/components/info-popover"
 import {
   Select,
   SelectContent,
@@ -381,14 +382,38 @@ export default function StudentsPage() {
                 <Th label="Student GUID" />
                 <ThSort label="Cohort" col="Cohort" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <Th label="Enrollment" />
-                <ThSort label="At-Risk" col="at_risk_alert" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <ThSort label="Retention %" col="retention_probability" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <ThSort label="Readiness" col="readiness_score" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <ThSort label="Math %" col="gateway_math_probability" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <ThSort label="English %" col="gateway_english_probability" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <ThSort label="GPA Risk %" col="low_gpa_probability" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <ThSort label="Time to Cred." col="predicted_time_to_credential" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <Th label="Credential Type" />
+                <ThSort
+                  label="At-Risk" col="at_risk_alert" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
+                  info={<InfoPopover title="At-Risk Alert Level"><p>Composite risk classification: <strong>URGENT</strong> — multiple high-risk signals, immediate outreach needed. <strong>HIGH</strong> — significant risk indicators. <strong>MODERATE</strong> — some risk factors present. <strong>LOW</strong> — on track. Based on retention probability, GPA risk, and gateway course signals.</p></InfoPopover>}
+                />
+                <ThSort
+                  label="Retention %" col="retention_probability" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
+                  info={<InfoPopover title="Retention Probability"><p>Predicted probability (0–100%) that this student will re-enroll next academic year. Produced by a Logistic Regression model trained on 31 features. Academic placement levels account for 75% of predictive power.</p></InfoPopover>}
+                />
+                <ThSort
+                  label="Readiness" col="readiness_score" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
+                  info={<InfoPopover title="PDP Readiness Index"><p>PDP-aligned composite score: Academic (40%) + Engagement (30%) + ML Risk (30%). <strong>High ≥ 65%</strong>, <strong>Medium 40–64%</strong>, <strong>Low &lt; 40%</strong>. See the Methodology page for the full formula and worked examples.</p></InfoPopover>}
+                />
+                <ThSort
+                  label="Math %" col="gateway_math_probability" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
+                  info={<InfoPopover title="Gateway Math Success Probability"><p>Predicted probability (0–100%) that the student will pass their gateway math course in Year 1. Produced by an XGBoost model. Students with low math placement scores or part-time enrollment tend to score lower.</p></InfoPopover>}
+                />
+                <ThSort
+                  label="English %" col="gateway_english_probability" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
+                  info={<InfoPopover title="Gateway English Success Probability"><p>Predicted probability (0–100%) that the student will pass their gateway English course in Year 1. Produced by an XGBoost model. Strong predictor of first-year persistence and long-term retention.</p></InfoPopover>}
+                />
+                <ThSort
+                  label="GPA Risk %" col="low_gpa_probability" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
+                  info={<InfoPopover title="GPA Risk Probability"><p>Predicted probability (0–100%) that the student will end their first semester with a GPA below 2.0. Higher values indicate higher academic risk. Produced by an XGBoost model. Color-coded red when high.</p></InfoPopover>}
+                />
+                <ThSort
+                  label="Time to Cred." col="predicted_time_to_credential" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
+                  info={<InfoPopover title="Predicted Time to Credential"><p>Estimated years from initial enrollment to credential completion, predicted by a Random Forest Regressor. Part-time students and those needing remediation typically show longer timelines.</p></InfoPopover>}
+                />
+                <Th
+                  label="Credential Type"
+                  info={<InfoPopover title="Predicted Credential Type"><p>Most likely credential this student will earn: <strong>Associate</strong>, <strong>Certificate</strong>, or <strong>Bachelor</strong>. Predicted by a Random Forest Classifier based on program of study, enrollment intensity, and academic preparation.</p></InfoPopover>}
+                />
               </tr>
             </thead>
             <tbody>
@@ -465,32 +490,39 @@ export default function StudentsPage() {
 
 // ─── Table header helpers ─────────────────────────────────────────────────────
 
-function Th({ label }: { label: string }) {
+function Th({ label, info }: { label: string; info?: React.ReactNode }) {
   return (
     <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">
-      {label}
+      <span className="flex items-center gap-0.5">
+        {label}
+        {info}
+      </span>
     </th>
   )
 }
 
 function ThSort({
-  label, col, sortBy, sortDir, onSort,
+  label, col, sortBy, sortDir, onSort, info,
 }: {
   label: string
   col: SortKey
   sortBy: SortKey
   sortDir: "asc" | "desc"
   onSort: (col: SortKey) => void
+  info?: React.ReactNode
 }) {
   return (
     <th className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">
-      <button
-        onClick={() => onSort(col)}
-        className="flex items-center gap-1 hover:text-foreground transition-colors"
-      >
-        {label}
-        <SortIcon active={sortBy === col} dir={sortDir} />
-      </button>
+      <span className="flex items-center gap-0.5">
+        <button
+          onClick={() => onSort(col)}
+          className="flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          {label}
+          <SortIcon active={sortBy === col} dir={sortDir} />
+        </button>
+        {info}
+      </span>
     </th>
   )
 }

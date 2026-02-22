@@ -734,7 +734,7 @@ X_gateway_math_clean, _ = preprocess_features(df, gateway_math_features)
 # Only include students who attempted gateway math (not NaN)
 gateway_math_raw = df['CompletedGatewayMathYear1']
 valid_idx = gateway_math_raw.notna()
-y_gateway_math = (gateway_math_raw[valid_idx] == 'C').astype(int)
+y_gateway_math = (gateway_math_raw[valid_idx] == 'Y').astype(int)
 X_gateway_math = X_gateway_math_clean[valid_idx]
 
 print(f"\nDataset size: {len(X_gateway_math):,} students")
@@ -845,7 +845,7 @@ X_gateway_english_clean, _ = preprocess_features(df, gateway_english_features)
 # Only include students who attempted gateway English (not NaN)
 gateway_english_raw = df['CompletedGatewayEnglishYear1']
 valid_idx = gateway_english_raw.notna()
-y_gateway_english = (gateway_english_raw[valid_idx] == 'C').astype(int)
+y_gateway_english = (gateway_english_raw[valid_idx] == 'Y').astype(int)
 X_gateway_english = X_gateway_english_clean[valid_idx]
 
 print(f"\nDataset size: {len(X_gateway_english):,} students")
