@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, ArrowUpDown, ArrowUp, ArrowDown, Download, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -113,6 +114,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function StudentsPage() {
+  const router = useRouter()
   const [data, setData]           = useState<StudentsResponse | null>(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState<string | null>(null)
@@ -437,9 +439,19 @@ export default function StudentsPage() {
                 </tr>
               ) : (
                 students.map(s => (
-                  <tr key={s.student_guid} className="border-b hover:bg-muted/30 transition-colors">
+                  <tr
+                    key={s.student_guid}
+                    className="border-b hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/students/${encodeURIComponent(s.student_guid)}`)}
+                  >
                     <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">
-                      {s.student_guid ? s.student_guid.slice(0, 12) + "…" : "—"}
+                      <Link
+                        href={`/students/${encodeURIComponent(s.student_guid)}`}
+                        className="hover:underline hover:text-foreground transition-colors"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {s.student_guid ? s.student_guid.slice(0, 12) + "…" : "—"}
+                      </Link>
                     </td>
                     <td className="px-3 py-2.5 text-xs">{s.cohort ?? "—"}</td>
                     <td className="px-3 py-2.5 text-xs whitespace-nowrap">
