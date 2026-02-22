@@ -106,6 +106,7 @@ Desktop.ini
 *.csv
 *.xlsx
 *.xls
+*.pptx
 *.json
 !package.json
 !tsconfig.json
@@ -157,6 +158,12 @@ docker-compose.override.yml
 
 # Git worktrees
 .worktrees/
+
+# Large presentation/doc files
+docs/AI-Powered-Student-Success-Analytics.pptx
+docs/Copy-of-AI-Powered-Student-Success-Analytics.pdf
+docs/CodeBenders-PRD_Student_Success_Analytics.pdf
+DOCUMENTATION_ISSUES.md
 
 # Misc
 .cache/
