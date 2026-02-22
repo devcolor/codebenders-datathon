@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
     low_gpa_probability:           "s.low_gpa_probability",
     predicted_time_to_credential:  "s.predicted_time_to_credential",
     "Cohort":                      `s."Cohort"`,
+    enrollment_intensity:          `s."Enrollment_Intensity_First_Term"`,
+    credential_type:               "s.predicted_credential_label",
   }
   const orderExpr = SORT_COLS[sortBy] ?? "s.at_risk_alert"
 

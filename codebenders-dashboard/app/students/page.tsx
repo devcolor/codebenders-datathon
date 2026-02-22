@@ -49,6 +49,8 @@ type SortKey =
   | "low_gpa_probability"
   | "predicted_time_to_credential"
   | "Cohort"
+  | "enrollment_intensity"
+  | "credential_type"
 
 const ALERT_LEVELS = ["URGENT", "HIGH", "MODERATE", "LOW"] as const
 const READINESS_TIERS = ["High", "Medium", "Low"] as const
@@ -381,7 +383,7 @@ export default function StudentsPage() {
               <tr className="border-b bg-muted/50">
                 <Th label="Student GUID" />
                 <ThSort label="Cohort" col="Cohort" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <Th label="Enrollment" />
+                <ThSort label="Enrollment" col="enrollment_intensity" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <ThSort
                   label="At-Risk" col="at_risk_alert" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
                   info={<InfoPopover title="At-Risk Alert Level"><p>Composite risk classification: <strong>URGENT</strong> — multiple high-risk signals, immediate outreach needed. <strong>HIGH</strong> — significant risk indicators. <strong>MODERATE</strong> — some risk factors present. <strong>LOW</strong> — on track. Based on retention probability, GPA risk, and gateway course signals.</p></InfoPopover>}
@@ -410,8 +412,8 @@ export default function StudentsPage() {
                   label="Time to Cred." col="predicted_time_to_credential" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
                   info={<InfoPopover title="Predicted Time to Credential"><p>Estimated years from initial enrollment to credential completion, predicted by a Random Forest Regressor. Part-time students and those needing remediation typically show longer timelines.</p></InfoPopover>}
                 />
-                <Th
-                  label="Credential Type"
+                <ThSort
+                  label="Credential Type" col="credential_type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}
                   info={<InfoPopover title="Predicted Credential Type"><p>Most likely credential this student will earn: <strong>Associate</strong>, <strong>Certificate</strong>, or <strong>Bachelor</strong>. Predicted by a Random Forest Classifier based on program of study, enrollment intensity, and academic preparation.</p></InfoPopover>}
                 />
               </tr>

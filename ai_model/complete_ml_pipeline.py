@@ -173,7 +173,17 @@ def assign_credential_type(row):
         else:
             return 2  # Default to Associate's (most common at community colleges)
     
-    # No credential completed
+    # Priority 5: No completion data — fall back to credential type sought as proxy
+    # (represents "what credential is this student on track for")
+    credential_sought = str(row.get('Credential_Type_Sought_Year_1', ''))
+    if credential_sought in ['01', '02', '03', 'C1', 'C2']:
+        return 1  # Certificate-track
+    elif credential_sought in ['A', '04', '05']:
+        return 2  # Associate-track
+    elif credential_sought in ['B', '06', '07', '08']:
+        return 3  # Bachelor-track
+
+    # No credential completed or sought
     return 0  # No credential
 
 df['target_credential_type'] = df.apply(assign_credential_type, axis=1)
@@ -646,6 +656,7 @@ credential_model = RandomForestClassifier(
     n_estimators=50,
     max_depth=5,
     min_samples_split=30,
+    class_weight='balanced',
     random_state=42,
     n_jobs=-1
 )
