@@ -11,14 +11,10 @@ export async function GET(request: NextRequest) {
   const mathSql = `
     SELECT
       cohort,
-      COUNT(*) FILTER (WHERE gateway_type = 'M')                                                    AS attempted,
-      COUNT(*) FILTER (
-        WHERE gateway_type = 'M'
-          AND grade NOT IN ('D', 'F', 'W', 'I')
-          AND grade IS NOT NULL
-          AND grade != ''
-      )                                                                                             AS passed,
-      COUNT(*) FILTER (WHERE gateway_type = 'M' AND grade IN ('D', 'F', 'W', 'I'))                AS dfwi
+      COUNT(*)                                                                  AS attempted,
+      COUNT(*) FILTER (WHERE grade NOT IN ('D','F','W','I')
+                         AND grade IS NOT NULL AND grade <> '')                 AS passed,
+      COUNT(*) FILTER (WHERE grade IN ('D','F','W','I'))                       AS dfwi
     FROM course_enrollments
     WHERE gateway_type = 'M'
     GROUP BY cohort
@@ -28,14 +24,10 @@ export async function GET(request: NextRequest) {
   const englishSql = `
     SELECT
       cohort,
-      COUNT(*) FILTER (WHERE gateway_type = 'E')                                                    AS attempted,
-      COUNT(*) FILTER (
-        WHERE gateway_type = 'E'
-          AND grade NOT IN ('D', 'F', 'W', 'I')
-          AND grade IS NOT NULL
-          AND grade != ''
-      )                                                                                             AS passed,
-      COUNT(*) FILTER (WHERE gateway_type = 'E' AND grade IN ('D', 'F', 'W', 'I'))                AS dfwi
+      COUNT(*)                                                                  AS attempted,
+      COUNT(*) FILTER (WHERE grade NOT IN ('D','F','W','I')
+                         AND grade IS NOT NULL AND grade <> '')                 AS passed,
+      COUNT(*) FILTER (WHERE grade IN ('D','F','W','I'))                       AS dfwi
     FROM course_enrollments
     WHERE gateway_type = 'E'
     GROUP BY cohort

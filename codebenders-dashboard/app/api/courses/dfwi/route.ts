@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
     GROUP BY course_prefix, course_number
     HAVING COUNT(*) >= ${minEnrollmentsParam}
     ORDER BY ${orderExpr} ${sortDir}
+    LIMIT 200 -- capped at 200 rows; add pagination if needed
   `
 
   try {

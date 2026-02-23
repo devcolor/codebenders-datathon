@@ -10,23 +10,30 @@ export async function GET(request: NextRequest) {
 
   const sql = `
     SELECT
-      a.course_prefix                                                                             AS prefix_a,
-      b.course_prefix                                                                             AS prefix_b,
-      COUNT(*)                                                                                    AS co_enrollment_count,
+      a.course_prefix   AS prefix_a,
+      a.course_number   AS number_a,
+      b.course_prefix   AS prefix_b,
+      b.course_number   AS number_b,
+      MAX(a.course_name) AS name_a,
+      MAX(b.course_name) AS name_b,
+      COUNT(*) AS co_enrollment_count,
       ROUND(
         COUNT(*) FILTER (
-          WHERE a.grade NOT IN ('D', 'F', 'W', 'I') AND a.grade IS NOT NULL AND a.grade != ''
-            AND b.grade NOT IN ('D', 'F', 'W', 'I') AND b.grade IS NOT NULL AND b.grade != ''
+          WHERE a.grade NOT IN ('D','F','W','I') AND a.grade IS NOT NULL AND a.grade <> ''
+            AND b.grade NOT IN ('D','F','W','I') AND b.grade IS NOT NULL AND b.grade <> ''
         ) * 100.0 / NULLIF(COUNT(*), 0),
         1
-      )                                                                                           AS both_pass_rate
+      ) AS both_pass_rate
     FROM course_enrollments a
     JOIN course_enrollments b
-      ON a.student_guid  = b.student_guid
-     AND a.academic_year = b.academic_year
-     AND a.academic_term = b.academic_term
-     AND a.course_prefix < b.course_prefix
-    GROUP BY a.course_prefix, b.course_prefix
+      ON  a.student_guid  = b.student_guid
+      AND a.academic_year = b.academic_year
+      AND a.academic_term = b.academic_term
+      AND (
+            a.course_prefix < b.course_prefix
+         OR (a.course_prefix = b.course_prefix AND a.course_number < b.course_number)
+      )
+    GROUP BY a.course_prefix, a.course_number, b.course_prefix, b.course_number
     HAVING COUNT(*) >= 20
     ORDER BY co_enrollment_count DESC
     LIMIT 20
