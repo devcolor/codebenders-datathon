@@ -1,10 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/db"
+import { canAccess, type Role } from "@/lib/roles"
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ guid: string }> }
 ) {
+  const role = request.headers.get("x-user-role") as Role | null
+  if (!role || !canAccess("/api/students", role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
   const { guid } = await params
 
   if (!guid) {
