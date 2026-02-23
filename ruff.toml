@@ -1,0 +1,23 @@
+# Ruff configuration for the ML pipeline and operations code.
+#
+# Rule selection is intentionally narrow to give a green CI baseline
+# from the existing codebase. Expand select/remove ignores incrementally
+# as the code is cleaned up.
+#
+# Selected rules:
+#   E9xx — syntax errors (always fatal)
+#   F     — pyflakes: undefined names, bad imports, redefinitions
+#
+# Ignored rules (existing code baseline):
+#   F401  — imported but unused (common in ML notebooks-style scripts)
+#   F541  — f-string without placeholders (style, not a bug)
+#   F841  — local variable assigned but never used (acceptable in data scripts)
+
+[lint]
+select = ["E9", "F"]
+
+ignore = [
+  "F401",
+  "F541",
+  "F841",
+]
