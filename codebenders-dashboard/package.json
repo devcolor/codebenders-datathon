@@ -3,7 +3,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.56",
@@ -34,6 +34,8 @@
     "@types/pg": "^8.16.0",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
+    "eslint": "^9.39.3",
+    "eslint-config-next": "^16.1.6",
     "postcss": "8.5.6",
     "tailwindcss": "4.1.16",
     "tsx": "^4.21.0",
