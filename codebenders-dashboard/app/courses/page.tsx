@@ -88,8 +88,8 @@ function PassRate({ value }: { value: number }) {
 
 function GatewayTypeLabel({ type }: { type: string | null }) {
   if (!type) return <span className="text-muted-foreground text-xs">—</span>
-  if (type === "math") return <span className="text-xs font-medium text-blue-700">Math Gateway</span>
-  if (type === "english") return <span className="text-xs font-medium text-purple-700">English Gateway</span>
+  if (type === "M") return <span className="text-xs font-medium text-blue-700">Math Gateway</span>
+  if (type === "E") return <span className="text-xs font-medium text-purple-700">English Gateway</span>
   return <span className="text-xs text-muted-foreground">{type}</span>
 }
 
