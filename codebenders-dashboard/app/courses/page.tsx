@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { InfoPopover } from "@/components/info-popover"
 import {
   Select,
   SelectContent,
@@ -93,14 +94,43 @@ function GatewayTypeLabel({ type }: { type: string | null }) {
   return <span className="text-xs text-muted-foreground">{type}</span>
 }
 
-// ─── Table header helper ──────────────────────────────────────────────────────
+// ─── Table header helpers ─────────────────────────────────────────────────────
 
-function Th({ label, right }: { label: string; right?: boolean }) {
+function Th({ label, right, info }: { label: string; right?: boolean; info?: React.ReactNode }) {
   return (
-    <th
-      className={`px-3 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap ${right ? "text-right" : "text-left"}`}
-    >
-      {label}
+    <th className={`px-3 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap ${right ? "text-right" : "text-left"}`}>
+      <span className={`inline-flex items-center gap-0.5 ${right ? "justify-end w-full" : ""}`}>
+        {label}{info}
+      </span>
+    </th>
+  )
+}
+
+function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) return <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />
+  return dir === "asc"
+    ? <ArrowUp className="h-3 w-3 text-foreground" />
+    : <ArrowDown className="h-3 w-3 text-foreground" />
+}
+
+function ThSort<T extends string>({
+  label, col, sortBy, sortDir, onSort, right, info,
+}: {
+  label: string; col: T; sortBy: T; sortDir: "asc" | "desc"
+  onSort: (col: T) => void; right?: boolean; info?: React.ReactNode
+}) {
+  return (
+    <th className={`px-3 py-2.5 text-xs font-semibold text-muted-foreground whitespace-nowrap ${right ? "text-right" : "text-left"}`}>
+      <span className={`inline-flex items-center gap-0.5 ${right ? "justify-end w-full" : ""}`}>
+        <button
+          onClick={() => onSort(col)}
+          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          {label}
+          <SortIcon active={sortBy === col} dir={sortDir} />
+        </button>
+        {info}
+      </span>
     </th>
   )
 }
@@ -123,11 +153,15 @@ export default function CoursesPage() {
   const [seqLoading, setSeqLoading] = useState(true)
   const [seqError, setSeqError] = useState<string | null>(null)
 
-  // ── Filters ──
+  // ── DFWI table filters + sort ──
   const [gatewayOnly, setGatewayOnly] = useState(false)
   const [minEnrollments, setMinEnrollments] = useState("10")
   const [sortBy, setSortBy] = useState<"dfwi_rate" | "enrollments">("dfwi_rate")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
+
+  // ── Pairings client-side sort ──
+  const [pairSortBy, setPairSortBy] = useState<"co_enrollment_count" | "both_pass_rate">("co_enrollment_count")
+  const [pairSortDir, setPairSortDir] = useState<"asc" | "desc">("desc")
 
   // ── Fetch DFWI courses ──
   useEffect(() => {
@@ -168,7 +202,27 @@ export default function CoursesPage() {
   const total = coursesData?.total ?? 0
   const mathData = funnelData?.math ?? []
   const englishData = funnelData?.english ?? []
-  const pairs = (seqData?.pairs ?? []).slice(0, 20)
+
+  // Sort handler for DFWI column headers
+  function handleCourseSort(col: "dfwi_rate" | "enrollments") {
+    if (col === sortBy) setSortDir(d => d === "asc" ? "desc" : "asc")
+    else { setSortBy(col); setSortDir("desc") }
+  }
+
+  // Sort handler + sorted pairs for pairings table (client-side)
+  function handlePairSort(col: "co_enrollment_count" | "both_pass_rate") {
+    if (col === pairSortBy) setPairSortDir(d => d === "asc" ? "desc" : "asc")
+    else { setPairSortBy(col); setPairSortDir("desc") }
+  }
+
+  const sortedPairs = useMemo(() => {
+    const raw = (seqData?.pairs ?? []).slice(0, 20)
+    return [...raw].sort((a, b) => {
+      const av = parseFloat(String(a[pairSortBy]))
+      const bv = parseFloat(String(b[pairSortBy]))
+      return pairSortDir === "desc" ? bv - av : av - bv
+    })
+  }, [seqData, pairSortBy, pairSortDir])
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -229,37 +283,6 @@ export default function CoursesPage() {
                 </Select>
               </div>
 
-              {/* Sort by */}
-              <div className="min-w-40">
-                <Select
-                  value={sortBy}
-                  onValueChange={v => setSortBy(v as "dfwi_rate" | "enrollments")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dfwi_rate">DFWI Rate</SelectItem>
-                    <SelectItem value="enrollments">Enrollments</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sort direction */}
-              <div className="min-w-36">
-                <Select
-                  value={sortDir}
-                  onValueChange={v => setSortDir(v as "asc" | "desc")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort direction" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="desc">Descending</SelectItem>
-                    <SelectItem value="asc">Ascending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </div>
 
@@ -283,10 +306,34 @@ export default function CoursesPage() {
                   <Th label="Course" />
                   <Th label="Course Name" />
                   <Th label="Type" />
-                  <Th label="Enrollments" right />
+                  <ThSort label="Enrollments" col="enrollments" sortBy={sortBy} sortDir={sortDir} onSort={handleCourseSort} right />
                   <Th label="DFWI Count" right />
-                  <Th label="DFWI Rate %" right />
-                  <Th label="Pass Rate %" right />
+                  <ThSort
+                    label="DFWI Rate %"
+                    col="dfwi_rate"
+                    sortBy={sortBy}
+                    sortDir={sortDir}
+                    onSort={handleCourseSort}
+                    right
+                    info={
+                      <InfoPopover title="DFWI Rate">
+                        <p>Percentage of enrolled students who received a <strong>D, F, W (Withdraw), or I (Incomplete)</strong> grade. Higher values indicate courses where students struggle most. Used to identify high-risk courses that may need additional support, redesign, or prerequisite review.</p>
+                      </InfoPopover>
+                    }
+                  />
+                  <ThSort
+                    label="Pass Rate %"
+                    col="dfwi_rate"
+                    sortBy={sortBy}
+                    sortDir={sortDir}
+                    onSort={handleCourseSort}
+                    right
+                    info={
+                      <InfoPopover title="Pass Rate">
+                        <p>Percentage of enrolled students who received a passing grade (<strong>A through C-</strong>). The inverse of the DFWI rate, excluding null or blank grade records. A pass rate below 50% signals a course where more than half of students are not succeeding.</p>
+                      </InfoPopover>
+                    }
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -406,8 +453,8 @@ export default function CoursesPage() {
                 <tr className="border-b bg-muted/50">
                   <Th label="Course A" />
                   <Th label="Course B" />
-                  <Th label="Co-enrollments" right />
-                  <Th label="Both Pass Rate %" right />
+                  <ThSort label="Co-enrollments" col="co_enrollment_count" sortBy={pairSortBy} sortDir={pairSortDir} onSort={handlePairSort} right />
+                  <ThSort label="Both Pass Rate %" col="both_pass_rate" sortBy={pairSortBy} sortDir={pairSortDir} onSort={handlePairSort} right />
                 </tr>
               </thead>
               <tbody>
@@ -421,14 +468,14 @@ export default function CoursesPage() {
                       ))}
                     </tr>
                   ))
-                ) : pairs.length === 0 ? (
+                ) : sortedPairs.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-3 py-10 text-center text-muted-foreground">
                       No course pairing data available.
                     </td>
                   </tr>
                 ) : (
-                  pairs.map(pair => (
+                  sortedPairs.map(pair => (
                     <tr key={`${pair.prefix_a}-${pair.number_a}-${pair.prefix_b}-${pair.number_b}`} className="border-b hover:bg-muted/30 transition-colors">
                       <td className="px-3 py-2.5 text-xs">
                         <span className="font-mono font-semibold">{pair.prefix_a} {pair.number_a}</span>
