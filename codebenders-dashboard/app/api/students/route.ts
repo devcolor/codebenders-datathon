@@ -14,10 +14,12 @@ export async function GET(request: NextRequest) {
   const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") || 50)))
   const offset   = (page - 1) * pageSize
 
-  const search        = searchParams.get("search")        || ""
-  const alertLevels   = searchParams.get("alertLevel")    || ""   // comma-separated
-  const readinessTier = searchParams.get("readinessTier") || ""
+  const search         = searchParams.get("search")         || ""
+  const alertLevels    = searchParams.get("alertLevel")     || ""   // comma-separated
+  const readinessTier  = searchParams.get("readinessTier")  || ""
   const credentialType = searchParams.get("credentialType") || ""
+  const cohort         = searchParams.get("cohort")         || ""
+  const enrollmentType = searchParams.get("enrollmentType") || ""
   const sortBy  = searchParams.get("sortBy")  || "at_risk_alert"
   const sortDir = searchParams.get("sortDir") === "asc" ? "ASC" : "DESC"
 
@@ -66,6 +68,16 @@ export async function GET(request: NextRequest) {
   if (credentialType) {
     params.push(credentialType)
     conditions.push(`s.predicted_credential_label = $${params.length}`)
+  }
+
+  if (cohort) {
+    params.push(cohort)
+    conditions.push(`s."Cohort" = $${params.length}`)
+  }
+
+  if (enrollmentType) {
+    params.push(enrollmentType)
+    conditions.push(`s."Enrollment_Intensity_First_Term" = $${params.length}`)
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""

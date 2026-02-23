@@ -56,6 +56,11 @@ type SortKey =
 const ALERT_LEVELS = ["URGENT", "HIGH", "MODERATE", "LOW"] as const
 const READINESS_TIERS = ["High", "Medium", "Low"] as const
 const CREDENTIAL_TYPES = ["Associate", "Certificate", "Bachelor"] as const
+const COHORTS = ["2019-20", "2020-21", "2021-22", "2022-23", "2023-24"] as const
+const ENROLLMENT_TYPES = [
+  { value: "Full Time",  label: "Full-time" },
+  { value: "Part Time",  label: "Part-time" },
+] as const
 
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 
@@ -124,6 +129,8 @@ export default function StudentsPage() {
   const [alertLevels, setAlertLevels]     = useState<string[]>([])
   const [readinessTier, setReadinessTier] = useState("")
   const [credentialType, setCredentialType] = useState("")
+  const [cohort, setCohort]               = useState("")
+  const [enrollmentType, setEnrollmentType] = useState("")
 
   // Sort
   const [sortBy, setSortBy]   = useState<SortKey>("at_risk_alert")
@@ -139,14 +146,16 @@ export default function StudentsPage() {
     const p = new URLSearchParams()
     p.set("page", String(page))
     p.set("pageSize", "50")
-    if (search)         p.set("search", search)
+    if (search)             p.set("search", search)
     if (alertLevels.length) p.set("alertLevel", alertLevels.join(","))
-    if (readinessTier)  p.set("readinessTier", readinessTier)
-    if (credentialType) p.set("credentialType", credentialType)
+    if (readinessTier)      p.set("readinessTier", readinessTier)
+    if (credentialType)     p.set("credentialType", credentialType)
+    if (cohort)             p.set("cohort", cohort)
+    if (enrollmentType)     p.set("enrollmentType", enrollmentType)
     p.set("sortBy", sortBy)
     p.set("sortDir", sortDir)
     return p.toString()
-  }, [page, search, alertLevels, readinessTier, credentialType, sortBy, sortDir])
+  }, [page, search, alertLevels, readinessTier, credentialType, cohort, enrollmentType, sortBy, sortDir])
 
   useEffect(() => {
     setLoading(true)
@@ -188,10 +197,12 @@ export default function StudentsPage() {
     setAlertLevels([])
     setReadinessTier("")
     setCredentialType("")
+    setCohort("")
+    setEnrollmentType("")
     resetPage()
   }
 
-  const hasFilters = search || alertLevels.length > 0 || readinessTier || credentialType
+  const hasFilters = search || alertLevels.length > 0 || readinessTier || credentialType || cohort || enrollmentType
 
   // CSV export of current filtered view (all pages)
   async function exportCSV() {
@@ -305,6 +316,42 @@ export default function StudentsPage() {
                   <SelectItem value="all">All credential types</SelectItem>
                   {CREDENTIAL_TYPES.map(t => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Cohort */}
+            <div className="min-w-36">
+              <Select
+                value={cohort || "all"}
+                onValueChange={v => { setCohort(v === "all" ? "" : v); resetPage() }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Cohort" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All cohorts</SelectItem>
+                  {COHORTS.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Enrollment intensity */}
+            <div className="min-w-36">
+              <Select
+                value={enrollmentType || "all"}
+                onValueChange={v => { setEnrollmentType(v === "all" ? "" : v); resetPage() }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Enrollment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All enrollment types</SelectItem>
+                  {ENROLLMENT_TYPES.map(e => (
+                    <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
