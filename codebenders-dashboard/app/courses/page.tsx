@@ -69,26 +69,20 @@ interface SequencesResponse {
 // ─── Color helpers ────────────────────────────────────────────────────────────
 
 function DfwiRate({ value }: { value: number }) {
-  const pct = (value * 100).toFixed(1)
+  const v = parseFloat(String(value))
+  const pct = v.toFixed(1)
   let color = "text-green-600"
-  if (value >= 0.5) color = "text-red-600"
-  else if (value >= 0.3) color = "text-orange-600"
+  if (v >= 50) color = "text-red-600"
+  else if (v >= 30) color = "text-orange-600"
   return <span className={`text-sm font-medium ${color}`}>{pct}%</span>
 }
 
 function PassRate({ value }: { value: number }) {
-  const pct = (value * 100).toFixed(1)
+  const v = parseFloat(String(value))
+  const pct = v.toFixed(1)
   let color = "text-red-600"
-  if (value >= 0.7) color = "text-green-600"
-  else if (value >= 0.5) color = "text-yellow-600"
-  return <span className={`text-sm font-medium ${color}`}>{pct}%</span>
-}
-
-function PassRateNum({ value }: { value: number }) {
-  const pct = (value * 100).toFixed(1)
-  let color = "text-red-600"
-  if (value >= 0.7) color = "text-green-600"
-  else if (value >= 0.5) color = "text-yellow-600"
+  if (v >= 70) color = "text-green-600"
+  else if (v >= 50) color = "text-yellow-600"
   return <span className={`text-sm font-medium ${color}`}>{pct}%</span>
 }
 
@@ -434,8 +428,8 @@ export default function CoursesPage() {
                     </td>
                   </tr>
                 ) : (
-                  pairs.map((pair, idx) => (
-                    <tr key={idx} className="border-b hover:bg-muted/30 transition-colors">
+                  pairs.map(pair => (
+                    <tr key={`${pair.prefix_a}-${pair.number_a}-${pair.prefix_b}-${pair.number_b}`} className="border-b hover:bg-muted/30 transition-colors">
                       <td className="px-3 py-2.5 text-xs">
                         <span className="font-mono font-semibold">{pair.prefix_a} {pair.number_a}</span>
                         {pair.name_a && (
@@ -449,7 +443,7 @@ export default function CoursesPage() {
                         )}
                       </td>
                       <td className="px-3 py-2.5 text-xs text-right">{pair.co_enrollment_count.toLocaleString()}</td>
-                      <td className="px-3 py-2.5 text-right"><PassRateNum value={pair.both_pass_rate} /></td>
+                      <td className="px-3 py-2.5 text-right"><PassRate value={pair.both_pass_rate} /></td>
                     </tr>
                   ))
                 )}
