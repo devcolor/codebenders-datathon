@@ -58,8 +58,8 @@ const READINESS_TIERS = ["High", "Medium", "Low"] as const
 const CREDENTIAL_TYPES = ["Associate", "Certificate", "Bachelor"] as const
 const COHORTS = ["2019-20", "2020-21", "2021-22", "2022-23", "2023-24"] as const
 const ENROLLMENT_TYPES = [
-  { value: "Full Time",  label: "Full-time" },
-  { value: "Part Time",  label: "Part-time" },
+  { value: "Full-Time",  label: "Full-time" },
+  { value: "Part-Time",  label: "Part-time" },
 ] as const
 
 // ─── Badge helpers ────────────────────────────────────────────────────────────
@@ -502,9 +502,9 @@ export default function StudentsPage() {
                     </td>
                     <td className="px-3 py-2.5 text-xs">{s.cohort ?? "—"}</td>
                     <td className="px-3 py-2.5 text-xs whitespace-nowrap">
-                      {s.enrollment_intensity === "Full Time" || s.enrollment_intensity === "FT"
+                      {s.enrollment_intensity === "Full-Time" || s.enrollment_intensity === "Full Time" || s.enrollment_intensity === "FT"
                         ? "Full-time"
-                        : s.enrollment_intensity === "Part Time" || s.enrollment_intensity === "PT"
+                        : s.enrollment_intensity === "Part-Time" || s.enrollment_intensity === "Part Time" || s.enrollment_intensity === "PT"
                         ? "Part-time"
                         : s.enrollment_intensity ?? "—"}
                     </td>
