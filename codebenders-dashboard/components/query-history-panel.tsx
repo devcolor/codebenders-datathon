@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Download } from "lucide-react"
 import type { HistoryEntry } from "@/lib/types"
 
 function relativeTime(isoTimestamp: string): string {
@@ -42,9 +43,22 @@ export function QueryHistoryPanel({ entries, onRerun, onClear }: QueryHistoryPan
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base font-semibold">Recent Queries</CardTitle>
-        <Button variant="ghost" size="sm" onClick={onClear}>
-          Clear
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1"
+            asChild
+          >
+            <a href="/api/query-history/export" download="query-audit-log.csv">
+              <Download className="h-3 w-3" />
+              Export
+            </a>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onClear}>
+            Clear
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <ul className="divide-y divide-border">
