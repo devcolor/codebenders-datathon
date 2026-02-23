@@ -160,6 +160,8 @@ async function main(): Promise<void> {
 
   const client = await pool.connect()
   try {
+    await client.query("BEGIN")
+
     // Truncate for idempotent re-runs
     console.log("Truncating course_enrollments…")
     await client.query("TRUNCATE TABLE public.course_enrollments RESTART IDENTITY")
@@ -193,8 +195,15 @@ async function main(): Promise<void> {
         return v === "" ? null : v
       }
 
+      // C2: validate student_guid; skip row if missing
+      const student_guid = get("Student_GUID")
+      if (!student_guid) {
+        console.warn(`Row ${lineNum}: missing Student_GUID, skipping`)
+        continue
+      }
+
       const row: Row = {
-        student_guid:      get("Student_GUID")                         ?? "",
+        student_guid,
         cohort:            get("Cohort"),
         cohort_term:       get("Cohort_Term"),
         academic_year:     get("Academic_Year"),
@@ -205,13 +214,13 @@ async function main(): Promise<void> {
         course_cip:        get("Course_CIP"),
         course_type:       get("Course_Type"),
         gateway_type:      get("Math_or_English_Gateway"),
-        is_co_requisite:   toBoolean(cols[headers.indexOf("Co_requisite_Course")]?.trim() ?? ""),
-        is_core_course:    toBoolean(cols[headers.indexOf("Core_Course")]?.trim() ?? ""),
+        is_co_requisite:   toBoolean(get("Co_requisite_Course") ?? ""),
+        is_core_course:    toBoolean(get("Core_Course") ?? ""),
         core_course_type:  get("Core_Course_Type"),
         delivery_method:   get("Delivery_Method"),
         grade:             get("Grade"),
-        credits_attempted: toNumeric(cols[headers.indexOf("Number_of_Credits_Attempted")]?.trim() ?? ""),
-        credits_earned:    toNumeric(cols[headers.indexOf("Number_of_Credits_Earned")]?.trim() ?? ""),
+        credits_attempted: toNumeric(get("Number_of_Credits_Attempted") ?? ""),
+        credits_earned:    toNumeric(get("Number_of_Credits_Earned") ?? ""),
         instructor_status: get("Course_Instructor_Employment_Status"),
       }
 
@@ -233,12 +242,17 @@ async function main(): Promise<void> {
       await insertBatch(client, batch)
     }
 
+    await client.query("COMMIT")
+
     // Final count
     const { rows } = await client.query<{ count: string }>(
       "SELECT COUNT(*) AS count FROM public.course_enrollments"
     )
     console.log(`\nDone. Total rows in DB: ${parseInt(rows[0].count, 10).toLocaleString()}`)
     console.log(`CSV rows processed: ${totalRows.toLocaleString()}`)
+  } catch (err) {
+    await client.query("ROLLBACK")
+    throw err
   } finally {
     client.release()
     await pool.end()

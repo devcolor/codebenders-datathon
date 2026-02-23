@@ -33,3 +33,6 @@ CREATE INDEX IF NOT EXISTS idx_course_enrollments_course
 
 CREATE INDEX IF NOT EXISTS idx_course_enrollments_gateway_type
   ON public.course_enrollments (gateway_type);
+
+CREATE INDEX IF NOT EXISTS idx_course_enrollments_term
+  ON public.course_enrollments (academic_year, academic_term);
