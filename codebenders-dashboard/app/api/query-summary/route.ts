@@ -15,7 +15,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 })
   }
 
-  const { prompt, data, rowCount, vizType } = await request.json()
+  let prompt: string
+  let data: unknown[]
+  let rowCount: number
+  let vizType: string
+
+  try {
+    const body = await request.json()
+    prompt = body.prompt
+    data = body.data
+    rowCount = body.rowCount ?? 0
+    vizType = body.vizType ?? "unknown"
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
 
   if (!prompt || !Array.isArray(data)) {
     return NextResponse.json({ error: "prompt and data are required" }, { status: 400 })
@@ -26,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   const llmPrompt = `You are a student success analyst at a community college. An advisor ran the following query and got these results.
 
-QUERY: "${prompt}"
+QUERY: "${prompt.slice(0, 2000)}"
 RESULT: ${rowCount} rows, visualization type: ${vizType}
 DATA SAMPLE:
 ${JSON.stringify(sampleRows, null, 2)}
