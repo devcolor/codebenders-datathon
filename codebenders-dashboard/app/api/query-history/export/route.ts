@@ -15,7 +15,7 @@ function escapeCsvField(value: unknown): string {
 
 export async function GET(request: NextRequest) {
   const role = request.headers.get("x-user-role") as Role | null
-  if (!role || !canAccess("/api/query-history/export", role)) {
+  if (role && !canAccess("/api/query-history/export", role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

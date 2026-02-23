@@ -2,10 +2,17 @@ import { type NextRequest, NextResponse } from "next/server"
 import { updateSession } from "@/lib/supabase/middleware-client"
 import { canAccess, type Role } from "@/lib/roles"
 
+const SUPABASE_CONFIGURED =
+  !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Static assets and Next.js internals are handled by the matcher below
+  // If Supabase auth is not configured, allow all traffic through
+  if (!SUPABASE_CONFIGURED) {
+    return NextResponse.next()
+  }
+
   // Auth callback must be reachable without a session
   if (pathname.startsWith("/auth/")) {
     return NextResponse.next()

@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ guid: string }> }
 ) {
   const role = request.headers.get("x-user-role") as Role | null
-  if (!role || !canAccess("/api/students", role)) {
+  if (role && !canAccess("/api/students", role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
