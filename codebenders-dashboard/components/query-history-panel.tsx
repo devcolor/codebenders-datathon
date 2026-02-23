@@ -57,8 +57,8 @@ export function QueryHistoryPanel({ entries, onRerun, onClear }: QueryHistoryPan
           </li>
         ) : (
           entries.map((entry) => {
-            const truncated = entry.prompt.length > 55
-              ? entry.prompt.slice(0, 55) + "…"
+            const truncated = entry.prompt.length > 60
+              ? entry.prompt.slice(0, 60) + "…"
               : entry.prompt
 
             return (
@@ -74,12 +74,16 @@ export function QueryHistoryPanel({ entries, onRerun, onClear }: QueryHistoryPan
                     {truncated}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {relativeTime(entry.timestamp)}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">·</span>
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-xs text-muted-foreground">
                       {entry.rowCount} rows
+                    </span>
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {entry.institution}
                     </span>
                   </div>
                 </button>
