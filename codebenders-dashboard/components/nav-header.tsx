@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { href: "/",          label: "Dashboard" },
   { href: "/courses",   label: "Courses"   },
   { href: "/students",  label: "Students"  },
+  { href: "/query",     label: "Query"     },
 ]
 
 export function NavHeader({ email, role }: NavHeaderProps) {

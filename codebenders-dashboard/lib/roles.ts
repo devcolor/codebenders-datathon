@@ -9,6 +9,7 @@ export const ROUTE_PERMISSIONS: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: "/query",                    roles: ["admin", "advisor", "ir", "faculty"] },
   { prefix: "/api/students",             roles: ["admin", "advisor", "ir"] },
   { prefix: "/api/courses",             roles: ["admin", "advisor", "ir", "faculty"] },
+  { prefix: "/api/query-summary", roles: ["admin", "advisor", "ir", "faculty"] },
   { prefix: "/api/query-history/export", roles: ["admin", "ir"] },
 ]
 
