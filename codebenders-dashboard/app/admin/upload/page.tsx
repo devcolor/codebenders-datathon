@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -48,6 +48,7 @@ export default function UploadPage() {
   const [result, setResult]         = useState<CommitResult | null>(null)
   const [dragOver, setDragOver]     = useState(false)
   const [errorMsg, setErrorMsg]     = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = useCallback((f: File) => {
     setFile(f)
@@ -55,6 +56,7 @@ export default function UploadPage() {
     setPhase("idle")
     setPreview(null)
     setResult(null)
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }, [])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -132,7 +134,7 @@ export default function UploadPage() {
               {(Object.keys(FILE_TYPE_LABELS) as FileType[]).map(ft => (
                 <button
                   key={ft}
-                  onClick={() => { setFileType(ft); setFile(null); setErrorMsg(null) }}
+                  onClick={() => { setFileType(ft); setFile(null); setErrorMsg(null); if (fileInputRef.current) fileInputRef.current.value = "" }}
                   className={`px-3 py-1.5 rounded text-sm border transition-colors ${
                     fileType === ft
                       ? "bg-primary text-primary-foreground border-primary"
@@ -169,6 +171,7 @@ export default function UploadPage() {
                 </div>
               )}
               <input
+                ref={fileInputRef}
                 id="file-input"
                 type="file"
                 accept={FILE_TYPE_ACCEPT[fileType]}
