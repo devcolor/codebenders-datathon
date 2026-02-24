@@ -144,7 +144,7 @@ async function processPdpFile(
   const githubPat   = process.env.GITHUB_PAT
   const githubRepo  = process.env.GITHUB_REPO
 
-  if (!supabaseUrl || !serviceKey) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY")
+  if (!supabaseUrl || !serviceKey) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
   if (!githubPat || !githubRepo)  throw new Error("Missing GITHUB_PAT or GITHUB_REPO")
 
   // 1. Upload to Supabase Storage
