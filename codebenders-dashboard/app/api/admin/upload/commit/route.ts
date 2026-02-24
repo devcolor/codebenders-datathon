@@ -125,6 +125,7 @@ async function processCourseEnrollment(buffer: Buffer): Promise<{ inserted: numb
     await client.query("ROLLBACK")
     errors.push(err instanceof Error ? err.message : String(err))
     inserted = 0
+    skipped = 0
   } finally {
     client.release()
   }
@@ -153,18 +154,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing file or fileType" }, { status: 400 })
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer())
+  let buffer: Buffer
+  try {
+    buffer = Buffer.from(await file.arrayBuffer())
+  } catch {
+    return NextResponse.json({ error: "Failed to read uploaded file" }, { status: 400 })
+  }
 
   if (fileType === "course_enrollment") {
-    try {
-      const result = await processCourseEnrollment(buffer)
-      return NextResponse.json(result)
-    } catch (err) {
-      return NextResponse.json(
-        { error: err instanceof Error ? err.message : String(err) },
-        { status: 500 }
-      )
-    }
+    const result = await processCourseEnrollment(buffer)
+    return NextResponse.json(result)
   }
 
   // PDP/AR path — implemented in Task 6
