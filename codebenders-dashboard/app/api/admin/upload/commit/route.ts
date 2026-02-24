@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { parse } from "csv-parse"
 import { Readable } from "stream"
 import { getPool } from "@/lib/db"
+import { createClient } from "@supabase/supabase-js"
 
 const BATCH_SIZE = 500
 
@@ -133,6 +134,55 @@ async function processCourseEnrollment(buffer: Buffer): Promise<{ inserted: numb
   return { inserted, skipped, errors }
 }
 
+async function processPdpFile(
+  buffer: Buffer,
+  fileName: string,
+  fileType: string,
+): Promise<{ status: string; storageKey: string; actionsUrl: string }> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const githubPat   = process.env.GITHUB_PAT
+  const githubRepo  = process.env.GITHUB_REPO
+
+  if (!supabaseUrl || !serviceKey) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY")
+  if (!githubPat || !githubRepo)  throw new Error("Missing GITHUB_PAT or GITHUB_REPO")
+
+  // 1. Upload to Supabase Storage
+  const supabase   = createClient(supabaseUrl, serviceKey)
+  const storageKey = `${fileType}/${Date.now()}-${fileName}`
+  const { error: uploadError } = await supabase.storage
+    .from("pdp-uploads")
+    .upload(storageKey, buffer, { contentType: "application/octet-stream", upsert: false })
+
+  if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`)
+
+  // 2. Trigger GitHub Actions via repository_dispatch
+  const dispatchRes = await fetch(
+    `https://api.github.com/repos/${githubRepo}/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${githubPat}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        event_type: "ml-pipeline",
+        client_payload: { storage_key: storageKey, file_type: fileType },
+      }),
+    }
+  )
+
+  if (!dispatchRes.ok) {
+    const body = await dispatchRes.text()
+    throw new Error(`GitHub dispatch failed (${dispatchRes.status}): ${body}`)
+  }
+
+  const actionsUrl = `https://github.com/${githubRepo}/actions`
+  return { status: "processing", storageKey, actionsUrl }
+}
+
 export async function POST(request: NextRequest) {
   const role = request.headers.get("x-user-role")
   if (role !== "admin" && role !== "ir") {
@@ -166,6 +216,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result)
   }
 
-  // PDP/AR path — implemented in Task 6
-  return NextResponse.json({ error: `fileType "${fileType}" not yet implemented` }, { status: 501 })
+  if (fileType === "pdp_cohort" || fileType === "pdp_ar") {
+    try {
+      const result = await processPdpFile(buffer, file.name, fileType)
+      return NextResponse.json(result)
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : String(err) },
+        { status: 500 }
+      )
+    }
+  }
+
+  return NextResponse.json({ error: `Unknown fileType: ${fileType}` }, { status: 400 })
 }
