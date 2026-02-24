@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
   }
 
   const file = formData.get("file") as File | null
-  const fileType = formData.get("fileType") as string | null
+  const rawFileType = formData.get("fileType") as string | null
+  const fileType = rawFileType?.toLowerCase() ?? null
 
   if (!file || !fileType) {
     return NextResponse.json({ error: "Missing file or fileType" }, { status: 400 })
@@ -40,6 +41,10 @@ export async function POST(request: NextRequest) {
     if (file.name.endsWith(".xlsx")) {
       const wb = XLSX.read(buffer, { type: "buffer" })
       const ws = wb.Sheets[wb.SheetNames[0]]
+      // Cap to 50 rows to match CSV behaviour
+      const fullRange = XLSX.utils.decode_range(ws["!ref"] ?? "A1")
+      fullRange.e.r = Math.min(fullRange.e.r, 50)
+      ws["!ref"] = XLSX.utils.encode_range(fullRange)
       rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" })
     } else {
       rows = parse(buffer, {
