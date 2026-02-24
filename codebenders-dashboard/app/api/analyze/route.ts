@@ -21,7 +21,17 @@ const queryPlanSchema = z.object({
 // IMPORTANT: Column names listed here are the EXACT case-sensitive names in PostgreSQL.
 // Mixed-case columns (e.g. "Cohort", "Retention") must be double-quoted in generated SQL.
 // All-lowercase columns (e.g. retention_probability) do not require quoting.
-const SCHEMA_INFO = {
+interface SchemaEntry {
+  database: string
+  mainTable: string
+  description?: string
+  columns: Record<string, string>
+  courseTable?: string
+  courseColumns?: Record<string, string>
+  ferpaExcluded?: string[]
+}
+
+const SCHEMA_INFO: Record<string, SchemaEntry> = {
   bscc: {
     database: "postgres",
     mainTable: "student_level_with_predictions",
@@ -68,6 +78,22 @@ const SCHEMA_INFO = {
       course_completion_rate: "Course completion rate (0-1)",
       passing_rate: "Course passing rate (0-1)",
     },
+    courseTable: "course_enrollments",
+    courseColumns: {
+      course_prefix:     "Course dept code ('MAT','ENG','NUR','CIS', etc.) — lowercase, no quoting",
+      course_number:     "Course number ('100','201', etc.) — lowercase, no quoting",
+      course_name:       "Full course name — lowercase, no quoting",
+      grade:             "Student grade: 'A','B','C','D','F','W','I','AU','P' — lowercase, no quoting",
+      delivery_method:   "Delivery: 'F'=face-to-face, 'O'=online, 'H'=hybrid — lowercase, no quoting",
+      instructor_status: "Instructor type: 'FT'=full-time, 'PT'=part-time — lowercase, no quoting",
+      gateway_type:      "Gateway: 'M'=math gateway, 'E'=English gateway, 'N'=not a gateway — lowercase",
+      credits_attempted: "Credits attempted (numeric)",
+      credits_earned:    "Credits earned (numeric)",
+      cohort:            "Cohort year as text — lowercase, no quoting",
+      academic_year:     "Academic year e.g. '2021-22' — lowercase, no quoting",
+      academic_term:     "Term e.g. 'FALL','SPRING','SUMMER' — lowercase, no quoting",
+    },
+    ferpaExcluded: ["Student_GUID", "student_guid"],
   },
   akron: {
     database: "University_of_Akron",
@@ -104,14 +130,22 @@ export async function POST(request: NextRequest) {
       schema: queryPlanSchema,
       prompt: `You are a SQL query generator for student success analytics using PostgreSQL.
 
-DATABASE SCHEMA:
-- Main Table: ${schemaInfo.mainTable}
-- Description: ${schemaInfo.description}
+AVAILABLE TABLES:
 
-KEY COLUMNS:
-${Object.entries(schemaInfo.columns).map(([col, desc]) => `- ${col}: ${desc}`).join("\n")}
+1. ${schemaInfo.mainTable} — student-level analytics
+   USE FOR: retention rates, persistence, GPA, demographics, risk scores, credential predictions, enrollment counts
+   COLUMNS:
+${Object.entries(schemaInfo.columns).map(([col, desc]) => `   - ${col}: ${desc}`).join("\n")}
 
-CRITICAL SCHEMA NOTES:
+2. ${schemaInfo.courseTable ?? "course_enrollments"} — individual course enrollment records
+   USE FOR: DFW/DFWI rates by course, pass rates by course, gateway course outcomes, delivery method analysis, instructor type analysis
+   NOTE: This table has NO institution_id column. Do NOT add institution filters — data is already scoped to this institution.
+   COLUMNS:
+${Object.entries(schemaInfo.courseColumns ?? {}).map(([col, desc]) => `   - ${col}: ${desc}`).join("\n")}
+
+TABLE SELECTION RULE: If the question mentions "courses", "DFW", "DFWI", "withdrawal rate", "pass rate by course", "gateway course", "failing courses", "course outcomes" → use ${schemaInfo.courseTable ?? "course_enrollments"}. Otherwise use ${schemaInfo.mainTable}.
+
+CRITICAL SCHEMA NOTES (for ${schemaInfo.mainTable}):
 - Column names with uppercase letters MUST be double-quoted in PostgreSQL SQL or the query will fail.
   CORRECT:   WHERE "Cohort" = 2023 AND "Cohort_Term" = 'Fall'
   INCORRECT: WHERE cohort = 2023 AND cohort_term = 'Fall'
@@ -121,6 +155,16 @@ CRITICAL SCHEMA NOTES:
 - "Student_Age": INTEGER field — use direct numeric comparisons (e.g., "Student_Age" >= 25)
 - Lowercase ML columns (retention_probability, at_risk_alert, etc.) do NOT need quoting.
 - Use standard PostgreSQL syntax — no backtick quoting, no cross-database references
+
+COMPUTING DFWI RATE from course_enrollments (returns 0–1, display layer multiplies by 100):
+  ROUND(COUNT(*) FILTER (WHERE grade IN ('D','F','W','I'))::numeric / NULLIF(COUNT(*), 0), 4) AS dfwi_rate
+
+COMPUTING PASS RATE from course_enrollments (returns 0–1, display layer multiplies by 100):
+  ROUND(COUNT(*) FILTER (WHERE grade NOT IN ('D','F','W','I') AND grade IS NOT NULL AND grade != '')::numeric / NULLIF(COUNT(*), 0), 4) AS pass_rate
+
+FERPA COMPLIANCE — NEVER include these in SELECT output:
+  Student_GUID, student_guid
+Do not expose individual student identifiers in query results.
 
 IMPORTANT QUERY INTERPRETATION RULES:
 
@@ -151,7 +195,7 @@ IMPORTANT QUERY INTERPRETATION RULES:
    - Age filters: use numeric comparisons directly (e.g., "Student_Age" >= 25)
 
 4. VISUALIZATION:
-   - Comparing groups (age, gender, race) → "bar"
+   - Comparing groups (age, gender, race, courses) → "bar"
    - Time series (cohort, term over time) → "line"
    - Single number → "kpi"
    - Percentages/shares → "pie"
@@ -166,13 +210,20 @@ Generate a query plan with:
 - filters: any filters to apply [OPTIONAL]
 - timeHint: human-readable time description [OPTIONAL]
 - vizType: appropriate visualization [REQUIRED]
-- sql: VALID executable PostgreSQL query against table "${schemaInfo.mainTable}" [REQUIRED]
+- sql: VALID executable PostgreSQL query against the appropriate table (${schemaInfo.mainTable} or course_enrollments) [REQUIRED]
 - queryString: empty string [OPTIONAL]
 
 EXAMPLE for "segment students over 25 and under 25 in 2023 cohort":
 {
   "vizType": "bar",
   "sql": "SELECT CASE WHEN \"Student_Age\" < 25 THEN 'Under 25' ELSE '25 and Over' END AS age_group, COUNT(*) as count FROM student_level_with_predictions WHERE \"Cohort\" = 2023 GROUP BY age_group ORDER BY age_group",
+  "queryString": ""
+}
+
+EXAMPLE for "top 5 courses with highest DFW rates":
+{
+  "vizType": "bar",
+  "sql": "SELECT course_prefix || ' ' || course_number AS course, MAX(course_name) AS course_name, COUNT(*) AS enrollments, ROUND(COUNT(*) FILTER (WHERE grade IN ('D','F','W','I'))::numeric / NULLIF(COUNT(*), 0), 4) AS dfwi_rate FROM course_enrollments GROUP BY course_prefix, course_number HAVING COUNT(*) >= 10 ORDER BY dfwi_rate DESC LIMIT 5",
   "queryString": ""
 }
 

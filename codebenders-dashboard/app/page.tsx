@@ -7,7 +7,14 @@ import { RetentionRiskChart } from "@/components/retention-risk-chart"
 import { ReadinessAssessmentChart } from "@/components/readiness-assessment-chart"
 import { ExportButton } from "@/components/export-button"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, Users, AlertTriangle, BookOpen, Search } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { TrendingUp, Users, AlertTriangle, BookOpen, Search, Table2, X } from "lucide-react"
 import Link from "next/link"
 
 interface KPIData {
@@ -47,6 +54,10 @@ interface ReadinessData {
   cohort_breakdown: any[]
 }
 
+const COHORTS        = ["2019-20", "2020-21", "2021-22", "2022-23", "2023-24"]
+const ENROLLMENT_TYPES = ["Full-Time", "Part-Time"]
+const CREDENTIAL_TYPES = ["Certificate", "Associate", "Bachelor"]
+
 export default function DashboardPage() {
   const [kpis, setKpis] = useState<KPIData | null>(null)
   const [riskAlerts, setRiskAlerts] = useState<RiskAlertData[]>([])
@@ -57,17 +68,34 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [readinessError, setReadinessError] = useState<string | null>(null)
 
+  // Filter state
+  const [cohort, setCohort]               = useState("")
+  const [enrollmentType, setEnrollmentType] = useState("")
+  const [credentialType, setCredentialType] = useState("")
+
+  const hasFilters = !!(cohort || enrollmentType || credentialType)
+
+  function buildFilterParams() {
+    const p = new URLSearchParams()
+    if (cohort)         p.set("cohort", cohort)
+    if (enrollmentType) p.set("enrollmentType", enrollmentType)
+    if (credentialType) p.set("credentialType", credentialType)
+    const qs = p.toString()
+    return qs ? `?${qs}` : ""
+  }
+
   useEffect(() => {
+    const qs = buildFilterParams()
+
     const fetchDashboardData = async () => {
       try {
         setLoading(true)
         setError(null)
 
-        // Fetch all data in parallel
         const [kpisRes, riskAlertsRes, retentionRiskRes] = await Promise.all([
-          fetch("/api/dashboard/kpis"),
-          fetch("/api/dashboard/risk-alerts"),
-          fetch("/api/dashboard/retention-risk"),
+          fetch(`/api/dashboard/kpis${qs}`),
+          fetch(`/api/dashboard/risk-alerts${qs}`),
+          fetch(`/api/dashboard/retention-risk${qs}`),
         ])
 
         if (!kpisRes.ok || !riskAlertsRes.ok || !retentionRiskRes.ok) {
@@ -96,14 +124,14 @@ export default function DashboardPage() {
         setReadinessLoading(true)
         setReadinessError(null)
 
-        const response = await fetch("/api/dashboard/readiness")
-        
+        const response = await fetch(`/api/dashboard/readiness${qs}`)
+
         if (!response.ok) {
           throw new Error("Failed to fetch readiness assessment data")
         }
 
         const result = await response.json()
-        
+
         if (result.success) {
           setReadinessData(result.data ?? null)
         } else {
@@ -119,7 +147,8 @@ export default function DashboardPage() {
 
     fetchDashboardData()
     fetchReadinessData()
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cohort, enrollmentType, credentialType])
 
   return (
     <div className="min-h-screen bg-background">
@@ -135,11 +164,11 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <ExportButton 
+            <ExportButton
               data={{
                 kpis,
                 riskAlerts,
-                retentionRisk
+                retentionRisk,
               }}
               disabled={loading || !kpis}
             />
@@ -149,6 +178,12 @@ export default function DashboardPage() {
                 Methodology
               </Button>
             </Link>
+            <Link href="/students">
+              <Button variant="outline" className="gap-2">
+                <Table2 className="h-4 w-4" />
+                Student Roster
+              </Button>
+            </Link>
             <Link href="/query">
               <Button variant="outline" className="gap-2">
                 <Search className="h-4 w-4" />
@@ -156,6 +191,67 @@ export default function DashboardPage() {
               </Button>
             </Link>
           </div>
+        </div>
+
+        {/* Filter Bar */}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm font-medium text-muted-foreground">Filter by:</span>
+
+          <Select value={cohort} onValueChange={setCohort}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Cohort" />
+            </SelectTrigger>
+            <SelectContent>
+              {COHORTS.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={enrollmentType} onValueChange={setEnrollmentType}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Enrollment Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {ENROLLMENT_TYPES.map((e) => (
+                <SelectItem key={e} value={e}>{e}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={credentialType} onValueChange={setCredentialType}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Credential Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {CREDENTIAL_TYPES.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1 text-muted-foreground"
+              onClick={() => {
+                setCohort("")
+                setEnrollmentType("")
+                setCredentialType("")
+              }}
+            >
+              <X className="h-3 w-3" />
+              Clear
+            </Button>
+          )}
+
+          {hasFilters && (
+            <span className="text-xs text-muted-foreground">
+              Showing filtered results
+              {kpis ? ` · ${kpis.totalStudents.toLocaleString()} students` : ""}
+            </span>
+          )}
         </div>
 
         {/* Error State */}
@@ -250,8 +346,8 @@ export default function DashboardPage() {
 
         {/* Charts */}
         <div className="grid gap-6 md:grid-cols-2">
-          <RiskAlertChart 
-            data={riskAlerts} 
+          <RiskAlertChart
+            data={riskAlerts}
             loading={loading}
             info={
               <>
@@ -275,8 +371,8 @@ export default function DashboardPage() {
               </>
             }
           />
-          <RetentionRiskChart 
-            data={retentionRisk} 
+          <RetentionRiskChart
+            data={retentionRisk}
             loading={loading}
             info={
               <>
@@ -305,7 +401,7 @@ export default function DashboardPage() {
               AI-powered analysis identifying student preparation levels and intervention needs
             </p>
           </div>
-          <ReadinessAssessmentChart 
+          <ReadinessAssessmentChart
             data={readinessData}
             isLoading={readinessLoading}
             error={readinessError || undefined}

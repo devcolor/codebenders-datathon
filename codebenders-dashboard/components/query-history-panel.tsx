@@ -1,8 +1,5 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import type { HistoryEntry } from "@/lib/types"
 
 function relativeTime(isoTimestamp: string): string {
@@ -39,59 +36,74 @@ interface QueryHistoryPanelProps {
 
 export function QueryHistoryPanel({ entries, onRerun, onClear }: QueryHistoryPanelProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-semibold">Recent Queries</CardTitle>
-        <Button variant="ghost" size="sm" onClick={onClear}>
-          Clear
-        </Button>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ul className="divide-y divide-border">
-          {/* Entries arrive pre-sorted: newest first from page.tsx */}
-          {entries.map((entry) => {
-            const truncated =
-              entry.prompt.length > 60
-                ? entry.prompt.slice(0, 60) + "…"
-                : entry.prompt
+    <div className="flex flex-col h-full">
+      {/* Sidebar header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+        <span className="text-sm font-semibold">Recent Queries</span>
+        <a
+          href="/api/query-history/export"
+          download="query-audit-log.csv"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Export
+        </a>
+      </div>
+
+      {/* Scrollable list */}
+      <ul className="flex-1 overflow-y-auto divide-y divide-border">
+        {entries.length === 0 ? (
+          <li className="px-4 py-6 text-xs text-muted-foreground text-center">
+            No queries yet
+          </li>
+        ) : (
+          entries.map((entry) => {
+            const truncated = entry.prompt.length > 60
+              ? entry.prompt.slice(0, 60) + "…"
+              : entry.prompt
 
             return (
-              <li
-                key={entry.id}
-                className="flex items-center justify-between gap-3 px-6 py-3"
-              >
-                <div className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">
-                      {relativeTime(entry.timestamp)}
-                    </span>
-                    <Badge variant="outline" className="text-xs">
-                      {entry.institution}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {entry.rowCount} rows
-                    </span>
-                  </div>
-                  <span
-                    className="text-sm truncate"
+              <li key={entry.id} className="px-4 py-3">
+                <button
+                  onClick={() => onRerun(entry)}
+                  className="w-full text-left group"
+                >
+                  <p
+                    className="text-xs font-medium text-foreground group-hover:text-primary transition-colors leading-snug"
                     title={entry.prompt}
                   >
                     {truncated}
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onRerun(entry)}
-                  className="shrink-0"
-                >
-                  Re-run
-                </Button>
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-muted-foreground">
+                      {relativeTime(entry.timestamp)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-xs text-muted-foreground">
+                      {entry.rowCount} rows
+                    </span>
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {entry.institution}
+                    </span>
+                  </div>
+                </button>
               </li>
             )
-          })}
-        </ul>
-      </CardContent>
-    </Card>
+          })
+        )}
+      </ul>
+
+      {/* Pinned footer */}
+      {entries.length > 0 && (
+        <div className="shrink-0 px-4 py-2 border-t">
+          <button
+            onClick={onClear}
+            className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+          >
+            Clear history
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
