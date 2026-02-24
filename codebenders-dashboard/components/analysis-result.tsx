@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import {
   LineChart,
   Line,
@@ -55,6 +57,13 @@ function formatCellValue(col: string, val: unknown): string {
 }
 
 export function AnalysisResult({ result, plan }: AnalysisResultProps) {
+  const [activeVizType, setActiveVizType] = useState<QueryPlan["vizType"]>(plan.vizType)
+
+  // Reset to LLM's choice whenever a new query arrives
+  useEffect(() => {
+    setActiveVizType(plan.vizType)
+  }, [plan.vizType])
+
   const renderDataTable = () => {
     if (!result.data || result.data.length === 0) return null
     const columns = Object.keys(result.data[0] || {})
@@ -98,7 +107,7 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
     const groupByKey = plan.groupBy || dataKeys[0]
     const metricKey = plan.metric || dataKeys.find(key => key !== groupByKey && typeof result.data[0][key] === 'number') || dataKeys[1] || 'count'
 
-    switch (plan.vizType) {
+    switch (activeVizType) {
       case "line":
         return (
           <div className="overflow-visible">
@@ -258,8 +267,21 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="flex gap-1 mb-3 border-b border-border pb-2">
+          {(["table", "bar", "line", "pie", "kpi"] as const).map((type) => (
+            <Button
+              key={type}
+              variant={activeVizType === type ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setActiveVizType(type)}
+              disabled={!result.data?.length && type !== "table"}
+            >
+              {({ table: "Table", bar: "Bar", line: "Line", pie: "Pie", kpi: "KPI" } as const)[type]}
+            </Button>
+          ))}
+        </div>
         {renderVisualization()}
-        {plan.vizType !== "table" && result.data && result.data.length > 0 && (
+        {activeVizType !== "table" && result.data && result.data.length > 0 && (
           <div className="mt-4">
             <p className="text-xs text-muted-foreground mb-2">Raw data ({result.rowCount} rows)</p>
             <div className="max-h-64 overflow-y-auto rounded-md border border-border">
