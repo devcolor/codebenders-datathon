@@ -37,6 +37,23 @@ const TOOLTIP_STYLE = {
   color: "var(--popover-foreground)",
 }
 
+function isRateColumn(col: string): boolean {
+  const lower = col.toLowerCase()
+  return (
+    lower.endsWith("_rate") ||
+    lower.endsWith("_probability") ||
+    lower.endsWith("_pct") ||
+    lower.endsWith("_percent") ||
+    lower.endsWith("_percentage")
+  )
+}
+
+function formatCellValue(col: string, val: unknown): string {
+  if (typeof val !== "number") return val == null ? "" : String(val)
+  if (isRateColumn(col) && val >= 0 && val <= 1) return (val * 100).toFixed(1) + "%"
+  return Number.isInteger(val) ? String(val) : val.toFixed(2)
+}
+
 export function AnalysisResult({ result, plan }: AnalysisResultProps) {
   const renderDataTable = () => {
     if (!result.data || result.data.length === 0) return null
@@ -56,7 +73,7 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
           {result.data.map((row, idx) => (
             <TableRow key={idx}>
               {columns.map((col) => (
-                <TableCell key={col}>{typeof row[col] === "number" ? row[col].toFixed(2) : row[col]}</TableCell>
+                <TableCell key={col}>{formatCellValue(col, row[col])}</TableCell>
               ))}
             </TableRow>
           ))}
@@ -89,10 +106,22 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
               <LineChart data={result.data}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey={groupByKey} stroke="var(--muted-foreground)" />
-                <YAxis stroke="var(--muted-foreground)" />
+                <YAxis
+                  stroke="var(--muted-foreground)"
+                  // No upper-bound guard: axis ticks may slightly exceed 1.0 (chart padding),
+                  // and should still render as % to stay visually consistent with data labels.
+                  tickFormatter={(v: number) =>
+                    isRateColumn(metricKey) && v >= 0 ? `${(v * 100).toFixed(0)}%` : String(v)
+                  }
+                />
                 <Tooltip
                   wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
                   contentStyle={TOOLTIP_STYLE}
+                  formatter={(v: number) =>
+                    isRateColumn(metricKey) && v >= 0 && v <= 1
+                      ? [`${(v * 100).toFixed(1)}%`, metricKey.replace(/_/g, " ")]
+                      : [v, metricKey.replace(/_/g, " ")]
+                  }
                 />
                 <Legend />
                 <Line
@@ -115,11 +144,23 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
               <BarChart data={result.data}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey={groupByKey} stroke="var(--muted-foreground)" />
-                <YAxis stroke="var(--muted-foreground)" />
+                <YAxis
+                  stroke="var(--muted-foreground)"
+                  // No upper-bound guard: axis ticks may slightly exceed 1.0 (chart padding),
+                  // and should still render as % to stay visually consistent with data labels.
+                  tickFormatter={(v: number) =>
+                    isRateColumn(metricKey) && v >= 0 ? `${(v * 100).toFixed(0)}%` : String(v)
+                  }
+                />
                 <Tooltip
                   cursor={false}
                   wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
                   contentStyle={TOOLTIP_STYLE}
+                  formatter={(v: number) =>
+                    isRateColumn(metricKey) && v >= 0 && v <= 1
+                      ? [`${(v * 100).toFixed(1)}%`, metricKey.replace(/_/g, " ")]
+                      : [v, metricKey.replace(/_/g, " ")]
+                  }
                 />
                 <Legend />
                 <Bar
@@ -155,6 +196,11 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
                 <Tooltip
                   wrapperStyle={{ zIndex: 10, overflow: 'visible' as const }}
                   contentStyle={TOOLTIP_STYLE}
+                  formatter={(v: number) =>
+                    isRateColumn(metricKey) && v >= 0 && v <= 1
+                      ? [`${(v * 100).toFixed(1)}%`, metricKey.replace(/_/g, " ")]
+                      : [v, metricKey.replace(/_/g, " ")]
+                  }
                 />
                 <Legend
                   verticalAlign="bottom"
@@ -166,19 +212,30 @@ export function AnalysisResult({ result, plan }: AnalysisResultProps) {
           </div>
         )
 
-      case "kpi":
-        const kpiValue = result.data[0]?.[metricKey] ?? 0
+      case "kpi": {
+        const kpiRaw = result.data[0]?.[metricKey] ?? 0
+        const isRate = isRateColumn(metricKey)
+        const shouldScale = isRate && typeof kpiRaw === "number" && kpiRaw >= 0 && kpiRaw <= 1
+        const kpiDisplay =
+          typeof kpiRaw === "number"
+            ? shouldScale
+              ? (kpiRaw * 100).toFixed(1)
+              : kpiRaw.toFixed(1)
+            : String(kpiRaw)
+        const kpiSuffix = shouldScale ? "%" : ""
         return (
           <div className="flex items-center justify-center h-48">
             <div className="text-center space-y-4">
               <div className="text-6xl font-bold text-foreground">
-                {typeof kpiValue === "number" ? kpiValue.toFixed(1) : kpiValue}
-                {metricKey.includes("rate") || metricKey.includes("percentage") ? "%" : ""}
+                {kpiDisplay}{kpiSuffix}
               </div>
-              <div className="text-xl text-muted-foreground capitalize">{metricKey.replace(/_/g, " ")}</div>
+              <div className="text-xl text-muted-foreground capitalize">
+                {metricKey.replace(/_/g, " ")}
+              </div>
             </div>
           </div>
         )
+      }
 
       case "table":
         return (
