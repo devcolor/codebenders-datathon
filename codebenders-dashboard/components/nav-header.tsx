@@ -13,10 +13,11 @@ interface NavHeaderProps {
 }
 
 const NAV_LINKS = [
-  { href: "/",          label: "Dashboard" },
-  { href: "/courses",   label: "Courses"   },
-  { href: "/students",  label: "Students"  },
-  { href: "/query",     label: "Query"     },
+  { href: "/",          label: "Dashboard",   roles: null },
+  { href: "/courses",   label: "Courses",     roles: null },
+  { href: "/students",  label: "Students",    roles: null },
+  { href: "/query",     label: "Query",       roles: null },
+  { href: "/admin/upload", label: "Upload Data", roles: ["admin", "ir"] as Role[] },
 ]
 
 export function NavHeader({ email, role }: NavHeaderProps) {
@@ -34,7 +35,7 @@ export function NavHeader({ email, role }: NavHeaderProps) {
 
         {/* Nav links */}
         <nav className="hidden sm:flex items-center gap-1">
-          {NAV_LINKS.map(({ href, label }) => {
+          {NAV_LINKS.filter(({ roles }) => !roles || roles.includes(role)).map(({ href, label }) => {
             const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/")
             return (
               <Link

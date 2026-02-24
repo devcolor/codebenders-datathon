@@ -1,0 +1,87 @@
+name: ML Pipeline
+
+on:
+  repository_dispatch:
+    types: [ml-pipeline]
+
+jobs:
+  run-pipeline:
+    name: Download data file and run ML pipeline
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create virtualenv and install dependencies
+        run: |
+          python -m venv venv
+          venv/bin/pip install --upgrade pip
+          venv/bin/pip install -r requirements.txt
+
+      - name: Download uploaded file from Supabase Storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STORAGE_KEY: ${{ github.event.client_payload.storage_key }}
+          FILE_TYPE: ${{ github.event.client_payload.file_type }}
+        run: |
+          python - <<'EOF'
+          import os, urllib.request, json
+
+          url      = os.environ["SUPABASE_URL"]
+          key      = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+          storage_key = os.environ["STORAGE_KEY"]
+          file_type   = os.environ["FILE_TYPE"]
+
+          # Get a signed download URL via Supabase Storage REST API
+          sign_url = f"{url}/storage/v1/object/sign/pdp-uploads/{storage_key}"
+          req = urllib.request.Request(
+              sign_url,
+              data=json.dumps({"expiresIn": 600}).encode(),
+              headers={
+                  "Authorization": f"Bearer {key}",
+                  "Content-Type": "application/json",
+                  "apikey": key,
+              },
+              method="POST",
+          )
+          with urllib.request.urlopen(req) as resp:
+              signed = json.loads(resp.read())
+          signed_url = f"{url}/storage/v1{signed['signedURL']}"
+
+          # Determine destination path
+          dest = {
+              "pdp_cohort": "data/bishop_state_cohorts_with_zip.csv",
+              "pdp_ar":     "data/ar_bscc_with_zip.csv",
+          }.get(file_type)
+          if not dest:
+              raise ValueError(f"Unknown file_type: {file_type}")
+
+          print(f"Downloading to {dest}...")
+          urllib.request.urlretrieve(signed_url, dest)
+          print("Download complete.")
+          EOF
+
+      - name: Run ML pipeline
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_SSL: ${{ secrets.DB_SSL }}
+        run: |
+          venv/bin/python ai_model/complete_ml_pipeline.py
+
+      - name: Upload ML pipeline report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ml-pipeline-report-${{ github.run_id }}
+          path: ML_PIPELINE_REPORT.txt
+          retention-days: 90
