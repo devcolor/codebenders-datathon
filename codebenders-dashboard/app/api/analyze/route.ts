@@ -139,6 +139,7 @@ ${Object.entries(schemaInfo.columns).map(([col, desc]) => `   - ${col}: ${desc}`
 
 2. ${schemaInfo.courseTable ?? "course_enrollments"} — individual course enrollment records
    USE FOR: DFW/DFWI rates by course, pass rates by course, gateway course outcomes, delivery method analysis, instructor type analysis
+   NOTE: This table has NO institution_id column. Do NOT add institution filters — data is already scoped to this institution.
    COLUMNS:
 ${Object.entries(schemaInfo.courseColumns ?? {}).map(([col, desc]) => `   - ${col}: ${desc}`).join("\n")}
 
