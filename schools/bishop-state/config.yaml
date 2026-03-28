@@ -1,0 +1,358 @@
+# Bishop State Community College — Training Pipeline Config
+school:
+  name: "Bishop State Community College"
+  code: "bscc"
+  type: "community_college"
+  designation: ["hbcu", "minority_serving"]
+  accreditation: "SACSCOC"
+  founded: 1927
+
+  location:
+    address: "351 North Broad Street"
+    city: "Mobile"
+    state: "Alabama"
+    zip: "36603"
+    county: "Mobile County"
+    region: "Gulf Coast"
+    setting: "urban"
+    climate_zone: "subtropical"
+
+  enrollment:
+    total_headcount: 4200
+    fte: 2800
+    undergraduate_only: true
+    residential: false
+    percent_full_time: 0.42
+    percent_part_time: 0.58
+    percent_online: 0.35
+    open_admission: true
+
+  demographics:
+    percent_black: 0.72
+    percent_white: 0.18
+    percent_hispanic: 0.05
+    percent_other: 0.05
+    percent_pell_eligible: 0.68
+    percent_first_gen: 0.55
+    percent_adult_learners: 0.40
+    median_household_income_area: 42000
+
+  workforce:
+    top_employers: ["Austal USA", "Mobile Infirmary", "AM/NS Calvert"]
+    high_demand_fields: ["healthcare", "advanced_manufacturing", "maritime"]
+    workforce_board: "Mobile Works"
+
+  academics:
+    calendar: "semester"
+    degree_types: ["associate", "certificate", "short_certificate"]
+    total_programs: 45
+    largest_programs: ["Nursing", "Welding", "Business Administration"]
+    transfer_partners: ["University of South Alabama", "Alabama A&M"]
+    dual_enrollment: true
+
+  student_support:
+    tutoring: true
+    food_pantry: true
+    childcare: false
+    transportation_assistance: true
+    mental_health_services: true
+    early_alert_system: true
+
+  challenges:
+    - "High percentage of students working 20+ hours/week"
+    - "Limited public transit access to satellite campuses"
+    - "Hurricane season disrupts Fall semester attendance"
+    - "Many students require developmental education in math"
+
+  strengths:
+    - "Strong employer partnerships in healthcare and maritime"
+    - "Active student mentoring program"
+    - "High nursing program pass rates on NCLEX"
+
+  peers:
+    ipeds_id: "101505"
+    carnegie_class: "Associate's—High Transfer-High Traditional"
+    peer_institutions: ["Lawson State CC", "Shelton State CC", "Trenholm State CC"]
+    state_system: "Alabama Community College System"
+    governing_board: "ACCS Board of Trustees"
+
+  financial:
+    in_district_tuition: 4800
+    in_state_tuition: 4800
+    avg_financial_aid_package: 5200
+    percent_receiving_aid: 0.82
+    percent_student_loans: 0.25
+    cost_of_living_index: 87.3
+    textbook_program: "inclusive_access"
+    tuition_payment_plan: true
+    emergency_aid_fund: true
+
+  completion:
+    ipeds_graduation_rate: 0.18
+    adjusted_completion_rate: 0.42
+    avg_time_to_credential: 3.2
+    percent_transfer_out: 0.24
+    percent_stop_out_return: 0.15
+    top_completion_barriers:
+      - "developmental_math_sequences"
+      - "financial_emergencies"
+      - "work_schedule_conflicts"
+
+  instruction:
+    student_faculty_ratio: 18
+    percent_full_time_faculty: 0.45
+    percent_adjunct: 0.55
+    avg_class_size: 22
+    developmental_ed_model: "corequisite"
+    lms: "Canvas"
+
+  pipeline:
+    feeder_high_schools:
+      - name: "Williamson High School"
+        percent_of_enrollment: 0.12
+        avg_readiness: "below_college_level"
+      - name: "Murphy High School"
+        percent_of_enrollment: 0.08
+        avg_readiness: "mixed"
+    percent_ged: 0.11
+    percent_dual_enrollment_origin: 0.09
+    percent_veterans: 0.07
+    percent_career_changers: 0.14
+    percent_displaced_workers: 0.05
+    percent_international: 0.02
+    primary_recruitment_radius_miles: 35
+
+  technology:
+    percent_students_with_reliable_wifi: 0.71
+    percent_students_with_personal_laptop: 0.64
+    campus_device_lending: true
+    hotspot_lending: true
+    digital_literacy_required: false
+    broadband_desert_overlap: true
+
+  access:
+    campus_count: 4
+    campuses:
+      - name: "Main Campus"
+        address: "351 N Broad St"
+        public_transit_accessible: true
+      - name: "Southwest Campus"
+        address: "925 Dauphin Island Pkwy"
+        public_transit_accessible: false
+    percent_students_commute_30_plus_min: 0.35
+    public_transit_quality: "limited"
+    parking_adequate: true
+    evening_weekend_classes: true
+
+  equity:
+    known_gaps:
+      - metric: "gateway_math_pass_rate"
+        group_a: { name: "Black male students", value: 0.41 }
+        group_b: { name: "Overall", value: 0.58 }
+        initiative: "Male Student Success mentoring program"
+      - metric: "retention"
+        group_a: { name: "Part-time students", value: 0.38 }
+        group_b: { name: "Full-time students", value: 0.61 }
+        initiative: "15-to-Finish advising campaign"
+    dei_office: true
+    title_ix_coordinator: true
+    minority_male_initiative: "Brother 2 Brother"
+
+  interventions:
+    active:
+      - name: "Starfish Early Alert"
+        type: "early_warning"
+        target: "all students"
+        trigger: "missed 2+ classes or below C at midterm"
+        effectiveness: "12% retention lift in pilot cohorts"
+      - name: "Math Bootcamp"
+        type: "academic_support"
+        target: "students placing into developmental math"
+        timing: "2 weeks before Fall semester"
+        effectiveness: "participants 2x more likely to pass MAT 100"
+      - name: "Emergency Micro-Grants"
+        type: "financial"
+        target: "students facing unexpected financial hardship"
+        max_award: 500
+        effectiveness: "78% of recipients re-enrolled next term"
+    planned:
+      - name: "Proactive advising for 25+ credit students"
+        launch: "Fall 2026"
+
+  student_life:
+    percent_working_while_enrolled: 0.72
+    percent_working_over_20hrs: 0.48
+    percent_single_parents: 0.18
+    percent_caregiver_responsibilities: 0.25
+    childcare_waitlist: true
+    student_orgs: 15
+    athletics: false
+    housing_insecurity_rate: 0.14
+    food_insecurity_rate: 0.31
+
+  health:
+    mental_health_counselor_ratio: "1:1400"
+    community_health_context:
+      - "Mobile County has highest diabetes rate in Alabama"
+      - "Limited mental health providers in service area"
+    substance_abuse_programs: true
+    crisis_intervention_protocol: true
+
+  outcomes:
+    job_placement_rate_6mo: 0.78
+    median_salary_after_credential:
+      associate: 34000
+      certificate: 29000
+    percent_employed_in_field: 0.65
+    licensure_pass_rates:
+      nursing_nclex: 0.89
+      welding_aws: 0.92
+      emt: 0.85
+    transfer_success_rate: 0.71
+    employer_satisfaction_rate: 0.88
+
+  patterns:
+    high_attrition_points:
+      - week: 4
+        reason: "Financial aid disbursement delays"
+      - week: 8
+        reason: "Midterm performance shock"
+      - month: "October"
+        reason: "Hurricane season peak"
+    registration_peaks: ["April", "July", "November"]
+    summer_melt_rate: 0.22
+
+  trends:
+    enrollment_direction: "declining"
+    enrollment_5yr_change: -0.12
+    completion_direction: "improving"
+    notable_changes:
+      - year: 2020
+        event: "COVID shift to online — permanent hybrid expansion"
+      - year: 2022
+        event: "Switched to corequisite math model — dev-ed pass rates doubled"
+      - year: 2023
+        event: "Launched early alert system with ML predictions"
+
+  priorities:
+    strategic_plan_years: "2024-2029"
+    top_goals:
+      - "Increase fall-to-fall retention from 42% to 55%"
+      - "Launch 3 new short-term workforce certificates"
+      - "Close equity gap in gateway math by 50%"
+    accreditation_qep_topic: "Guided Pathways implementation"
+    grant_funded_initiatives:
+      - name: "Title III Strengthening Institutions"
+        focus: "Student support services and advising redesign"
+        end_date: "2027-09-30"
+      - name: "NSF ATE Grant"
+        focus: "Advanced manufacturing curriculum"
+        end_date: "2026-05-31"
+
+  data_caveats:
+    - "Pre-2020 cohorts lack online/hybrid delivery classification"
+    - "Race/ethnicity is self-reported; 6% of records are 'Unknown'"
+    - "GPA data for dual-enrollment students may reflect high school scale"
+    - "Transfer-out data relies on National Student Clearinghouse match — ~85% match rate"
+    - "Course enrollment records before 2019 do not include instructor_status"
+
+database:
+  main_table: "student_level_with_predictions"
+  course_table: "course_enrollments"
+  connection_env: "DATABASE_URL"
+
+schema:
+  student_columns:
+    Cohort: "Cohort year (numeric: 2019, 2020, etc.)"
+    Cohort_Term: "Term of cohort entry (Fall, Spring, Summer)"
+    Student_GUID: "Unique student identifier"
+    Institution_ID: "Institution identifier (102030 for Bishop State)"
+    Gender: "Student gender"
+    Race: "Student race/ethnicity"
+    Student_Age: "Age of student (integer)"
+    First_Gen: "First generation status"
+    Enrollment_Type: "Type of enrollment"
+    Enrollment_Intensity_First_Term: "Enrollment intensity (Full-Time, Part-Time)"
+    Program_of_Study_Year_1: "Program of study in year 1 (CIP code)"
+    Credential_Type_Sought_Year_1: "Credential type being pursued"
+    Math_Placement: "Math placement level (C=college-level, R=remedial, N=none)"
+    Retention: "Retention indicator (0 or 1)"
+    Persistence: "Persistence indicator (0 or 1)"
+    GPA_Group_Year_1: "GPA in year 1"
+    GPA_Group_Term_1: "GPA in term 1"
+    Number_of_Credits_Attempted_Year_1: "Credits attempted in year 1"
+    Number_of_Credits_Earned_Year_1: "Credits earned in year 1"
+    Number_of_Credits_Attempted_Year_2: "Credits attempted in year 2"
+    Number_of_Credits_Earned_Year_2: "Credits earned in year 2"
+    Time_to_Credential: "Time to any credential"
+    retention_probability: "Predicted probability of retention (0-1)"
+    retention_risk_category: "Risk category (Low/Moderate/High/Critical Risk)"
+    at_risk_alert: "Early warning alert level (LOW/MODERATE/HIGH/URGENT)"
+    course_completion_rate: "Course completion rate (0-1)"
+    passing_rate: "Course passing rate (0-1)"
+  course_columns:
+    course_prefix: "Course dept code (MAT, ENG, NUR, CIS, etc.)"
+    course_number: "Course number (100, 201, etc.)"
+    course_name: "Full course name"
+    grade: "Student grade (A, B, C, D, F, W, I, AU, P)"
+    delivery_method: "Delivery (F=face-to-face, O=online, H=hybrid)"
+    instructor_status: "Instructor type (FT=full-time, PT=part-time)"
+    gateway_type: "Gateway (M=math, E=English, N=not a gateway)"
+    credits_attempted: "Credits attempted (numeric)"
+    credits_earned: "Credits earned (numeric)"
+    cohort: "Cohort year as text"
+    academic_year: "Academic year (e.g. 2021-22)"
+    academic_term: "Term (FALL, SPRING, SUMMER)"
+  ferpa_excluded:
+    - "Student_GUID"
+    - "student_guid"
+
+domain:
+  programs:
+    - name: "Nursing (ADN)"
+      cip: "51.3801"
+      gateway_courses: ["BIO 201", "MAT 110"]
+    - name: "Welding Technology"
+      cip: "48.0508"
+      gateway_courses: ["WDT 108", "WDT 109"]
+    - name: "Business Administration"
+      cip: "52.0201"
+      gateway_courses: ["MAT 100", "BUS 241"]
+    - name: "Computer Information Systems"
+      cip: "11.0101"
+      gateway_courses: ["CIS 146", "MAT 100"]
+    - name: "Emergency Medical Technician"
+      cip: "51.0904"
+      gateway_courses: ["EMS 100", "BIO 201"]
+  key_metrics:
+    - "retention_rate"
+    - "dfwi_rate"
+    - "gateway_pass_rate"
+    - "completion_rate"
+    - "transfer_rate"
+  terminology:
+    credential: "associate degree or certificate"
+    at_risk: "students flagged by early warning system"
+    gateway_course: "first college-level course in math or English"
+    dfwi: "grades of D, F, W, or I (unsuccessful completion)"
+
+distillation:
+  teacher_model: "claude-sonnet-4-20250514"
+  teacher_backend: "anthropic"
+  local_teacher_model: "qwen3.5:27b"
+  local_teacher_backend: "ollama"
+  pairs_per_task: 1500
+
+training:
+  default_model: "qwen3.5:9b"
+  fallback_model: "qwen3.5:4b"
+  method: "qlora"
+  quantization: 4
+  lora_rank: 16
+  lora_alpha: 32
+  epochs: 3
+  learning_rate: 1.0e-4
+  batch_size: 4
+  warmup_steps: 100
+  eval_every: 50
+  early_stopping_patience: 3
