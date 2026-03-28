@@ -134,15 +134,46 @@ def call_teacher(system: str, user: str, backend: str, model: str) -> str:
         raise ValueError(f"Unknown backend: {backend!r}. Must be 'anthropic' or 'ollama'.")
 
 
-def generate_explainer_pairs(
+_FLUSH_INTERVAL = 25
+
+_TASK_CONFIG = {
+    "explainer": {
+        "prompt_builder": build_explainer_prompt,
+        "student_system": EXPLAINER_STUDENT_SYSTEM,
+        "format_user": lambda config, data: json.dumps(data, ensure_ascii=False, default=str),
+    },
+    "summarizer": {
+        "prompt_builder": build_summarizer_prompt,
+        "student_system": SUMMARIZER_STUDENT_SYSTEM,
+        "format_user": lambda config, data: json.dumps(
+            {"prompt": data["prompt"], "data": data["data"][:50]},
+            ensure_ascii=False, default=str,
+        ),
+    },
+}
+
+
+def generate_pairs(
     config: dict[str, Any], seed_data: list[dict[str, Any]],
-    count: int, outfile: Path | None = None,
+    count: int, task: str, outfile: Path | None = None,
+    system_prompt: str | None = None,
 ) -> list[dict]:
-    """Generate explainer training pairs via teacher model distillation."""
+    """Generate training pairs via teacher model distillation.
+
+    Args:
+        config: Parsed school config.
+        seed_data: List of seed data dicts.
+        count: Number of pairs to generate.
+        task: "explainer" or "summarizer".
+        outfile: If provided, pairs are written incrementally.
+        system_prompt: Pre-built system prompt (avoids recomputation).
+    """
+    task_cfg = _TASK_CONFIG[task]
     distill_config = config.get("distillation", {})
     backend = distill_config.get("teacher_backend", "anthropic")
     model = distill_config.get("teacher_model", "claude-sonnet-4-20250514")
-    system_prompt = build_system_prompt(config)
+    if system_prompt is None:
+        system_prompt = build_system_prompt(config)
     pairs: list[dict] = []
 
     fh = None
@@ -154,83 +185,51 @@ def generate_explainer_pairs(
         for idx in range(count):
             if idx > 0 and idx % 25 == 0:
                 time.sleep(1)
-            course_data = seed_data[idx % len(seed_data)]
-            teacher_prompt = build_explainer_prompt(config, course_data)
+            seed_item = seed_data[idx % len(seed_data)]
+            teacher_prompt = task_cfg["prompt_builder"](config, seed_item)
             try:
                 response_text = call_teacher(system_prompt, teacher_prompt, backend, model)
             except Exception as exc:
-                print(f"[warn] Teacher call failed for explainer pair {idx}: {exc}", flush=True)
+                print(f"[warn] Teacher call failed for {task} pair {idx}: {exc}", flush=True)
                 continue
             validated = validate_json(response_text)
             if validated is None:
-                print(f"[warn] Invalid JSON for explainer pair {idx}, skipping.", flush=True)
+                print(f"[warn] Invalid JSON for {task} pair {idx}, skipping.", flush=True)
                 continue
-            student_user = json.dumps(course_data, ensure_ascii=False, default=str)
+            student_user = task_cfg["format_user"](config, seed_item)
             pair = format_as_chatml(
-                system=EXPLAINER_STUDENT_SYSTEM, user=student_user,
+                system=task_cfg["student_system"], user=student_user,
                 assistant=json.dumps(validated, ensure_ascii=False),
             )
             pairs.append(pair)
             if fh is not None:
                 fh.write(json.dumps(pair, ensure_ascii=False) + "\n")
-                fh.flush()
-            print(f"[explainer] {len(pairs)}/{count} pairs generated", flush=True)
+                if len(pairs) % _FLUSH_INTERVAL == 0:
+                    fh.flush()
+            print(f"[{task}] {len(pairs)}/{count} pairs generated", flush=True)
     finally:
         if fh is not None:
             fh.close()
-            print(f"[explainer] Saved {len(pairs)} pairs to {outfile}", flush=True)
+            print(f"[{task}] Saved {len(pairs)} pairs to {outfile}", flush=True)
     return pairs
+
+
+def generate_explainer_pairs(
+    config: dict[str, Any], seed_data: list[dict[str, Any]],
+    count: int, outfile: Path | None = None,
+    system_prompt: str | None = None,
+) -> list[dict]:
+    """Generate explainer training pairs via teacher model distillation."""
+    return generate_pairs(config, seed_data, count, "explainer", outfile, system_prompt)
 
 
 def generate_summarizer_pairs(
     config: dict[str, Any], seed_data: list[dict[str, Any]],
     count: int, outfile: Path | None = None,
+    system_prompt: str | None = None,
 ) -> list[dict]:
     """Generate summarizer training pairs via teacher model distillation."""
-    distill_config = config.get("distillation", {})
-    backend = distill_config.get("teacher_backend", "anthropic")
-    model = distill_config.get("teacher_model", "claude-sonnet-4-20250514")
-    system_prompt = build_system_prompt(config)
-    pairs: list[dict] = []
-
-    fh = None
-    if outfile is not None:
-        outfile.parent.mkdir(parents=True, exist_ok=True)
-        fh = outfile.open("w", encoding="utf-8")
-
-    try:
-        for idx in range(count):
-            if idx > 0 and idx % 25 == 0:
-                time.sleep(1)
-            query_data = seed_data[idx % len(seed_data)]
-            teacher_prompt = build_summarizer_prompt(config, query_data)
-            try:
-                response_text = call_teacher(system_prompt, teacher_prompt, backend, model)
-            except Exception as exc:
-                print(f"[warn] Teacher call failed for summarizer pair {idx}: {exc}", flush=True)
-                continue
-            validated = validate_json(response_text)
-            if validated is None:
-                print(f"[warn] Invalid JSON for summarizer pair {idx}, skipping.", flush=True)
-                continue
-            student_user = json.dumps(
-                {"prompt": query_data["prompt"], "data": query_data["data"][:50]},
-                ensure_ascii=False, default=str,
-            )
-            pair = format_as_chatml(
-                system=SUMMARIZER_STUDENT_SYSTEM, user=student_user,
-                assistant=json.dumps(validated, ensure_ascii=False),
-            )
-            pairs.append(pair)
-            if fh is not None:
-                fh.write(json.dumps(pair, ensure_ascii=False) + "\n")
-                fh.flush()
-            print(f"[summarizer] {len(pairs)}/{count} pairs generated", flush=True)
-    finally:
-        if fh is not None:
-            fh.close()
-            print(f"[summarizer] Saved {len(pairs)} pairs to {outfile}", flush=True)
-    return pairs
+    return generate_pairs(config, seed_data, count, "summarizer", outfile, system_prompt)
 
 
 def main(school: str, local: bool = False) -> None:
@@ -251,16 +250,20 @@ def main(school: str, local: bool = False) -> None:
     synthetic_pairings = generate_synthetic_course_pairings(config, count=pairs_per_task)
     synthetic_results = generate_synthetic_query_results(config, count=pairs_per_task)
 
+    system_prompt = build_system_prompt(config)
+
     print(f"\n{'='*60}\nEXPLAINER — generating {pairs_per_task} pairs\n{'='*60}")
     explainer_pairs = generate_explainer_pairs(
         config=config, seed_data=synthetic_pairings,
         count=pairs_per_task, outfile=pairs_dir / "explainer.jsonl",
+        system_prompt=system_prompt,
     )
 
     print(f"\n{'='*60}\nSUMMARIZER — generating {pairs_per_task} pairs\n{'='*60}")
     summarizer_pairs = generate_summarizer_pairs(
         config=config, seed_data=synthetic_results,
         count=pairs_per_task, outfile=pairs_dir / "summarizer.jsonl",
+        system_prompt=system_prompt,
     )
 
     print(f"\n{'='*60}\nDISTILLATION COMPLETE\n{'='*60}")

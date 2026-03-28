@@ -19,6 +19,11 @@ from pathlib import Path
 from training.config import get_training_data_dir, load_school_config
 from training.prompts import EXPLAINER_STUDENT_SYSTEM, SUMMARIZER_STUDENT_SYSTEM
 
+_SYSTEM_PROMPTS = {
+    "explainer": EXPLAINER_STUDENT_SYSTEM,
+    "summarizer": SUMMARIZER_STUDENT_SYSTEM,
+}
+
 # ---------------------------------------------------------------------------
 # Modelfile template
 # ---------------------------------------------------------------------------
@@ -102,18 +107,11 @@ def export_model(school: str, task: str, model: str = "9b") -> int:
             "Run `python -m training.finetune` first."
         )
 
-    # Determine system prompt for this task
-    if task == "explainer":
-        system_prompt = EXPLAINER_STUDENT_SYSTEM
-    elif task == "summarizer":
-        system_prompt = SUMMARIZER_STUDENT_SYSTEM
-    else:
-        raise ValueError(f"Unknown task '{task}'. Must be 'explainer' or 'summarizer'.")
+    if task not in _SYSTEM_PROMPTS:
+        raise ValueError(f"Unknown task '{task}'. Must be one of: {list(_SYSTEM_PROMPTS)}")
+    system_prompt = _SYSTEM_PROMPTS[task]
 
-    # Base model tag (Ollama format)
     base_model = f"qwen3.5:{model}"
-
-    # Ollama model name: "{school}-{task}" e.g. "bishop-state-explainer"
     ollama_model_name = f"{school}-{task}"
 
     # Write Modelfile

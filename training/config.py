@@ -51,6 +51,25 @@ def get_training_data_dir(school: str) -> Path:
     return BASE_DIR / school
 
 
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Read a JSONL file and return a list of parsed dicts."""
+    items = []
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if line:
+                items.append(json.loads(line))
+    return items
+
+
+def get_message_content(record: dict[str, Any], role: str) -> str | None:
+    """Extract message content for a given role from a ChatML record."""
+    for msg in record.get("messages", []):
+        if msg.get("role") == role:
+            return msg.get("content")
+    return None
+
+
 def write_jsonl(
     items: list,
     outfile: Path,

@@ -126,15 +126,9 @@ def run_finetune(school: str, model: str, task: str) -> int:
             "Run `python -m training.prepare` first."
         )
 
-    # Override the model from config with the CLI-specified model
-    train_cfg = config.get("training", {})
-    train_cfg["default_model"] = f"qwen3.5:{model}"
-    config["training"] = train_cfg
-
     lora_config = build_lora_config(config, task, data_dir)
     lora_config["model"] = _MODEL_MAP[model]
 
-    # Write config to a temporary JSON file
     config_dir = data_dir / "configs"
     config_dir.mkdir(parents=True, exist_ok=True)
     config_path = config_dir / f"lora_{task}_{model}.json"

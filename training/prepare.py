@@ -16,7 +16,9 @@ from training.config import (
     JACCARD_THRESHOLD,
     TRAIN_RATIO,
     VAL_RATIO,
+    get_message_content,
     get_training_data_dir,
+    read_jsonl,
     write_jsonl,
 )
 
@@ -28,13 +30,6 @@ def jaccard_similarity(a: str, b: str) -> float:
     if not words_a or not words_b:
         return 0.0
     return len(words_a & words_b) / len(words_a | words_b)
-
-
-def _get_user_text(pair: dict[str, Any]) -> str:
-    for msg in pair.get("messages", []):
-        if msg.get("role") == "user":
-            return msg.get("content", "")
-    return ""
 
 
 def filter_invalid_json(pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -74,9 +69,9 @@ def deduplicate_by_jaccard(
     if not pairs:
         return pairs
     kept: list[dict[str, Any]] = [pairs[0]]
-    kept_word_sets: list[set] = [set(_get_user_text(pairs[0]).lower().split())]
+    kept_word_sets: list[set] = [set((get_message_content(pairs[0], "user") or "").lower().split())]
     for pair in pairs[1:]:
-        candidate_words = set(_get_user_text(pair).lower().split())
+        candidate_words = set((get_message_content(pair, "user") or "").lower().split())
         is_duplicate = any(
             _jaccard_sets(candidate_words, kw) >= threshold
             for kw in kept_word_sets
@@ -113,23 +108,13 @@ def split_dataset(
     }
 
 
-def _load_pairs(path: Path) -> list[dict[str, Any]]:
-    pairs = []
-    with path.open() as fh:
-        for line in fh:
-            line = line.strip()
-            if line:
-                pairs.append(json.loads(line))
-    return pairs
-
-
 def process_task(school: str, task: str) -> dict[str, int]:
     """Load, filter, deduplicate, and split training data for a task."""
     data_dir = get_training_data_dir(school)
     input_path = data_dir / "pairs" / f"{task}.jsonl"
     if not input_path.exists():
         raise FileNotFoundError(f"Pairs file not found: {input_path}")
-    pairs = _load_pairs(input_path)
+    pairs = read_jsonl(input_path)
     print(f"[{task}] Loaded {len(pairs)} pairs from {input_path}")
     pairs = filter_invalid_json(pairs)
     print(f"[{task}] After JSON filter: {len(pairs)} pairs")

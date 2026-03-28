@@ -11,11 +11,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from training.config import get_training_data_dir, load_school_config
+from training.config import get_message_content, get_training_data_dir, load_school_config, read_jsonl
 
 # ---------------------------------------------------------------------------
 # Required keys per task
@@ -181,16 +182,11 @@ def check_factual_grounding(outputs: list[str], inputs: list[dict[str, Any]]) ->
     total = 0
     for output_text, input_data in pairs:
         total += 1
-        # Collect all numeric string representations from the input
         input_str = json.dumps(input_data, default=str)
-        numbers: list[str] = []
-        import re
         numbers = re.findall(r"\b\d+(?:\.\d+)?\b", input_str)
         if not numbers:
-            # No numbers in input — cannot verify grounding; give benefit of doubt
             passing += 1
             continue
-        # Check if any number appears in the output text
         if any(num in output_text for num in numbers):
             passing += 1
     return passing / total if total else 0.0
@@ -246,37 +242,7 @@ def check_ship_criteria(metrics: dict[str, float], task: str) -> ShipDecision:
 
 def load_test_set(path: Path) -> list[dict[str, Any]]:
     """Load a ChatML JSONL test set from path."""
-    records: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if line:
-                records.append(json.loads(line))
-    return records
-
-
-def _extract_user_content(record: dict[str, Any]) -> str | None:
-    """Extract the user message content from a ChatML record."""
-    for msg in record.get("messages", []):
-        if msg.get("role") == "user":
-            return msg.get("content")
-    return None
-
-
-def _extract_assistant_content(record: dict[str, Any]) -> str | None:
-    """Extract the assistant message content from a ChatML record."""
-    for msg in record.get("messages", []):
-        if msg.get("role") == "assistant":
-            return msg.get("content")
-    return None
-
-
-def _extract_system_content(record: dict[str, Any]) -> str | None:
-    """Extract the system message content from a ChatML record."""
-    for msg in record.get("messages", []):
-        if msg.get("role") == "system":
-            return msg.get("content")
-    return None
+    return read_jsonl(path)
 
 
 def _call_ollama(model: str, system: str, user: str) -> str:
@@ -326,8 +292,8 @@ def run_eval(school: str, task: str) -> ShipDecision:
     inputs: list[dict[str, Any]] = []
 
     for idx, record in enumerate(records):
-        system = _extract_system_content(record) or ""
-        user = _extract_user_content(record) or ""
+        system = get_message_content(record, "system") or ""
+        user = get_message_content(record, "user") or ""
         try:
             response = _call_ollama(model_name, system, user)
         except Exception as exc:
