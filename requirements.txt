@@ -25,3 +25,10 @@ pyyaml>=6.0
 
 # Logging & Utilities
 colorama>=0.4.6
+
+# Training pipeline
+anthropic>=0.40.0
+ollama>=0.4.0
+rouge-score>=0.1.2
+mlx>=0.22.0
+mlx-lm>=0.20.0
