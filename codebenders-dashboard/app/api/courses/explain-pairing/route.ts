@@ -1,10 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/db"
 import { canAccess, type Role } from "@/lib/roles"
-import { generateText } from "ai"
-import { createOpenAI } from "@ai-sdk/openai"
-
-const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || "" })
+import { generateExplanation } from "@/lib/model-client"
 
 const DELIVERY_LABELS: Record<string, string> = {
   F: "Face-to-Face",
@@ -18,7 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (!process.env.OPENAI_API_KEY) {
+  if (process.env.MODEL_BACKEND !== "ollama" && !process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 })
   }
 
@@ -189,11 +186,7 @@ Write a concise analysis (3-4 sentences) that:
 
 Be practical and data-driven. Do not speculate beyond what the numbers show.`
 
-    const result = await generateText({
-      model: openai("gpt-4o-mini"),
-      prompt: llmPrompt,
-      maxOutputTokens: 320,
-    })
+    const result = { text: await generateExplanation(llmPrompt, 320) }
 
     return NextResponse.json({ stats, explanation: result.text })
   } catch (error) {

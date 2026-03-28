@@ -41,7 +41,7 @@ async function callOpenAI(prompt: string, maxTokens: number): Promise<string> {
   const result = await generateText({
     model: openai("gpt-4o-mini"),
     prompt,
-    maxTokens,
+    maxOutputTokens: maxTokens,
   })
   return result.text
 }
