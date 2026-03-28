@@ -20,7 +20,7 @@ function getOpenAI() {
   return _openai
 }
 
-async function callOllama(model: string, prompt: string): Promise<string> {
+async function callOllama(model: string, prompt: string, maxTokens: number): Promise<string> {
   const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -30,7 +30,7 @@ async function callOllama(model: string, prompt: string): Promise<string> {
       stream: false,
       options: {
         temperature: 0.3,
-        num_predict: 1024,
+        num_predict: maxTokens,
       },
     }),
   })
@@ -50,7 +50,7 @@ async function generate(
 ): Promise<string> {
   if (MODEL_BACKEND === "ollama") {
     const model = `${SCHOOL_CODE}-${task}:${MODEL_SIZE}`
-    return callOllama(model, prompt)
+    return callOllama(model, prompt, maxTokens)
   }
   const result = await generateText({
     model: getOpenAI()("gpt-4o-mini"),

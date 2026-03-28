@@ -30,7 +30,6 @@ from training.seed import (
     format_as_chatml,
     generate_synthetic_course_pairings,
     generate_synthetic_query_results,
-    load_seed_queries,
 )
 
 # Cost tracking
@@ -246,7 +245,6 @@ def main(school: str, local: bool = False) -> None:
     data_dir = get_training_data_dir(school)
     pairs_dir = data_dir / "pairs"
 
-    seed_queries = load_seed_queries(school)
     synthetic_pairings = generate_synthetic_course_pairings(config, count=pairs_per_task)
     synthetic_results = generate_synthetic_query_results(config, count=pairs_per_task)
 

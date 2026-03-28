@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from training.config import get_message_content, get_training_data_dir, load_school_config, read_jsonl
+from training.config import get_message_content, get_training_data_dir, read_jsonl
 
 # ---------------------------------------------------------------------------
 # Required keys per task
@@ -271,7 +271,6 @@ def run_eval(school: str, task: str) -> ShipDecision:
     Inference is performed via Ollama using the fine-tuned model registered
     as ``{school}-{task}`` (e.g. ``bishop-state-explainer``).
     """
-    config = load_school_config(school)
     data_dir = get_training_data_dir(school)
     test_path = data_dir / "final" / task / "test.jsonl"
 

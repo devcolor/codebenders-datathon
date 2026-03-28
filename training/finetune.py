@@ -63,7 +63,7 @@ def build_lora_config(config: dict[str, Any], task: str, data_dir: Path) -> dict
         "train": True,
         "data": str(final_dir),
         "fine_tune_type": train_cfg.get("method", "qlora"),
-        "num_layers": train_cfg.get("lora_rank", 16),
+        "num_layers": train_cfg.get("lora_num_layers", 16),
         "lora_parameters": {
             "rank": train_cfg.get("lora_rank", 16),
             "alpha": train_cfg.get("lora_alpha", 32),

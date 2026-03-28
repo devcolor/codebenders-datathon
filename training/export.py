@@ -16,7 +16,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from training.config import get_training_data_dir, load_school_config
+from training.config import get_training_data_dir
 from training.prompts import EXPLAINER_STUDENT_SYSTEM, SUMMARIZER_STUDENT_SYSTEM
 
 _SYSTEM_PROMPTS = {
@@ -97,7 +97,6 @@ def export_model(school: str, task: str, model: str = "9b") -> int:
     int
         The ``ollama create`` subprocess return code (0 = success).
     """
-    config = load_school_config(school)
     data_dir = get_training_data_dir(school)
 
     adapter_path = data_dir / "adapters" / task
