@@ -61,7 +61,8 @@ describe("detectSchema", () => {
 
   it("detects course submission file", () => {
     const headers = [
-      "Student ID", "Course Prefix", "Course Number", "Grade",
+      "Student ID", "Academic Year", "Academic Term",
+      "Course Prefix", "Course Number", "Grade",
       "Course Name", "Course CIP", "Section ID",
       "Semester/Session GPA", "Overall GPA",
     ]
@@ -94,6 +95,12 @@ describe("detectSchema", () => {
     ]
     const result = detectSchema(headers)
     expect(result.schema?.id).toBe("pdp_cohort_ar")
+  })
+
+  it("does not confidently detect schema from a small header subset", () => {
+    const headers = ["student_guid", "cohort", "grade"]
+    const result = detectSchema(headers)
+    expect(result.confidence).toBeLessThan(0.6)
   })
 })
 

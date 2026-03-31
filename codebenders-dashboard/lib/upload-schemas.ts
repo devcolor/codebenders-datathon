@@ -206,6 +206,12 @@ export const SCHEMAS: UploadSchema[] = [
   },
 ]
 
+// ── Schema Map (safe lookup, avoids non-null assertions) ─────────────────────
+
+const schemaMap: Map<string, UploadSchema> = new Map(
+  SCHEMAS.map((s) => [s.id, s])
+)
+
 // ── Header Normalization ─────────────────────────────────────────────────────
 
 export function normalizeHeader(header: string): string {
@@ -244,15 +250,27 @@ export function detectSchema(headers: string[]): DetectionResult {
   const publicScores = scores.map(({ schemaId, label, score }) => ({ schemaId, label, score }))
 
   if (best.score >= 0.6) {
-    return {
-      schema: SCHEMAS.find((s) => s.id === best.schemaId)!,
-      confidence: best.score,
-      scores: publicScores,
+    // Required-column gate: all required columns must be present to confirm
+    // high confidence. Without this, a 3-column subset could score 1.0 recall
+    // against a 24-column schema and be incorrectly auto-accepted.
+    const bestSchema = schemaMap.get(best.schemaId) ?? null
+    const requiredCols = (bestSchema?.columns ?? []).filter((col) => col.required)
+    const allRequiredPresent =
+      requiredCols.length === 0 ||
+      requiredCols.every((col) => {
+        const candidates = [col.name, ...col.aliases.map(normalizeHeader)]
+        return candidates.some((c) => normalized.includes(c))
+      })
+
+    if (allRequiredPresent) {
+      return { schema: bestSchema, confidence: best.score, scores: publicScores }
     }
+    // Cap to tentative band when required columns are missing
+    return { schema: bestSchema, confidence: Math.min(best.score, 0.59), scores: publicScores }
   }
 
   if (best.score >= 0.3) {
-    return { schema: SCHEMAS.find((s) => s.id === best.schemaId)!, confidence: best.score, scores: publicScores }
+    return { schema: schemaMap.get(best.schemaId) ?? null, confidence: best.score, scores: publicScores }
   }
 
   return { schema: null, confidence: best.score, scores: publicScores }
