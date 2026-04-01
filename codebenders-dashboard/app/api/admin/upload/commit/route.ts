@@ -31,7 +31,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Unknown schema: ${schemaId}` }, { status: 400 })
     }
 
-    const columnMapping: ColumnMapping[] = JSON.parse(mappingJson)
+    let columnMapping: ColumnMapping[]
+    try {
+      columnMapping = JSON.parse(mappingJson)
+    } catch {
+      return NextResponse.json({ error: "Invalid column mapping JSON" }, { status: 400 })
+    }
 
     const fileType = getFileType(file.name)
     if (!fileType) {
@@ -170,7 +175,7 @@ async function upsertRows(
            ON CONFLICT (${conflictClause}) DO NOTHING`
 
       const result = await pool.query(batchSql, batchParams)
-      inserted += result.rowCount ?? batchValues.length
+      inserted += result.rowCount ?? 0
     } catch (err) {
       // If batch fails, fall back to per-row to identify the bad row(s)
       for (let j = 0; j < batch.length; j++) {

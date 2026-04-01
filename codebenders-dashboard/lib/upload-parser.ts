@@ -76,7 +76,14 @@ function parseXlsx(buffer: Buffer, maxRows?: number): Promise<ParseResult> {
       }
 
       const headers = Object.keys(jsonData[0]).map((h) => h.trim())
-      const rows = maxRows ? jsonData.slice(0, maxRows) : jsonData
+      const trimmedRows = jsonData.map((row) => {
+        const trimmed: Record<string, string> = {}
+        for (const [key, value] of Object.entries(row)) {
+          trimmed[key.trim()] = String(value)
+        }
+        return trimmed
+      })
+      const rows = maxRows ? trimmedRows.slice(0, maxRows) : trimmedRows
 
       resolve({ headers, rows, totalRows: jsonData.length })
     } catch (err) {

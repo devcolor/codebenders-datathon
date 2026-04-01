@@ -45,6 +45,7 @@ export default function UploadHistoryPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({})
   const pageSize = 20
 
   const fetchHistory = useCallback(async (p: number) => {
@@ -53,11 +54,14 @@ export default function UploadHistoryPage() {
       const res = await fetch(
         `/api/admin/upload/history?page=${p}&pageSize=${pageSize}`
       )
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setEntries(data.data ?? [])
       setTotal(data.total ?? 0)
+      setStatusCounts(data.statusCounts ?? {})
     } catch {
       setEntries([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
@@ -68,14 +72,6 @@ export default function UploadHistoryPage() {
   }, [page, fetchHistory])
 
   const pageCount = Math.ceil(total / pageSize)
-
-  const statusCounts = entries.reduce(
-    (acc, e) => {
-      acc[e.status] = (acc[e.status] ?? 0) + 1
-      return acc
-    },
-    {} as Record<string, number>
-  )
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl">

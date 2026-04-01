@@ -4,13 +4,13 @@ import { getPool } from "@/lib/db"
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"))
-    const pageSize = Math.min(50, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20")))
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1") || 1)
+    const pageSize = Math.min(50, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20") || 20))
     const offset = (page - 1) * pageSize
 
     const pool = getPool()
 
-    const [dataResult, countResult] = await Promise.all([
+    const [dataResult, countResult, statusResult] = await Promise.all([
       pool.query(
         `SELECT id, user_email, filename, file_type, rows_inserted, rows_skipped,
                 error_count, status, uploaded_at
@@ -20,9 +20,16 @@ export async function GET(request: NextRequest) {
         [pageSize, offset]
       ),
       pool.query(`SELECT COUNT(*)::int AS total FROM upload_history`),
+      pool.query(
+        `SELECT status, COUNT(*)::int AS count FROM upload_history GROUP BY status`
+      ),
     ])
 
     const total = countResult.rows[0].total
+    const statusCounts: Record<string, number> = {}
+    for (const row of statusResult.rows) {
+      statusCounts[row.status] = row.count
+    }
 
     return NextResponse.json({
       data: dataResult.rows.map((row) => ({
@@ -39,6 +46,7 @@ export async function GET(request: NextRequest) {
       total,
       page,
       pageSize,
+      statusCounts,
     })
   } catch (err) {
     console.error("Upload history error:", err)
