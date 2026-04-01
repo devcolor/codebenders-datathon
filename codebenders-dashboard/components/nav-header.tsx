@@ -12,11 +12,12 @@ interface NavHeaderProps {
   role: Role
 }
 
-const NAV_LINKS = [
+const NAV_LINKS: Array<{ href: string; label: string; roles?: Role[] }> = [
   { href: "/",          label: "Dashboard" },
   { href: "/courses",   label: "Courses"   },
   { href: "/students",  label: "Students"  },
   { href: "/query",     label: "Query"     },
+  { href: "/admin/upload", label: "Admin", roles: ["admin", "ir"] },
 ]
 
 export function NavHeader({ email, role }: NavHeaderProps) {
@@ -34,7 +35,7 @@ export function NavHeader({ email, role }: NavHeaderProps) {
 
         {/* Nav links */}
         <nav className="hidden sm:flex items-center gap-1">
-          {NAV_LINKS.map(({ href, label }) => {
+          {NAV_LINKS.filter((link) => !link.roles || link.roles.includes(role)).map(({ href, label }) => {
             const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/")
             return (
               <Link
