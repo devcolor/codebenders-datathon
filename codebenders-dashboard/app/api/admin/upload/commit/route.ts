@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { parseFileBuffer, getFileType, validateFileSize } from "@/lib/upload-parser"
-import { SCHEMAS, normalizeHeader, type UploadSchema, type ColumnMapping } from "@/lib/upload-schemas"
+import { SCHEMAS, type UploadSchema, type ColumnMapping } from "@/lib/upload-schemas"
 import { getPool } from "@/lib/db"
 
 const BATCH_SIZE = 500
