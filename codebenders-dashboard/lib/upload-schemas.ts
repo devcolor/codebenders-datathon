@@ -29,6 +29,9 @@ export interface ColumnMapping {
   status: "matched" | "unmapped"
 }
 
+export const CONFIDENT_THRESHOLD = 0.6
+export const TENTATIVE_THRESHOLD = 0.3
+
 // ── Value Transforms ─────────────────────────────────────────────────────────
 
 const ENROLLMENT_TYPE_MAP: Record<string, string> = {
@@ -249,7 +252,7 @@ export function detectSchema(headers: string[]): DetectionResult {
   // Strip internal columnCount before returning
   const publicScores = scores.map(({ schemaId, label, score }) => ({ schemaId, label, score }))
 
-  if (best.score >= 0.6) {
+  if (best.score >= CONFIDENT_THRESHOLD) {
     // Required-column gate: all required columns must be present to confirm
     // high confidence. Without this, a 3-column subset could score 1.0 recall
     // against a 24-column schema and be incorrectly auto-accepted.
@@ -266,10 +269,10 @@ export function detectSchema(headers: string[]): DetectionResult {
       return { schema: bestSchema, confidence: best.score, scores: publicScores }
     }
     // Cap to tentative band when required columns are missing
-    return { schema: bestSchema, confidence: Math.min(best.score, 0.59), scores: publicScores }
+    return { schema: bestSchema, confidence: Math.min(best.score, CONFIDENT_THRESHOLD - 0.01), scores: publicScores }
   }
 
-  if (best.score >= 0.3) {
+  if (best.score >= TENTATIVE_THRESHOLD) {
     return { schema: schemaMap.get(best.schemaId) ?? null, confidence: best.score, scores: publicScores }
   }
 

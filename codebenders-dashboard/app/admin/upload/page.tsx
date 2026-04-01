@@ -8,7 +8,7 @@ import { DataPreview } from "@/components/upload/data-preview"
 import { UploadSummary } from "@/components/upload/upload-summary"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react"
-import type { ColumnMapping } from "@/lib/upload-schemas"
+import { SCHEMAS, CONFIDENT_THRESHOLD, type ColumnMapping } from "@/lib/upload-schemas"
 
 type Step = "upload" | "preview" | "complete"
 
@@ -47,7 +47,7 @@ export default function UploadPage() {
   const [preview, setPreview] = useState<PreviewData | null>(null)
   const [columns, setColumns] = useState<ColumnMapping[]>([])
   const [selectedSchema, setSelectedSchema] = useState<string | null>(null)
-  const [selectedSchemaLabel, setSelectedSchemaLabel] = useState<string | null>(null)
+  const [showSchemaOverride, setShowSchemaOverride] = useState(false)
   const [commitResult, setCommitResult] = useState<CommitResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -85,7 +85,6 @@ export default function UploadPage() {
       setPreview(data)
       setColumns(data.columns)
       setSelectedSchema(data.detectedSchema)
-      setSelectedSchemaLabel(data.detectedSchemaLabel)
       setStep("preview")
     } catch (err) {
       setError((err as Error).message)
@@ -95,9 +94,8 @@ export default function UploadPage() {
   }, [])
 
   const handleSchemaOverride = useCallback(
-    (schemaId: string, label: string) => {
+    (schemaId: string) => {
       setSelectedSchema(schemaId)
-      setSelectedSchemaLabel(label)
     },
     []
   )
@@ -141,7 +139,7 @@ export default function UploadPage() {
     setPreview(null)
     setColumns([])
     setSelectedSchema(null)
-    setSelectedSchemaLabel(null)
+    setShowSchemaOverride(false)
     setCommitResult(null)
     setError(null)
   }, [])
@@ -150,6 +148,10 @@ export default function UploadPage() {
   const hasRequiredErrors = (preview?.errors?.length ?? 0) > 0
   const stepLabels = ["Upload", "Preview & Map", "Complete"]
   const stepIndex = step === "upload" ? 0 : step === "preview" ? 1 : 2
+  const selectedSchemaObj = SCHEMAS.find((s) => s.id === selectedSchema) ?? null
+  const selectedSchemaLabel = selectedSchemaObj?.label ?? null
+  const matchedCount = columns.filter((c) => c.status === "matched").length
+  const unmappedCount = columns.filter((c) => c.status === "unmapped").length
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -230,24 +232,46 @@ export default function UploadPage() {
       {/* Step 2: Preview & Map */}
       {step === "preview" && preview && (
         <div className="space-y-5">
-          {preview.confidence >= 0.6 ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="font-semibold">{selectedSchemaLabel}</span>
-                <span className="text-muted-foreground">
-                  — {file?.name} — {preview.totalRows} rows,{" "}
-                  {columns.filter((c) => c.status === "matched").length}/
-                  {columns.length} columns matched
-                </span>
+          {preview.confidence >= CONFIDENT_THRESHOLD ? (
+            <>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="font-semibold">{selectedSchemaLabel}</span>
+                  <span className="text-muted-foreground">
+                    — {file?.name} — {preview.totalRows} rows,{" "}
+                    {matchedCount}/
+                    {columns.length} columns matched
+                  </span>
+                </div>
+                <button
+                  className="text-xs text-muted-foreground border px-2 py-0.5 rounded hover:bg-muted"
+                  onClick={() => setShowSchemaOverride(true)}
+                >
+                  Wrong? Change type
+                </button>
               </div>
-              <button
-                className="text-xs text-muted-foreground border px-2 py-0.5 rounded hover:bg-muted"
-                onClick={() => {}}
-              >
-                Wrong? Change type
-              </button>
-            </div>
+              {showSchemaOverride && (
+                <div className="flex gap-2 flex-wrap mt-2">
+                  {preview.scores.filter((s) => s.score > 0.1).map((s) => (
+                    <button
+                      key={s.schemaId}
+                      className={`text-xs px-3 py-1.5 rounded border ${
+                        selectedSchema === s.schemaId
+                          ? "border-purple-600 bg-purple-50 font-semibold"
+                          : "border-muted hover:bg-muted/50"
+                      }`}
+                      onClick={() => {
+                        setSelectedSchema(s.schemaId)
+                        setShowSchemaOverride(false)
+                      }}
+                    >
+                      {s.label} <span className="text-muted-foreground">({Math.round(s.score * 100)}%)</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           ) : (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-center gap-2 text-sm mb-3">
@@ -271,7 +295,7 @@ export default function UploadPage() {
                           ? "border-purple-600 bg-purple-50 font-semibold"
                           : "border-muted hover:bg-muted/50"
                       }`}
-                      onClick={() => handleSchemaOverride(s.schemaId, s.label)}
+                      onClick={() => handleSchemaOverride(s.schemaId)}
                     >
                       {s.label}{" "}
                       <span className="text-muted-foreground">
@@ -287,7 +311,7 @@ export default function UploadPage() {
             <h3 className="text-sm font-semibold mb-2">Column Mapping</h3>
             <ColumnMapper
               columns={columns}
-              schema={null}
+              schema={selectedSchemaObj}
               onMappingChange={setColumns}
             />
           </div>
@@ -300,12 +324,12 @@ export default function UploadPage() {
                 📊 <strong>{preview.totalRows}</strong> rows
               </span>
               <span className="text-green-700">
-                ✓ {columns.filter((c) => c.status === "matched").length} matched
+                ✓ {matchedCount} matched
               </span>
-              {columns.filter((c) => c.status === "unmapped").length > 0 && (
+              {unmappedCount > 0 && (
                 <span className="text-amber-700">
                   ⚠{" "}
-                  {columns.filter((c) => c.status === "unmapped").length}{" "}
+                  {unmappedCount}{" "}
                   unmapped
                 </span>
               )}

@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
 
     const result = await upsertRows(rows, columnMapping, schema)
 
-    // Log to upload_history
     const pool = getPool()
     const status =
       result.errors.length > 0 && result.inserted === 0
@@ -114,15 +113,70 @@ async function upsertRows(
   }
   if (errors.length > 0) return { inserted: 0, skipped: 0, errors }
 
-  // Process in batches
+  // Build SQL template once — columns are determined by the mapping, not per-row
+  const cols = Array.from(headerToDb.values())
+  const conflictClause = schema.upsertKey.join(", ")
+  const updateSet = cols
+    .filter((c) => !schema.upsertKey.includes(c))
+    .map((c) => `${c} = EXCLUDED.${c}`)
+    .join(", ")
+
+  // Cache required column names
+  const requiredDbCols = schema.columns
+    .filter((c) => c.required)
+    .map((c) => c.name)
+
+  // Process in batches — one INSERT per batch (N+1 → N/BATCH_SIZE queries)
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
     const batch = rows.slice(i, i + BATCH_SIZE)
+    const batchValues: string[] = []
+    const batchParams: string[] = []
+    let paramIdx = 1
 
     for (let j = 0; j < batch.length; j++) {
       const row = batch[j]
-      const rowIndex = i + j + 1 // 1-based for user display
+      const rowIndex = i + j + 1
 
-      try {
+      const dbRow: Record<string, string> = {}
+      for (const [header, dbCol] of headerToDb) {
+        let value = row[header] ?? ""
+        const transform = transforms.get(dbCol)
+        if (transform) value = transform(value)
+        dbRow[dbCol] = value
+      }
+
+      // Check required fields have values
+      const missing = requiredDbCols.find((c) => !dbRow[c] || dbRow[c].trim() === "")
+      if (missing) {
+        skipped++
+        errors.push({ row: rowIndex, column: missing, message: `Empty required field: ${missing}` })
+        continue
+      }
+
+      const rowPlaceholders = cols.map(() => `$${paramIdx++}`)
+      batchValues.push(`(${rowPlaceholders.join(", ")})`)
+      batchParams.push(...cols.map((c) => dbRow[c]))
+    }
+
+    if (batchValues.length === 0) continue
+
+    try {
+      const batchSql = updateSet
+        ? `INSERT INTO ${schema.targetTable} (${cols.join(", ")})
+           VALUES ${batchValues.join(", ")}
+           ON CONFLICT (${conflictClause}) DO UPDATE SET ${updateSet}`
+        : `INSERT INTO ${schema.targetTable} (${cols.join(", ")})
+           VALUES ${batchValues.join(", ")}
+           ON CONFLICT (${conflictClause}) DO NOTHING`
+
+      const result = await pool.query(batchSql, batchParams)
+      inserted += result.rowCount ?? batchValues.length
+    } catch (err) {
+      // If batch fails, fall back to per-row to identify the bad row(s)
+      for (let j = 0; j < batch.length; j++) {
+        const row = batch[j]
+        const rowIndex = i + j + 1
+
         const dbRow: Record<string, string> = {}
         for (const [header, dbCol] of headerToDb) {
           let value = row[header] ?? ""
@@ -131,44 +185,25 @@ async function upsertRows(
           dbRow[dbCol] = value
         }
 
-        // Check required fields have values
-        const missingRequired = schema.columns
-          .filter((c) => c.required && (!dbRow[c.name] || dbRow[c.name].trim() === ""))
-        if (missingRequired.length > 0) {
+        const missing = requiredDbCols.find((c) => !dbRow[c] || dbRow[c].trim() === "")
+        if (missing) continue // already counted above
+
+        try {
+          const singlePlaceholders = cols.map((_, idx) => `$${idx + 1}`)
+          const singleSql = updateSet
+            ? `INSERT INTO ${schema.targetTable} (${cols.join(", ")})
+               VALUES (${singlePlaceholders.join(", ")})
+               ON CONFLICT (${conflictClause}) DO UPDATE SET ${updateSet}`
+            : `INSERT INTO ${schema.targetTable} (${cols.join(", ")})
+               VALUES (${singlePlaceholders.join(", ")})
+               ON CONFLICT (${conflictClause}) DO NOTHING`
+
+          await pool.query(singleSql, cols.map((c) => dbRow[c]))
+          inserted++
+        } catch (rowErr) {
           skipped++
-          errors.push({
-            row: rowIndex,
-            column: missingRequired[0].name,
-            message: `Empty required field: ${missingRequired[0].name}`,
-          })
-          continue
+          errors.push({ row: rowIndex, message: (rowErr as Error).message })
         }
-
-        const cols = Object.keys(dbRow)
-        const vals = Object.values(dbRow)
-        const placeholders = cols.map((_, idx) => `$${idx + 1}`)
-        const updateSet = cols
-          .filter((c) => !schema.upsertKey.includes(c))
-          .map((c) => `${c} = EXCLUDED.${c}`)
-          .join(", ")
-
-        const conflictClause = schema.upsertKey.join(", ")
-        const sql = updateSet
-          ? `INSERT INTO ${schema.targetTable} (${cols.join(", ")})
-             VALUES (${placeholders.join(", ")})
-             ON CONFLICT (${conflictClause}) DO UPDATE SET ${updateSet}`
-          : `INSERT INTO ${schema.targetTable} (${cols.join(", ")})
-             VALUES (${placeholders.join(", ")})
-             ON CONFLICT (${conflictClause}) DO NOTHING`
-
-        await pool.query(sql, vals)
-        inserted++
-      } catch (err) {
-        skipped++
-        errors.push({
-          row: rowIndex,
-          message: (err as Error).message,
-        })
       }
     }
   }
