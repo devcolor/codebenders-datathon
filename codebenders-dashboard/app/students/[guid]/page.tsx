@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, ShieldCheck } from "lucide-react"
+import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -88,6 +88,8 @@ export default function StudentDetailPage() {
   const [student, setStudent] = useState<StudentDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
+  const [sisLink, setSisLink] = useState<string | null>(null)
+  const [sisStatus, setSisStatus] = useState<"loading" | "available" | "unavailable" | "hidden">("loading")
 
   useEffect(() => {
     if (!guid) return
@@ -100,6 +102,39 @@ export default function StudentDetailPage() {
       })
       .then(d => { setStudent(d); setLoading(false) })
       .catch(e => { setError(e.message); setLoading(false) })
+  }, [guid])
+
+  useEffect(() => {
+    if (!guid) return
+    const controller = new AbortController()
+    fetch(`/api/students/${encodeURIComponent(guid)}/sis-link`, { signal: controller.signal })
+      .then(r => {
+        if (r.status === 403) {
+          setSisStatus("hidden")
+          return null
+        }
+        if (r.status === 404) {
+          setSisStatus("unavailable")
+          return null
+        }
+        if (!r.ok) {
+          setSisStatus("hidden")
+          return null
+        }
+        return r.json()
+      })
+      .then(data => {
+        if (data?.url) {
+          setSisLink(data.url)
+          setSisStatus("available")
+        } else if (data !== null) {
+          setSisStatus("unavailable")
+        }
+      })
+      .catch(err => {
+        if (err.name !== "AbortError") setSisStatus("hidden")
+      })
+    return () => controller.abort()
   }, [guid])
 
   // ─── Loading skeleton ────────────────────────────────────────────────────
@@ -179,6 +214,22 @@ export default function StudentDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {sisStatus === "loading" && (
+                <div className="h-7 w-24 rounded bg-muted animate-pulse" />
+              )}
+              {(sisStatus === "available" || sisStatus === "unavailable") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={sisStatus === "unavailable"}
+                  title={sisStatus === "unavailable" ? "No SIS record linked for this student" : undefined}
+                  onClick={sisLink ? () => window.open(sisLink, "_blank", "noopener,noreferrer") : undefined}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open in SIS
+                </Button>
+              )}
               {student.at_risk_alert && (
                 <Badge
                   label={student.at_risk_alert}
