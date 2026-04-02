@@ -217,24 +217,14 @@ export default function StudentDetailPage() {
               {sisStatus === "loading" && (
                 <div className="h-7 w-24 rounded bg-muted animate-pulse" />
               )}
-              {sisStatus === "available" && sisLink && (
+              {(sisStatus === "available" || sisStatus === "unavailable") && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
-                  onClick={() => window.open(sisLink, "_blank", "noopener,noreferrer")}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Open in SIS
-                </Button>
-              )}
-              {sisStatus === "unavailable" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  disabled
-                  title="No SIS record linked for this student"
+                  disabled={sisStatus === "unavailable"}
+                  title={sisStatus === "unavailable" ? "No SIS record linked for this student" : undefined}
+                  onClick={sisLink ? () => window.open(sisLink, "_blank", "noopener,noreferrer") : undefined}
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   Open in SIS

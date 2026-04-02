@@ -14,7 +14,6 @@ def seed_guid_sis_map():
     cursor = connection.cursor()
 
     try:
-        # Create table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS guid_sis_map (
                 student_guid TEXT PRIMARY KEY,
@@ -23,7 +22,6 @@ def seed_guid_sis_map():
         """)
         print("✓ guid_sis_map table created/verified")
 
-        # Pick ~20 random GUIDs from student_level_with_predictions
         cursor.execute("""
             SELECT "Student_GUID"
             FROM student_level_with_predictions
@@ -36,23 +34,16 @@ def seed_guid_sis_map():
             print("✗ No students found in student_level_with_predictions")
             return False
 
-        # Clear existing demo data and insert fresh mappings
         cursor.execute("DELETE FROM guid_sis_map")
 
-        for i, guid in enumerate(guids, start=100001):
-            sis_id = f"BSC-{i}"
-            cursor.execute(
-                "INSERT INTO guid_sis_map (student_guid, sis_id) VALUES (%s, %s)",
-                (guid, sis_id)
-            )
+        rows = [(guid, f"BSC-{i}") for i, guid in enumerate(guids, start=100001)]
+        cursor.executemany(
+            "INSERT INTO guid_sis_map (student_guid, sis_id) VALUES (%s, %s)",
+            rows
+        )
 
         connection.commit()
-        print(f"✓ Seeded {len(guids)} GUID → SIS ID mappings (BSC-100001 .. BSC-{100000 + len(guids)})")
-
-        # Verify
-        cursor.execute("SELECT COUNT(*) AS count FROM guid_sis_map")
-        count = cursor.fetchone()['count']
-        print(f"✓ Verified: {count} records in guid_sis_map")
+        print(f"✓ Seeded {len(rows)} GUID → SIS ID mappings ({rows[0][1]} .. {rows[-1][1]})")
 
         return True
 
