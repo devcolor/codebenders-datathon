@@ -1047,6 +1047,119 @@ df['academic_risk_level'] = pd.cut(
 print(f"Low GPA predictions generated")
 
 # ============================================================================
+# STEP 10b: PER-STUDENT SHAP EXPLANATIONS
+# ============================================================================
+print("\n" + "=" * 80)
+print("STEP 10b: COMPUTING PER-STUDENT SHAP EXPLANATIONS")
+print("=" * 80)
+
+import shap
+import json as _json
+
+def compute_shap_explanations(model, X_data, feature_names, model_label, top_n=5):
+    """
+    Compute per-student SHAP values using TreeExplainer.
+
+    For binary classifiers, uses class-1 (positive outcome) SHAP values.
+    Returns top N positive/negative contributors per student plus the full
+    SHAP vector for downstream use by the fine-tuned explainer.
+    """
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_data)
+
+    # Binary classifiers: shap_values may be a list [class_0, class_1] (RandomForest),
+    # a 3D array (samples, features, classes), or a 2D array (XGBoost default).
+    if isinstance(shap_values, list):
+        sv = shap_values[1]
+    elif shap_values.ndim == 3:
+        sv = shap_values[:, :, 1]
+    else:
+        sv = shap_values
+
+    # Base value — expected model output before any feature contributions
+    base = explainer.expected_value
+    if isinstance(base, (list, np.ndarray)):
+        base_value = float(base[1]) if len(base) > 1 else float(base[0])
+    else:
+        base_value = float(base)
+
+    explanations = []
+    for i in range(len(X_data)):
+        row_shap = sv[i]
+        row_values = X_data.iloc[i] if hasattr(X_data, 'iloc') else X_data[i]
+
+        # Build (feature_name, shap_value, feature_value) tuples
+        feature_contribs = []
+        for j, fname in enumerate(feature_names):
+            fval = row_values.iloc[j] if hasattr(row_values, 'iloc') else row_values[j]
+            feature_contribs.append({
+                "feature": fname,
+                "shap_value": round(float(row_shap[j]), 4),
+                "value": float(fval) if isinstance(fval, (int, float, np.integer, np.floating)) else str(fval),
+            })
+
+        sorted_pos = sorted(
+            [f for f in feature_contribs if f["shap_value"] > 0],
+            key=lambda x: x["shap_value"], reverse=True
+        )[:top_n]
+
+        sorted_neg = sorted(
+            [f for f in feature_contribs if f["shap_value"] < 0],
+            key=lambda x: x["shap_value"]
+        )[:top_n]
+
+        explanations.append({
+            "base_value": round(base_value, 4),
+            "top_positive": sorted_pos,
+            "top_negative": sorted_neg,
+            "all_contributions": feature_contribs,
+        })
+
+    return explanations
+
+
+# Models to explain with SHAP (all 4 XGBoost/RF classifiers)
+shap_targets = {
+    "retention": (retention_model, X_full_retention, retention_features),
+    "gateway_math": (gateway_math_model, X_full_gateway_math, gateway_math_features),
+    "gateway_english": (gateway_english_model, X_full_gateway_english, gateway_english_features),
+    "low_gpa": (low_gpa_model, X_gpa_clean, gpa_features),
+}
+
+shap_results = {}
+for label, (model, X_data, features) in shap_targets.items():
+    print(f"\nComputing SHAP explanations for {label} model...")
+    explanations = compute_shap_explanations(model, X_data, features, label)
+    shap_results[label] = explanations
+    print(f"  ✓ {len(explanations)} student explanations generated")
+    if explanations:
+        ex = explanations[0]
+        print(f"  Sample (student 0): base_value={ex['base_value']}")
+        for f in ex['top_positive'][:3]:
+            print(f"    ↑ {f['feature']}: +{f['shap_value']}")
+        for f in ex['top_negative'][:3]:
+            print(f"    ↓ {f['feature']}: {f['shap_value']}")
+
+# Attach SHAP explanations as JSON column on the main dataframe
+# Stores only top contributors per model to keep DB size manageable
+print("\nAttaching SHAP explanations to student dataframe...")
+shap_json_col = []
+for i in range(len(df)):
+    student_shap = {}
+    for label, explanations in shap_results.items():
+        if i < len(explanations):
+            ex = explanations[i]
+            student_shap[label] = {
+                "base_value": ex["base_value"],
+                "top_positive": ex["top_positive"],
+                "top_negative": ex["top_negative"],
+            }
+    shap_json_col.append(_json.dumps(student_shap))
+
+df['shap_explanations'] = shap_json_col
+print(f"✓ SHAP explanations attached as JSON column ({len(shap_json_col):,} students)")
+
+# ============================================================================
 # STEP 11: SAVE PREDICTIONS TO STUDENT-LEVEL FILE
 # ============================================================================
 print("\n" + "=" * 80)
@@ -1063,7 +1176,8 @@ prediction_columns = [
     'prob_no_credential', 'prob_certificate', 'prob_associate', 'prob_bachelor',
     'gateway_math_probability', 'gateway_math_prediction', 'gateway_math_risk',
     'gateway_english_probability', 'gateway_english_prediction', 'gateway_english_risk',
-    'low_gpa_probability', 'low_gpa_prediction', 'academic_risk_level'
+    'low_gpa_probability', 'low_gpa_prediction', 'academic_risk_level',
+    'shap_explanations'
 ]
 
 predictions_df = df[prediction_columns].copy()

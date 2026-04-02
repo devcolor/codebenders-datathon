@@ -29,6 +29,7 @@ export async function GET(
       ROUND((s.low_gpa_probability * 100)::numeric, 1)          AS gpa_risk_pct,
       ROUND(s.predicted_time_to_credential::numeric, 1)         AS time_to_credential,
       s.predicted_credential_label                              AS credential_type,
+      s.shap_explanations,
       ROUND((r.readiness_score * 100)::numeric, 1)             AS readiness_pct,
       r.readiness_level,
       r.rationale,
@@ -51,10 +52,21 @@ export async function GET(
     }
 
     const row = result.rows[0]
+    // Parse JSON string columns into objects for the frontend
+    let shap = null
+    if (row.shap_explanations) {
+      try {
+        shap = typeof row.shap_explanations === "string"
+          ? JSON.parse(row.shap_explanations)
+          : row.shap_explanations
+      } catch { shap = null }
+    }
+
     return NextResponse.json({
       ...row,
       risk_factors:      row.risk_factors      ? JSON.parse(row.risk_factors)      : [],
       suggested_actions: row.suggested_actions ? JSON.parse(row.suggested_actions) : [],
+      shap_explanations: shap,
     })
   } catch (error) {
     console.error("Student detail fetch error:", error)
