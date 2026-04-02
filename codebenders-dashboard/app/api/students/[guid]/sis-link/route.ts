@@ -52,7 +52,9 @@ export async function GET(
 
     // SIS ID is embedded in the URL but never returned as a standalone field
     const sisId = result.rows[0].sis_id
-    url = `${sisBaseUrl}?${encodeURIComponent(SIS_ID_PARAM)}=${encodeURIComponent(sisId)}`
+    const urlObj = new URL(sisBaseUrl)
+    urlObj.searchParams.set(SIS_ID_PARAM, sisId)
+    url = urlObj.toString()
   } catch (error) {
     console.error("SIS link lookup error:", error)
     return NextResponse.json(
