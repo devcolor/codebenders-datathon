@@ -106,7 +106,8 @@ export default function StudentDetailPage() {
 
   useEffect(() => {
     if (!guid) return
-    fetch(`/api/students/${encodeURIComponent(guid)}/sis-link`)
+    const controller = new AbortController()
+    fetch(`/api/students/${encodeURIComponent(guid)}/sis-link`, { signal: controller.signal })
       .then(r => {
         if (r.status === 403) {
           setSisStatus("hidden")
@@ -130,7 +131,10 @@ export default function StudentDetailPage() {
           setSisStatus("unavailable")
         }
       })
-      .catch(() => setSisStatus("hidden"))
+      .catch(err => {
+        if (err.name !== "AbortError") setSisStatus("hidden")
+      })
+    return () => controller.abort()
   }, [guid])
 
   // ─── Loading skeleton ────────────────────────────────────────────────────
