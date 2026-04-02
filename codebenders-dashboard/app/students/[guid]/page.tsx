@@ -126,6 +126,8 @@ export default function StudentDetailPage() {
         if (data?.url) {
           setSisLink(data.url)
           setSisStatus("available")
+        } else if (data !== null) {
+          setSisStatus("unavailable")
         }
       })
       .catch(() => setSisStatus("hidden"))
@@ -208,6 +210,9 @@ export default function StudentDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {sisStatus === "loading" && (
+                <div className="h-7 w-24 rounded bg-muted animate-pulse" />
+              )}
               {sisStatus === "available" && sisLink && (
                 <Button
                   variant="outline"
@@ -223,7 +228,7 @@ export default function StudentDetailPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1.5 opacity-50 cursor-not-allowed"
+                  className="gap-1.5"
                   disabled
                   title="No SIS record linked for this student"
                 >
