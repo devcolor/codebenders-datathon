@@ -2,9 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { mkdir, appendFile } from "fs/promises"
 import path from "path"
 import { getPool } from "@/lib/db"
-import type { Role } from "@/lib/roles"
-
-const ALLOWED_ROLES: Role[] = ["admin", "advisor", "ir"]
+import { canAccess, type Role } from "@/lib/roles"
 
 const LOGS_DIR = path.join(process.cwd(), "logs")
 const LOG_FILE = path.join(LOGS_DIR, "query-history.jsonl")
@@ -21,7 +19,7 @@ export async function GET(
 
   // Role check
   const role = request.headers.get("x-user-role") as Role | null
-  if (!role || !ALLOWED_ROLES.includes(role)) {
+  if (!role || !canAccess("/api/students", role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -29,6 +27,8 @@ export async function GET(
   if (!guid) {
     return NextResponse.json({ error: "Missing student GUID" }, { status: 400 })
   }
+
+  let url: string
 
   try {
     // Look up SIS ID from mapping table
@@ -45,19 +45,7 @@ export async function GET(
     // Build URL server-side — SIS ID never reaches the client
     const sisIdParam = process.env.SIS_ID_PARAM || "id"
     const sisId = result.rows[0].sis_id
-    const url = `${sisBaseUrl}?${encodeURIComponent(sisIdParam)}=${encodeURIComponent(sisId)}`
-
-    // Audit log — GUID and role only, never the SIS ID
-    const logEntry = {
-      event: "sis_link_accessed",
-      guid,
-      role,
-      timestamp: new Date().toISOString(),
-    }
-    await mkdir(LOGS_DIR, { recursive: true })
-    await appendFile(LOG_FILE, JSON.stringify(logEntry) + "\n", "utf8")
-
-    return NextResponse.json({ url })
+    url = `${sisBaseUrl}?${encodeURIComponent(sisIdParam)}=${encodeURIComponent(sisId)}`
   } catch (error) {
     console.error("SIS link lookup error:", error)
     return NextResponse.json(
@@ -65,4 +53,20 @@ export async function GET(
       { status: 500 }
     )
   }
+
+  // Audit log — GUID and role only, never the SIS ID
+  const logEntry = {
+    event: "sis_link_accessed",
+    guid,
+    role,
+    timestamp: new Date().toISOString(),
+  }
+  try {
+    await mkdir(LOGS_DIR, { recursive: true })
+    await appendFile(LOG_FILE, JSON.stringify(logEntry) + "\n", "utf8")
+  } catch (auditErr) {
+    console.error("SIS audit log write failed:", auditErr)
+  }
+
+  return NextResponse.json({ url })
 }
