@@ -22,6 +22,8 @@ from sklearn.metrics import (
 )
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import xgboost as xgb
+import shap
+import json
 from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
@@ -1053,22 +1055,19 @@ print("\n" + "=" * 80)
 print("STEP 10b: COMPUTING PER-STUDENT SHAP EXPLANATIONS")
 print("=" * 80)
 
-import shap
-import json as _json
 
-def compute_shap_explanations(model, X_data, feature_names, model_label, top_n=5):
+def compute_shap_explanations(model, X_data, feature_names, top_n=5):
     """
     Compute per-student SHAP values using TreeExplainer.
 
     For binary classifiers, uses class-1 (positive outcome) SHAP values.
-    Returns top N positive/negative contributors per student plus the full
-    SHAP vector for downstream use by the fine-tuned explainer.
+    Returns top N positive/negative contributors per student.
     """
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_data)
 
-    # Binary classifiers: shap_values may be a list [class_0, class_1] (RandomForest),
-    # a 3D array (samples, features, classes), or a 2D array (XGBoost default).
+    # Binary classifiers: RandomForest returns list [class_0, class_1],
+    # some models return 3D (samples, features, classes), XGBoost returns 2D.
     if isinstance(shap_values, list):
         sv = shap_values[1]
     elif shap_values.ndim == 3:
@@ -1076,43 +1075,38 @@ def compute_shap_explanations(model, X_data, feature_names, model_label, top_n=5
     else:
         sv = shap_values
 
-    # Base value — expected model output before any feature contributions
     base = explainer.expected_value
     if isinstance(base, (list, np.ndarray)):
         base_value = float(base[1]) if len(base) > 1 else float(base[0])
     else:
         base_value = float(base)
 
+    base_rounded = round(base_value, 4)
+
+    def _make_entry(row_shap, row_values, j):
+        fval = row_values.iloc[j]
+        return {
+            "feature": feature_names[j],
+            "shap_value": round(float(row_shap[j]), 4),
+            "value": float(fval) if isinstance(fval, (int, float, np.integer, np.floating)) else str(fval),
+        }
+
     explanations = []
     for i in range(len(X_data)):
         row_shap = sv[i]
-        row_values = X_data.iloc[i] if hasattr(X_data, 'iloc') else X_data[i]
+        row_values = X_data.iloc[i]
 
-        # Build (feature_name, shap_value, feature_value) tuples
-        feature_contribs = []
-        for j, fname in enumerate(feature_names):
-            fval = row_values.iloc[j] if hasattr(row_values, 'iloc') else row_values[j]
-            feature_contribs.append({
-                "feature": fname,
-                "shap_value": round(float(row_shap[j]), 4),
-                "value": float(fval) if isinstance(fval, (int, float, np.integer, np.floating)) else str(fval),
-            })
+        # Use argsort to find top contributors without building a full list
+        pos_indices = np.argsort(-row_shap)[:top_n]
+        pos_indices = pos_indices[row_shap[pos_indices] > 0]
 
-        sorted_pos = sorted(
-            [f for f in feature_contribs if f["shap_value"] > 0],
-            key=lambda x: x["shap_value"], reverse=True
-        )[:top_n]
-
-        sorted_neg = sorted(
-            [f for f in feature_contribs if f["shap_value"] < 0],
-            key=lambda x: x["shap_value"]
-        )[:top_n]
+        neg_indices = np.argsort(row_shap)[:top_n]
+        neg_indices = neg_indices[row_shap[neg_indices] < 0]
 
         explanations.append({
-            "base_value": round(base_value, 4),
-            "top_positive": sorted_pos,
-            "top_negative": sorted_neg,
-            "all_contributions": feature_contribs,
+            "base_value": base_rounded,
+            "top_positive": [_make_entry(row_shap, row_values, j) for j in pos_indices],
+            "top_negative": [_make_entry(row_shap, row_values, j) for j in neg_indices],
         })
 
     return explanations
@@ -1126,11 +1120,14 @@ shap_targets = {
     "low_gpa": (low_gpa_model, X_gpa_clean, gpa_features),
 }
 
-shap_results = {}
+# Build per-student dicts in a single pass, discarding each model's list promptly
+student_shap_dicts = [{} for _ in range(len(df))]
+
 for label, (model, X_data, features) in shap_targets.items():
     print(f"\nComputing SHAP explanations for {label} model...")
-    explanations = compute_shap_explanations(model, X_data, features, label)
-    shap_results[label] = explanations
+    explanations = compute_shap_explanations(model, X_data, features)
+    for i, ex in enumerate(explanations):
+        student_shap_dicts[i][label] = ex
     print(f"  ✓ {len(explanations)} student explanations generated")
     if explanations:
         ex = explanations[0]
@@ -1140,24 +1137,8 @@ for label, (model, X_data, features) in shap_targets.items():
         for f in ex['top_negative'][:3]:
             print(f"    ↓ {f['feature']}: {f['shap_value']}")
 
-# Attach SHAP explanations as JSON column on the main dataframe
-# Stores only top contributors per model to keep DB size manageable
-print("\nAttaching SHAP explanations to student dataframe...")
-shap_json_col = []
-for i in range(len(df)):
-    student_shap = {}
-    for label, explanations in shap_results.items():
-        if i < len(explanations):
-            ex = explanations[i]
-            student_shap[label] = {
-                "base_value": ex["base_value"],
-                "top_positive": ex["top_positive"],
-                "top_negative": ex["top_negative"],
-            }
-    shap_json_col.append(_json.dumps(student_shap))
-
-df['shap_explanations'] = shap_json_col
-print(f"✓ SHAP explanations attached as JSON column ({len(shap_json_col):,} students)")
+df['shap_explanations'] = [json.dumps(d) for d in student_shap_dicts]
+print(f"✓ SHAP explanations attached as JSON column ({len(df):,} students)")
 
 # ============================================================================
 # STEP 11: SAVE PREDICTIONS TO STUDENT-LEVEL FILE

@@ -2,6 +2,15 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/db"
 import { canAccess, type Role } from "@/lib/roles"
 
+function safeParse<T>(raw: unknown, fallback: T): T {
+  if (!raw) return fallback
+  try {
+    return typeof raw === "string" ? JSON.parse(raw) : (raw as T)
+  } catch {
+    return fallback
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ guid: string }> }
@@ -52,21 +61,11 @@ export async function GET(
     }
 
     const row = result.rows[0]
-    // Parse JSON string columns into objects for the frontend
-    let shap = null
-    if (row.shap_explanations) {
-      try {
-        shap = typeof row.shap_explanations === "string"
-          ? JSON.parse(row.shap_explanations)
-          : row.shap_explanations
-      } catch { shap = null }
-    }
-
     return NextResponse.json({
       ...row,
-      risk_factors:      row.risk_factors      ? JSON.parse(row.risk_factors)      : [],
-      suggested_actions: row.suggested_actions ? JSON.parse(row.suggested_actions) : [],
-      shap_explanations: shap,
+      risk_factors:      safeParse(row.risk_factors, []),
+      suggested_actions: safeParse(row.suggested_actions, []),
+      shap_explanations: safeParse(row.shap_explanations, null),
     })
   } catch (error) {
     console.error("Student detail fetch error:", error)
