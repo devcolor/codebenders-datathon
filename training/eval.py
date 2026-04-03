@@ -17,34 +17,15 @@ from pathlib import Path
 from typing import Any
 
 from training.config import get_message_content, get_training_data_dir, read_jsonl
+from training.prompts import EXPLAINER_SCHEMA, NARRATOR_SCHEMA, SUMMARIZER_SCHEMA
 
 # ---------------------------------------------------------------------------
-# Required keys per task
+# Required keys per task — derived from schema definitions in prompts.py
 # ---------------------------------------------------------------------------
 
-_EXPLAINER_REQUIRED_KEYS: set[str] = {
-    "explanation",
-    "structural_factors",
-    "student_impact",
-    "advisor_recommendation",
-    "data_limitations",
-    "related_intervention",
-}
-
-_NARRATOR_REQUIRED_KEYS: set[str] = {
-    "narrative",
-    "key_drivers",
-    "recommended_actions",
-    "data_limitations",
-}
-
-_SUMMARIZER_REQUIRED_KEYS: set[str] = {
-    "summary",
-    "key_insights",
-    "context",
-    "action_items",
-    "caveats",
-}
+_EXPLAINER_REQUIRED_KEYS: set[str] = set(EXPLAINER_SCHEMA.keys())
+_NARRATOR_REQUIRED_KEYS: set[str] = set(NARRATOR_SCHEMA.keys())
+_SUMMARIZER_REQUIRED_KEYS: set[str] = set(SUMMARIZER_SCHEMA.keys())
 
 # ---------------------------------------------------------------------------
 # Ship criteria — minimum thresholds per task
@@ -204,14 +185,7 @@ def check_shap_grounding(outputs: list[str], inputs: list[dict[str, Any]], min_f
                 top_features.append(entry["feature"])
             for entry in model_attrs.get("top_negative", [])[:3]:
                 top_features.append(entry["feature"])
-        # Deduplicate while preserving order
-        seen = set()
-        unique_features = []
-        for f in top_features:
-            if f not in seen:
-                seen.add(f)
-                unique_features.append(f)
-        top_features = unique_features[:6]  # top 3 per direction, deduplicated
+        top_features = list(dict.fromkeys(top_features))[:6]
 
         if not top_features:
             passing += 1  # no SHAP data to ground against

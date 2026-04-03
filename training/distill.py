@@ -171,7 +171,7 @@ def generate_pairs(
         config: Parsed school config.
         seed_data: List of seed data dicts.
         count: Number of pairs to generate.
-        task: "explainer" or "summarizer".
+        task: "narrator", "explainer", or "summarizer".
         outfile: If provided, pairs are written incrementally.
         system_prompt: Pre-built system prompt (avoids recomputation).
     """
@@ -219,24 +219,6 @@ def generate_pairs(
             fh.close()
             print(f"[{task}] Saved {len(pairs)} pairs to {outfile}", flush=True)
     return pairs
-
-
-def generate_explainer_pairs(
-    config: dict[str, Any], seed_data: list[dict[str, Any]],
-    count: int, outfile: Path | None = None,
-    system_prompt: str | None = None,
-) -> list[dict]:
-    """Generate explainer training pairs via teacher model distillation."""
-    return generate_pairs(config, seed_data, count, "explainer", outfile, system_prompt)
-
-
-def generate_summarizer_pairs(
-    config: dict[str, Any], seed_data: list[dict[str, Any]],
-    count: int, outfile: Path | None = None,
-    system_prompt: str | None = None,
-) -> list[dict]:
-    """Generate summarizer training pairs via teacher model distillation."""
-    return generate_pairs(config, seed_data, count, "summarizer", outfile, system_prompt)
 
 
 def main(school: str, local: bool = False) -> None:

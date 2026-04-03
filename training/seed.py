@@ -168,6 +168,7 @@ def load_seed_queries(school: str) -> dict[str, list[dict]]:
     with seed_path.open("r", encoding="utf-8") as fh:
         data = yaml.safe_load(fh) or {}
     return {
+        "narrator": data.get("narrator", []),
         "explainer": data.get("explainer", []),
         "summarizer": data.get("summarizer", []),
     }
