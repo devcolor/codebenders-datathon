@@ -133,7 +133,7 @@ def process_task(school: str, task: str) -> dict[str, int]:
 
 def main(school: str) -> None:
     """Run preparation for all tasks."""
-    for task in ("explainer", "summarizer"):
+    for task in ("narrator", "explainer", "summarizer"):
         try:
             process_task(school, task)
         except FileNotFoundError as e:

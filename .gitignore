@@ -189,3 +189,6 @@ data/test_uploads/
 
 # Training pipeline artifacts
 training_data/
+
+# Superpowers runtime state
+.superpowers/

@@ -17,33 +17,27 @@ from pathlib import Path
 from typing import Any
 
 from training.config import get_message_content, get_training_data_dir, read_jsonl
+from training.prompts import EXPLAINER_SCHEMA, NARRATOR_SCHEMA, SUMMARIZER_SCHEMA
 
 # ---------------------------------------------------------------------------
-# Required keys per task
+# Required keys per task — derived from schema definitions in prompts.py
 # ---------------------------------------------------------------------------
 
-_EXPLAINER_REQUIRED_KEYS: set[str] = {
-    "explanation",
-    "structural_factors",
-    "student_impact",
-    "advisor_recommendation",
-    "data_limitations",
-    "related_intervention",
-}
-
-_SUMMARIZER_REQUIRED_KEYS: set[str] = {
-    "summary",
-    "key_insights",
-    "context",
-    "action_items",
-    "caveats",
-}
+_EXPLAINER_REQUIRED_KEYS: set[str] = set(EXPLAINER_SCHEMA.keys())
+_NARRATOR_REQUIRED_KEYS: set[str] = set(NARRATOR_SCHEMA.keys())
+_SUMMARIZER_REQUIRED_KEYS: set[str] = set(SUMMARIZER_SCHEMA.keys())
 
 # ---------------------------------------------------------------------------
 # Ship criteria — minimum thresholds per task
 # ---------------------------------------------------------------------------
 
 SHIP_CRITERIA: dict[str, dict[str, float]] = {
+    "narrator": {
+        "json_validity": 0.95,
+        "schema_adherence": 0.90,
+        "shap_grounding": 0.80,
+        "caveat_inclusion": 0.85,
+    },
     "explainer": {
         "json_validity": 0.95,
         "schema_adherence": 0.90,
@@ -120,9 +114,11 @@ def check_schema_adherence(outputs: list[str], task: str) -> float:
     """Fraction of valid JSON outputs that contain all required keys."""
     if not outputs:
         return 0.0
-    required = (
-        _EXPLAINER_REQUIRED_KEYS if task == "explainer" else _SUMMARIZER_REQUIRED_KEYS
-    )
+    required = {
+        "narrator": _NARRATOR_REQUIRED_KEYS,
+        "explainer": _EXPLAINER_REQUIRED_KEYS,
+        "summarizer": _SUMMARIZER_REQUIRED_KEYS,
+    }.get(task, _SUMMARIZER_REQUIRED_KEYS)
     passing = 0
     total = 0
     for text in outputs:
@@ -147,7 +143,7 @@ def check_caveat_inclusion(outputs: list[str], task: str) -> float:
     """
     if not outputs:
         return 0.0
-    caveat_key = "data_limitations" if task == "explainer" else "caveats"
+    caveat_key = "caveats" if task == "summarizer" else "data_limitations"
     passing = 0
     total = 0
     for text in outputs:
@@ -166,6 +162,44 @@ def check_caveat_inclusion(outputs: list[str], task: str) -> float:
             or (isinstance(caveat_val, str) and caveat_val.strip())
         ):
             passing += 1
+    return passing / total if total else 0.0
+
+
+def check_shap_grounding(outputs: list[str], inputs: list[dict[str, Any]], min_features: int = 2) -> float:
+    """Fraction of narrator outputs that mention at least `min_features` of the top-3 SHAP features.
+
+    Extracts feature names from the input's SHAP data and checks whether the
+    narrative text references them (case-insensitive, underscore-tolerant).
+    """
+    if not outputs:
+        return 0.0
+    passing = 0
+    total = 0
+    for output_text, input_data in zip(outputs, inputs):
+        total += 1
+        # Collect top SHAP feature names from all models in the input
+        shap_data = input_data.get("shap", {})
+        top_features: list[str] = []
+        for model_attrs in shap_data.values():
+            for entry in model_attrs.get("top_positive", [])[:3]:
+                top_features.append(entry["feature"])
+            for entry in model_attrs.get("top_negative", [])[:3]:
+                top_features.append(entry["feature"])
+        top_features = list(dict.fromkeys(top_features))[:6]
+
+        if not top_features:
+            passing += 1  # no SHAP data to ground against
+            continue
+
+        # Check how many features appear in the output (case-insensitive, underscores → spaces)
+        output_lower = output_text.lower().replace("_", " ")
+        mentioned = sum(
+            1 for f in top_features
+            if f.lower().replace("_", " ") in output_lower
+        )
+        if mentioned >= min_features:
+            passing += 1
+
     return passing / total if total else 0.0
 
 
@@ -207,19 +241,24 @@ def check_ship_criteria(metrics: dict[str, float], task: str) -> ShipDecision:
     blocking_failures: list[CriterionFailure] = []
     warnings: list[str] = []
 
+    # Check all required criteria — missing metrics are blocking failures
+    for metric, threshold in criteria.items():
+        value = metrics.get(metric)
+        if value is None:
+            blocking_failures.append(
+                CriterionFailure(metric=metric, threshold=threshold, actual=0.0)
+            )
+        elif value < threshold:
+            blocking_failures.append(
+                CriterionFailure(metric=metric, threshold=threshold, actual=value)
+            )
+
+    # Check informational metrics (present in metrics but not in criteria)
     for metric, value in metrics.items():
-        threshold = criteria.get(metric)
-        if threshold is not None:
-            if value < threshold:
-                blocking_failures.append(
-                    CriterionFailure(metric=metric, threshold=threshold, actual=value)
-                )
-        else:
-            # Informational metric — warn if very low
-            if value < 0.5:
-                warnings.append(
-                    f"{metric} is low ({value:.3f}) — consider improving before deploying"
-                )
+        if metric not in criteria and value < 0.5:
+            warnings.append(
+                f"{metric} is low ({value:.3f}) — consider improving before deploying"
+            )
 
     if blocking_failures:
         decision = "no_ship"
@@ -314,8 +353,11 @@ def run_eval(school: str, task: str) -> ShipDecision:
         "json_validity": check_json_validity(outputs),
         "schema_adherence": check_schema_adherence(outputs, task),
         "caveat_inclusion": check_caveat_inclusion(outputs, task),
-        "factual_grounding": check_factual_grounding(outputs, inputs),
     }
+    if task == "narrator":
+        metrics["shap_grounding"] = check_shap_grounding(outputs, inputs)
+    else:
+        metrics["factual_grounding"] = check_factual_grounding(outputs, inputs)
 
     print(f"\n[eval] Results for {school}/{task}:")
     for k, v in metrics.items():
@@ -337,13 +379,13 @@ def main() -> None:
     parser.add_argument("--school", required=True, help="School directory name (e.g. bishop-state)")
     parser.add_argument(
         "--task",
-        choices=["explainer", "summarizer"],
+        choices=["narrator", "explainer", "summarizer"],
         default=None,
         help="Task to evaluate (default: both)",
     )
     args = parser.parse_args()
 
-    tasks = [args.task] if args.task else ["explainer", "summarizer"]
+    tasks = [args.task] if args.task else ["narrator", "explainer", "summarizer"]
     results: dict[str, ShipDecision] = {}
     for task in tasks:
         print(f"\n{'='*60}\nEVAL: {task.upper()}\n{'='*60}")

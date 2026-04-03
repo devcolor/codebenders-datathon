@@ -7,8 +7,7 @@ from unittest.mock import patch, MagicMock
 from training.distill import (
     validate_json,
     call_teacher,
-    generate_explainer_pairs,
-    generate_summarizer_pairs,
+    generate_pairs,
 )
 
 
@@ -80,10 +79,11 @@ class TestGenerateExplainerPairs:
         })
 
         with patch("training.distill.call_teacher", return_value=mock_response):
-            pairs = generate_explainer_pairs(
+            pairs = generate_pairs(
                 config=sample_school_config,
                 seed_data=[sample_course_pairing_data],
                 count=2,
+                task="explainer",
             )
 
         assert len(pairs) == 2
@@ -92,10 +92,11 @@ class TestGenerateExplainerPairs:
 
     def test_skips_invalid_responses(self, sample_school_config, sample_course_pairing_data):
         with patch("training.distill.call_teacher", return_value="not json"):
-            pairs = generate_explainer_pairs(
+            pairs = generate_pairs(
                 config=sample_school_config,
                 seed_data=[sample_course_pairing_data],
                 count=3,
+                task="explainer",
             )
 
         assert len(pairs) == 0
@@ -112,10 +113,11 @@ class TestGenerateSummarizerPairs:
         })
 
         with patch("training.distill.call_teacher", return_value=mock_response):
-            pairs = generate_summarizer_pairs(
+            pairs = generate_pairs(
                 config=sample_school_config,
                 seed_data=[sample_query_result_data],
                 count=2,
+                task="summarizer",
             )
 
         assert len(pairs) == 2
