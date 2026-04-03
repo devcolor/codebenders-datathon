@@ -1,6 +1,6 @@
 # Design Spec: Fine-Tuning for Student Explainability
 
-**Date:** 2026-04-02
+**Date:** 2026-04-02 (updated 2026-04-03)
 **Epic label:** `fine-tuning: student-explainability`
 **Epic branch:** `fine-tuning/student-explainability`
 **Status:** Draft
@@ -9,7 +9,7 @@
 
 ## 1. Goal
 
-Fine-tune a small language model (Qwen 3.5) on Bishop State domain data to replace GPT-4o-mini for three inference tasks in the dashboard. The primary value is improved explainability: advisors get SHAP-grounded, institution-aware narratives instead of templated rule-engine output. Secondary benefits include FERPA compliance (all inference on-premises), offline deployment, and institutional scalability.
+Fine-tune a small language model on Bishop State domain data to replace GPT-4o-mini for three inference tasks in the dashboard. Two candidate models will be evaluated head-to-head: **Qwen 3.5-4B** (proven by D4BL) and **Gemma 4 E4B** (native structured JSON output). The primary value is improved explainability: advisors get SHAP-grounded, institution-aware narratives instead of templated rule-engine output. Secondary benefits include FERPA compliance (all inference on-premises), offline deployment, and institutional scalability.
 
 ### Tasks to Fine-Tune
 
@@ -23,6 +23,34 @@ Fine-tune a small language model (Qwen 3.5) on Bishop State domain data to repla
 
 - Query Analyzer (NL → SQL) — high risk, deferred to future epic
 - Model serving infrastructure (RunPod, dedicated GPU hosting) — use local Ollama for now
+
+### Model Selection: Qwen 3.5-4B vs Gemma 4 E4B
+
+Two candidate models will be trained and evaluated. The winner is selected based on ship criteria metrics.
+
+| | **Qwen 3.5-4B** | **Gemma 4 E4B** |
+|---|---|---|
+| Effective params | 4B | 4.5B (8B with embeddings) |
+| GGUF size (q4_k_m) | ~2.7 GB | ~5 GB |
+| Context window | 32K | 128K |
+| Native JSON output | No | Yes — built-in structured function calling |
+| Ollama support | Text-only (vision mmproj broken) | Full support |
+| Unsloth LoRA | Yes, but QLoRA discouraged — use bf16 LoRA | Yes, bf16 LoRA recommended |
+| VRAM for training (bf16) | 10 GB | ~10 GB |
+| License | Apache 2.0 | Apache 2.0 |
+| D4BL proven | Yes (5 experiments, 98.77% schema validity) | No (new model) |
+
+**Why these two:**
+- Qwen 3.5-4B is the known quantity — D4BL proved the full pipeline (distill → train → GGUF → Ollama) with 5 experiments and achieved 98.77% schema validity on structured output tasks.
+- Gemma 4 E4B has native structured JSON output before fine-tuning, 128K context (headroom for SHAP-heavy narrator prompts), and full Ollama GGUF support without the mmproj workaround.
+
+**Why not others:**
+- Qwen 3.5-9B: 22 GB VRAM for training, larger GGUF (~5.5 GB), marginal quality gain over 4B for our task complexity.
+- Qwen 3-4B: #1 fine-tuning benchmark, but lacks 3.5's architecture improvements.
+- Llama 3.2-3B: Best tunability gain, but Meta's community license (700M MAU limit) is restrictive for educational institutions.
+- Phi-4-mini: Strong on math, but less proven for structured output and limited Unsloth support.
+
+**Training note:** Unsloth explicitly discourages QLoRA (4-bit) on Qwen 3.5 due to quantization artifacts. Both models will use bf16 LoRA on A100 (40 GB VRAM is sufficient for either).
 
 ## 2. Prerequisites
 
@@ -87,7 +115,7 @@ Before the epic branch is created:
 | 3 | Build Colab training notebook (Unsloth + LoRA) | Single "Run All" notebook, parameterized config, 3-phase training, GGUF export. Replace `training/finetune.py` (MLX) with Unsloth wrapper. | #1 | `type:feature`, `area:ai` |
 | 4 | Distill training pairs for summarizer and explainer | Run distillation for both existing tasks (~1,500 pairs each via Claude API). Prepare datasets. | #1 | `type:feature`, `area:ai` |
 | 5 | Distill training pairs for SHAP narrator | Generate ~1,500 SHAP narrator pairs from student data + SHAP values. Requires SHAP data in DB. | #2 | `type:feature`, `area:ai` |
-| 6 | Train and evaluate 4B + 9B models | Run Colab notebook for both model sizes. Evaluate via ship criteria. Compare metrics, pick winner. | #3, #4, #5 | `type:spike`, `area:ai` |
+| 6 | Train and evaluate Qwen 3.5-4B + Gemma 4 E4B | Run Colab notebook for both models. Evaluate via ship criteria. Compare metrics, pick winner. | #3, #4, #5 | `type:spike`, `area:ai` |
 | 7 | Export models and wire into dashboard | GGUF export, Ollama registration, wire `model-client.ts` into consumer routes, update `enrich_with_llm` model string. | #6 | `type:feature`, `area:ai`, `area:frontend` |
 | 8 | Update documentation and feasibility report | Update feasibility report with actual results, update README and CLAUDE.md. | #6 | `type:documentation` |
 
@@ -110,7 +138,10 @@ Issues #2, #3, and #4 can proceed concurrently after #1. Issue #5 waits only on 
 Cell 1: Configuration (ONLY cell the user edits)
 -------------------------------------------------
 SCHOOL = "bishop-state"
-MODEL_SIZES = ["4b", "9b"]
+MODELS = [
+    {"name": "qwen3.5-4b", "hf_id": "Qwen/Qwen3.5-4B"},
+    {"name": "gemma4-e4b", "hf_id": "google/gemma-4-e4b-it"},
+]
 REPO_URL = "https://github.com/codebenders/datathon.git"
 REPO_BRANCH = "fine-tuning/student-explainability"
 HF_TOKEN = ""                        # or userdata.get('HF_TOKEN')
@@ -123,9 +154,9 @@ Cell 2+: Fully autonomous
 - GPU detection + validation (assert A100/T4/L4)
 - pip install unsloth, trl, peft
 - Clone repo, load schools/{SCHOOL}/config.yaml
-- For each model size:
+- For each model in MODELS:
   - Phase 1: Domain adaptation
-    - Load base Qwen model via Unsloth (4-bit NF4)
+    - Load base model via Unsloth (bf16 LoRA — no QLoRA for Qwen 3.5)
     - Train on training_data/{school}/domain.jsonl
     - LoRA rank 16, all modules, 1 epoch, lr 2e-4, effective batch 32
     - Save merged checkpoint
@@ -139,13 +170,13 @@ Cell 2+: Fully autonomous
   - Phase 3: GGUF export
     - Quantize each task adapter to q4_k_m
     - Upload to Google Drive (or HF Hub if HF_TOKEN provided)
-- Print comparison table: 4B vs 9B metrics across all tasks
+- Print comparison table: Qwen 3.5-4B vs Gemma 4 E4B metrics across all tasks
 - Recommend winner based on ship criteria
 ```
 
 ### Training Hyperparameters
 
-Based on D4BL's proven configurations:
+Based on D4BL's proven configurations. Both models use bf16 LoRA (not QLoRA) — Unsloth discourages 4-bit QLoRA on Qwen 3.5 due to quantization artifacts, and Gemma 4 also recommends bf16 LoRA.
 
 | Parameter | Phase 1 (Domain) | Phase 2 (Tasks) |
 |-----------|------------------|-----------------|
@@ -158,6 +189,7 @@ Based on D4BL's proven configurations:
 | Max sequence length | 4096 | 4096-8192 |
 | Optimizer | AdamW 8-bit | AdamW 8-bit |
 | Precision | bf16 (A100) | bf16 (A100) |
+| Quantization during training | None (bf16 LoRA) | None (bf16 LoRA) |
 
 ### What the Notebook Does NOT Do
 
@@ -253,12 +285,12 @@ This is the highest-value task — it transforms per-student SHAP attribution da
 ### Ollama Model Naming
 
 ```
-bishop-state-narrator:{size}     # SHAP narrator
-bishop-state-summarizer:{size}   # Query summary
-bishop-state-explainer:{size}    # Course pairing
+bishop-state-narrator:{model}     # SHAP narrator
+bishop-state-summarizer:{model}   # Query summary
+bishop-state-explainer:{model}    # Course pairing
 ```
 
-Where `{size}` is `4b` or `9b` based on evaluation results.
+Where `{model}` is the winning model identifier (e.g., `qwen3.5-4b` or `gemma4-e4b`) based on evaluation results.
 
 ### SHAP Narrator Integration Point
 
@@ -268,8 +300,8 @@ Where `{size}` is `4b` or `9b` based on evaluation results.
 # Before (OpenAI)
 python ai_model/generate_readiness_scores.py --enrich-with-llm --llm-model gpt-4o-mini
 
-# After (fine-tuned)
-python ai_model/generate_readiness_scores.py --enrich-with-llm --llm-model ollama/bishop-state-narrator:4b
+# After (fine-tuned, winner TBD after evaluation)
+python ai_model/generate_readiness_scores.py --enrich-with-llm --llm-model ollama/bishop-state-narrator
 ```
 
 ### Environment Variables
@@ -277,7 +309,7 @@ python ai_model/generate_readiness_scores.py --enrich-with-llm --llm-model ollam
 ```env
 MODEL_BACKEND=ollama              # or "openai" (fallback)
 OLLAMA_BASE_URL=http://localhost:11434
-MODEL_SIZE=4b                     # set after evaluation picks winner
+MODEL_TAG=qwen3.5-4b             # or gemma4-e4b, set after evaluation picks winner
 SCHOOL_CODE=bishop-state
 ```
 
@@ -290,16 +322,19 @@ The operator sets `MODEL_BACKEND` to either `ollama` or `openai`. There is no au
 | Item | Cost |
 |------|------|
 | Claude API distillation (~4,500 pairs across 3 tasks) | $5-10 |
-| Colab A100 compute (~4 hours for 2 model sizes) | $8-16 |
-| **Total per training run** | **$13-26** |
-| Iteration runs (subsequent) | $8-16 each |
+| Colab A100 compute (~4-5 hours for 2 models, bf16 LoRA) | $8-20 |
+| **Total per training run** | **$13-30** |
+| Iteration runs (subsequent) | $8-20 each |
+
+Note: bf16 LoRA (required for Qwen 3.5, recommended for Gemma 4) uses more VRAM than QLoRA but fits comfortably on A100 40GB. Training time may be slightly longer than D4BL's QLoRA runs.
 
 ## 8. Success Criteria
 
 The epic is complete when:
 
-1. All three tasks pass ship criteria on the winning model size
+1. All three tasks pass ship criteria on the winning model (Qwen 3.5-4B or Gemma 4 E4B)
 2. `MODEL_BACKEND=ollama` serves all three tasks in the dashboard without OpenAI
 3. SHAP narrator produces grounded narratives that cite specific feature attributions
-4. Feasibility report is updated with actual metrics and model selection rationale
+4. Feasibility report is updated with actual metrics, model comparison, and selection rationale
 5. Colab notebook is documented and reproducible (clone + Run All)
+6. Model selection decision is documented with head-to-head metrics for both candidates
