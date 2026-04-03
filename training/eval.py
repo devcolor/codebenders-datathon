@@ -241,19 +241,24 @@ def check_ship_criteria(metrics: dict[str, float], task: str) -> ShipDecision:
     blocking_failures: list[CriterionFailure] = []
     warnings: list[str] = []
 
+    # Check all required criteria — missing metrics are blocking failures
+    for metric, threshold in criteria.items():
+        value = metrics.get(metric)
+        if value is None:
+            blocking_failures.append(
+                CriterionFailure(metric=metric, threshold=threshold, actual=0.0)
+            )
+        elif value < threshold:
+            blocking_failures.append(
+                CriterionFailure(metric=metric, threshold=threshold, actual=value)
+            )
+
+    # Check informational metrics (present in metrics but not in criteria)
     for metric, value in metrics.items():
-        threshold = criteria.get(metric)
-        if threshold is not None:
-            if value < threshold:
-                blocking_failures.append(
-                    CriterionFailure(metric=metric, threshold=threshold, actual=value)
-                )
-        else:
-            # Informational metric — warn if very low
-            if value < 0.5:
-                warnings.append(
-                    f"{metric} is low ({value:.3f}) — consider improving before deploying"
-                )
+        if metric not in criteria and value < 0.5:
+            warnings.append(
+                f"{metric} is low ({value:.3f}) — consider improving before deploying"
+            )
 
     if blocking_failures:
         decision = "no_ship"

@@ -164,7 +164,7 @@ def load_seed_queries(school: str) -> dict[str, list[dict]]:
     """Load seed queries from a school's seed_queries.yaml."""
     seed_path = get_school_dir(school) / "seed_queries.yaml"
     if not seed_path.exists():
-        return {"explainer": [], "summarizer": []}
+        return {"narrator": [], "explainer": [], "summarizer": []}
     with seed_path.open("r", encoding="utf-8") as fh:
         data = yaml.safe_load(fh) or {}
     return {

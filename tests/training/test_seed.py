@@ -35,7 +35,7 @@ class TestLoadSeedQueries:
     def test_returns_empty_on_missing_file(self, tmp_path):
         with patch("training.seed.get_school_dir", return_value=tmp_path):
             result = load_seed_queries("test-school")
-        assert result == {"explainer": [], "summarizer": []}
+        assert result == {"narrator": [], "explainer": [], "summarizer": []}
 
 
 class TestGenerateSyntheticCoursePairings:
