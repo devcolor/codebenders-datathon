@@ -447,12 +447,16 @@ def score_student(row) -> dict:
 # LLM Enrichment (optional)
 # ============================================================================
 
-def enrich_with_llm(record: dict, model: str) -> dict:
+def enrich_with_llm(record: dict, model: str, shap_data: dict = None) -> dict:
     """
     Replace rationale and suggested_actions with LLM-generated content.
     Only called for medium/low readiness students.
     Input is the FERPA-safe profile — no PII sent to any external service.
     Returns the record with enriched text fields (score unchanged).
+
+    When shap_data is provided (from the ML pipeline's SHAP step), the prompt
+    includes per-model feature attribution so the LLM can ground its
+    explanation in what the models actually learned.
 
     Provider is determined by the model string:
       "gpt-4o-mini"               -> OpenAI (requires OPENAI_API_KEY)
@@ -469,6 +473,25 @@ def enrich_with_llm(record: dict, model: str) -> dict:
     profile = json.loads(record["input_features"]) if isinstance(record["input_features"], str) else record["input_features"]
     risk_factors = json.loads(record["risk_factors"]) if isinstance(record["risk_factors"], str) else []
 
+    # Build SHAP context section if available
+    shap_section = ""
+    if shap_data:
+        shap_lines = []
+        for model_name, attrs in shap_data.items():
+            shap_lines.append(f"\n  {model_name} model (base prediction: {attrs.get('base_value', 'N/A')}):")
+            for f in attrs.get("top_positive", []):
+                shap_lines.append(f"    ↑ {f['feature']} = {f['value']} (pushes prediction UP by {f['shap_value']})")
+            for f in attrs.get("top_negative", []):
+                shap_lines.append(f"    ↓ {f['feature']} = {f['value']} (pushes prediction DOWN by {abs(f['shap_value'])})")
+        shap_section = f"""
+
+ML Model Feature Attribution (SHAP — shows which features drive each prediction):
+{''.join(shap_lines)}
+
+IMPORTANT: Use these SHAP values to ground your explanation. Tell the advisor
+which specific factors are most responsible for this student's risk level,
+citing the magnitude. Do not speculate beyond what the models show."""
+
     prompt = f"""You are an academic advisor assistant at Bishop State Community College.
 A student has a readiness score of {record['readiness_score']:.2f} ({record['readiness_level']} readiness).
 
@@ -484,10 +507,10 @@ Student profile (no PII):
 - Retention probability: {profile.get('retention_probability')}
 
 Identified risk factors:
-{chr(10).join(f'- {f}' for f in risk_factors)}
+{chr(10).join(f'- {f}' for f in risk_factors)}{shap_section}
 
 Write two things:
-1. RATIONALE: A 2-sentence explanation of this student's readiness score for an advisor.
+1. RATIONALE: A 2-3 sentence explanation of this student's readiness score for an advisor. If SHAP data is available, cite the top contributing factors by name and magnitude.
 2. ACTIONS: A JSON array of 3-5 specific, actionable intervention recommendations (strings only).
 
 Format your response exactly as:
@@ -588,7 +611,15 @@ def main():
             record["generation_ms"] = elapsed_ms
             record["run_id"] = run_id
             if args.enrich_with_llm and record["readiness_level"] in ("medium", "low"):
-                record = enrich_with_llm(record, args.llm_model)
+                # Pass SHAP data if the shap_explanations column exists
+                shap_data = None
+                shap_raw = row.get("shap_explanations")
+                if shap_raw and str(shap_raw) not in ("", "nan", "None"):
+                    try:
+                        shap_data = json.loads(shap_raw) if isinstance(shap_raw, str) else shap_raw
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                record = enrich_with_llm(record, args.llm_model, shap_data=shap_data)
             records.append(record)
         except Exception as e:
             errors += 1

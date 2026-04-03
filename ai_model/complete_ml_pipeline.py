@@ -22,6 +22,8 @@ from sklearn.metrics import (
 )
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import xgboost as xgb
+import shap
+import json
 from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
@@ -1047,6 +1049,98 @@ df['academic_risk_level'] = pd.cut(
 print(f"Low GPA predictions generated")
 
 # ============================================================================
+# STEP 10b: PER-STUDENT SHAP EXPLANATIONS
+# ============================================================================
+print("\n" + "=" * 80)
+print("STEP 10b: COMPUTING PER-STUDENT SHAP EXPLANATIONS")
+print("=" * 80)
+
+
+def compute_shap_explanations(model, X_data, feature_names, top_n=5):
+    """
+    Compute per-student SHAP values using TreeExplainer.
+
+    For binary classifiers, uses class-1 (positive outcome) SHAP values.
+    Returns top N positive/negative contributors per student.
+    """
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_data)
+
+    # Binary classifiers: RandomForest returns list [class_0, class_1],
+    # some models return 3D (samples, features, classes), XGBoost returns 2D.
+    if isinstance(shap_values, list):
+        sv = shap_values[1]
+    elif shap_values.ndim == 3:
+        sv = shap_values[:, :, 1]
+    else:
+        sv = shap_values
+
+    base = explainer.expected_value
+    if isinstance(base, (list, np.ndarray)):
+        base_value = float(base[1]) if len(base) > 1 else float(base[0])
+    else:
+        base_value = float(base)
+
+    base_rounded = round(base_value, 4)
+
+    def _make_entry(row_shap, row_values, j):
+        fval = row_values.iloc[j]
+        return {
+            "feature": feature_names[j],
+            "shap_value": round(float(row_shap[j]), 4),
+            "value": float(fval) if isinstance(fval, (int, float, np.integer, np.floating)) else str(fval),
+        }
+
+    explanations = []
+    for i in range(len(X_data)):
+        row_shap = sv[i]
+        row_values = X_data.iloc[i]
+
+        # Use argsort to find top contributors without building a full list
+        pos_indices = np.argsort(-row_shap)[:top_n]
+        pos_indices = pos_indices[row_shap[pos_indices] > 0]
+
+        neg_indices = np.argsort(row_shap)[:top_n]
+        neg_indices = neg_indices[row_shap[neg_indices] < 0]
+
+        explanations.append({
+            "base_value": base_rounded,
+            "top_positive": [_make_entry(row_shap, row_values, j) for j in pos_indices],
+            "top_negative": [_make_entry(row_shap, row_values, j) for j in neg_indices],
+        })
+
+    return explanations
+
+
+# Models to explain with SHAP (all 4 XGBoost/RF classifiers)
+shap_targets = {
+    "retention": (retention_model, X_full_retention, retention_features),
+    "gateway_math": (gateway_math_model, X_full_gateway_math, gateway_math_features),
+    "gateway_english": (gateway_english_model, X_full_gateway_english, gateway_english_features),
+    "low_gpa": (low_gpa_model, X_gpa_clean, gpa_features),
+}
+
+# Build per-student dicts in a single pass, discarding each model's list promptly
+student_shap_dicts = [{} for _ in range(len(df))]
+
+for label, (model, X_data, features) in shap_targets.items():
+    print(f"\nComputing SHAP explanations for {label} model...")
+    explanations = compute_shap_explanations(model, X_data, features)
+    for i, ex in enumerate(explanations):
+        student_shap_dicts[i][label] = ex
+    print(f"  ✓ {len(explanations)} student explanations generated")
+    if explanations:
+        ex = explanations[0]
+        print(f"  Sample (student 0): base_value={ex['base_value']}")
+        for f in ex['top_positive'][:3]:
+            print(f"    ↑ {f['feature']}: +{f['shap_value']}")
+        for f in ex['top_negative'][:3]:
+            print(f"    ↓ {f['feature']}: {f['shap_value']}")
+
+df['shap_explanations'] = [json.dumps(d) for d in student_shap_dicts]
+print(f"✓ SHAP explanations attached as JSON column ({len(df):,} students)")
+
+# ============================================================================
 # STEP 11: SAVE PREDICTIONS TO STUDENT-LEVEL FILE
 # ============================================================================
 print("\n" + "=" * 80)
@@ -1063,7 +1157,8 @@ prediction_columns = [
     'prob_no_credential', 'prob_certificate', 'prob_associate', 'prob_bachelor',
     'gateway_math_probability', 'gateway_math_prediction', 'gateway_math_risk',
     'gateway_english_probability', 'gateway_english_prediction', 'gateway_english_risk',
-    'low_gpa_probability', 'low_gpa_prediction', 'academic_risk_level'
+    'low_gpa_probability', 'low_gpa_prediction', 'academic_risk_level',
+    'shap_explanations'
 ]
 
 predictions_df = df[prediction_columns].copy()
