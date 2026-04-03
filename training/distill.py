@@ -21,8 +21,10 @@ from typing import Any
 from training.config import get_training_data_dir, load_school_config, write_jsonl
 from training.prompts import (
     EXPLAINER_STUDENT_SYSTEM,
+    NARRATOR_STUDENT_SYSTEM,
     SUMMARIZER_STUDENT_SYSTEM,
     build_explainer_prompt,
+    build_narrator_prompt,
     build_summarizer_prompt,
     build_system_prompt,
 )
@@ -30,6 +32,7 @@ from training.seed import (
     format_as_chatml,
     generate_synthetic_course_pairings,
     generate_synthetic_query_results,
+    generate_synthetic_student_profiles,
 )
 
 # Cost tracking
@@ -136,6 +139,11 @@ def call_teacher(system: str, user: str, backend: str, model: str) -> str:
 _FLUSH_INTERVAL = 25
 
 _TASK_CONFIG = {
+    "narrator": {
+        "prompt_builder": build_narrator_prompt,
+        "student_system": NARRATOR_STUDENT_SYSTEM,
+        "format_user": lambda config, data: json.dumps(data, ensure_ascii=False, default=str),
+    },
     "explainer": {
         "prompt_builder": build_explainer_prompt,
         "student_system": EXPLAINER_STUDENT_SYSTEM,
@@ -245,28 +253,43 @@ def main(school: str, local: bool = False) -> None:
     data_dir = get_training_data_dir(school)
     pairs_dir = data_dir / "pairs"
 
-    synthetic_pairings = generate_synthetic_course_pairings(config, count=pairs_per_task)
-    synthetic_results = generate_synthetic_query_results(config, count=pairs_per_task)
-
     system_prompt = build_system_prompt(config)
 
-    print(f"\n{'='*60}\nEXPLAINER — generating {pairs_per_task} pairs\n{'='*60}")
-    explainer_pairs = generate_explainer_pairs(
-        config=config, seed_data=synthetic_pairings,
-        count=pairs_per_task, outfile=pairs_dir / "explainer.jsonl",
-        system_prompt=system_prompt,
-    )
+    all_counts: dict[str, int] = {}
 
-    print(f"\n{'='*60}\nSUMMARIZER — generating {pairs_per_task} pairs\n{'='*60}")
-    summarizer_pairs = generate_summarizer_pairs(
-        config=config, seed_data=synthetic_results,
-        count=pairs_per_task, outfile=pairs_dir / "summarizer.jsonl",
+    # Narrator
+    print(f"\n{'='*60}\nNARRATOR — generating {pairs_per_task} pairs\n{'='*60}")
+    synthetic_profiles = generate_synthetic_student_profiles(config, count=pairs_per_task)
+    narrator_pairs = generate_pairs(
+        config=config, seed_data=synthetic_profiles,
+        count=pairs_per_task, task="narrator", outfile=pairs_dir / "narrator.jsonl",
         system_prompt=system_prompt,
     )
+    all_counts["narrator"] = len(narrator_pairs)
+
+    # Explainer
+    print(f"\n{'='*60}\nEXPLAINER — generating {pairs_per_task} pairs\n{'='*60}")
+    synthetic_pairings = generate_synthetic_course_pairings(config, count=pairs_per_task)
+    explainer_pairs = generate_pairs(
+        config=config, seed_data=synthetic_pairings,
+        count=pairs_per_task, task="explainer", outfile=pairs_dir / "explainer.jsonl",
+        system_prompt=system_prompt,
+    )
+    all_counts["explainer"] = len(explainer_pairs)
+
+    # Summarizer
+    print(f"\n{'='*60}\nSUMMARIZER — generating {pairs_per_task} pairs\n{'='*60}")
+    synthetic_results = generate_synthetic_query_results(config, count=pairs_per_task)
+    summarizer_pairs = generate_pairs(
+        config=config, seed_data=synthetic_results,
+        count=pairs_per_task, task="summarizer", outfile=pairs_dir / "summarizer.jsonl",
+        system_prompt=system_prompt,
+    )
+    all_counts["summarizer"] = len(summarizer_pairs)
 
     print(f"\n{'='*60}\nDISTILLATION COMPLETE\n{'='*60}")
-    print(f"  Explainer: {len(explainer_pairs)} pairs")
-    print(f"  Summarizer: {len(summarizer_pairs)} pairs")
+    for task_name, count in all_counts.items():
+        print(f"  {task_name.capitalize()}: {count} pairs")
     _print_cost_summary()
 
 

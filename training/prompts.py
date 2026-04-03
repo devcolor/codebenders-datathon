@@ -26,11 +26,26 @@ SUMMARIZER_SCHEMA = {
     "caveats": ["data limitations relevant to this specific query"],
 }
 
+NARRATOR_SCHEMA = {
+    "narrative": "2-3 sentence explanation grounded in SHAP feature attribution",
+    "key_drivers": ["ranked list of factors with direction and magnitude"],
+    "recommended_actions": ["3-5 specific, actionable interventions"],
+    "data_limitations": ["caveats about the prediction"],
+}
+
 EXPLAINER_STUDENT_SYSTEM = (
     "You are a student success analyst. Given course pairing data, generate a "
     "structured JSON explanation. Include: explanation, structural_factors, "
     "student_impact, advisor_recommendation, data_limitations, and "
     "related_intervention. Respond with ONLY valid JSON."
+)
+
+NARRATOR_STUDENT_SYSTEM = (
+    "You are a student success analyst. Given a student profile with ML prediction "
+    "attribution (SHAP values), generate a structured JSON explanation. Include: "
+    "narrative, key_drivers, recommended_actions, and data_limitations. "
+    "Ground your narrative in the SHAP values — cite specific features by name "
+    "and magnitude. Respond with ONLY valid JSON."
 )
 
 SUMMARIZER_STUDENT_SYSTEM = (
@@ -193,6 +208,62 @@ def build_system_prompt(config: dict[str, Any]) -> str:
     sections.append("Respond with ONLY valid JSON.")
 
     return "\n\n".join(sections)
+
+
+def build_narrator_prompt(
+    config: dict[str, Any],
+    student_data: dict[str, Any],
+) -> str:
+    """Build the teacher prompt for generating a SHAP-grounded student narrative."""
+    schema_str = json.dumps(NARRATOR_SCHEMA, indent=2)
+    profile = student_data.get("student_profile", {})
+    shap_data = student_data.get("shap", {})
+    risk_factors = student_data.get("risk_factors", [])
+    readiness_score = student_data.get("readiness_score", "N/A")
+    readiness_level = student_data.get("readiness_level", "unknown")
+
+    # Format SHAP attribution section
+    shap_lines = []
+    for model_name, attrs in shap_data.items():
+        shap_lines.append(f"\n  {model_name} model (base prediction: {attrs.get('base_value', 'N/A')}):")
+        for f in attrs.get("top_positive", []):
+            shap_lines.append(f"    + {f['feature']} = {f['value']} (pushes prediction UP by {f['shap_value']})")
+        for f in attrs.get("top_negative", []):
+            shap_lines.append(f"    - {f['feature']} = {f['value']} (pushes prediction DOWN by {abs(f['shap_value'])})")
+
+    profile_str = json.dumps(profile, indent=2, default=str)
+    risk_str = "\n".join(f"- {r}" for r in risk_factors) if risk_factors else "None identified"
+
+    interventions = config.get("school", {}).get("interventions", {}).get("active", [])
+    intervention_lines = []
+    for i in interventions:
+        intervention_lines.append(f"- {i['name']} ({i['type']}): {i.get('effectiveness', 'unknown')}")
+    interventions_str = "\n".join(intervention_lines) if intervention_lines else "None listed"
+
+    return f"""A student at this institution has a readiness score of {readiness_score} ({readiness_level}).
+Analyze their ML prediction factors and write an advisor-facing explanation.
+
+STUDENT PROFILE:
+{profile_str}
+
+RISK FACTORS (rule-engine identified):
+{risk_str}
+
+ML MODEL FEATURE ATTRIBUTION (SHAP values — what drives each prediction):
+{''.join(shap_lines) if shap_lines else 'No SHAP data available'}
+
+AVAILABLE INTERVENTIONS:
+{interventions_str}
+
+Generate a JSON response with this exact schema:
+{schema_str}
+
+Guidelines:
+- Ground the narrative in SHAP values. Cite at least 2 of the top contributing features by name and magnitude.
+- Explain in plain language what each factor means for this student's likelihood of success.
+- Make recommended actions specific to this institution — reference active interventions by name when relevant.
+- Include at least one data limitation or caveat about the prediction.
+- Do NOT speculate beyond what the SHAP values and profile data show."""
 
 
 def build_explainer_prompt(

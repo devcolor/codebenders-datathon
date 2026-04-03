@@ -52,6 +52,114 @@ _YEARS = ["2019", "2020", "2021", "2022", "2023"]
 _RACES = ["Black", "White", "Hispanic", "Asian", "Two or More", "Unknown"]
 
 
+_ENROLLMENT_INTENSITIES = ["Full-Time", "Part-Time"]
+_MATH_PLACEMENTS = ["C", "R", "N"]
+_ALERT_LEVELS = ["LOW", "MODERATE", "HIGH", "URGENT"]
+_READINESS_LEVELS = ["high", "medium", "low"]
+_FEATURE_NAMES_RETENTION = [
+    "GPA_Group_Year_1", "course_completion_rate", "CompletedGatewayMathYear1",
+    "CompletedGatewayEnglishYear1", "Enrollment_Intensity_First_Term",
+    "total_credits_attempted", "Math_Placement", "Pell_Status_First_Year",
+    "Student_Age", "Number_of_Credits_Earned_Year_1",
+]
+
+
+def generate_synthetic_student_profiles(
+    config: dict[str, Any],
+    count: int,
+) -> list[dict[str, Any]]:
+    """Generate synthetic student profiles with SHAP data for narrator training."""
+    if count == 0:
+        return []
+    results = []
+    for _ in range(count):
+        gpa = round(random.uniform(0.5, 4.0), 1)
+        completion_rate = round(random.uniform(0.3, 1.0), 2)
+        retention_prob = round(random.uniform(0.1, 0.9), 2)
+        readiness_score = round(random.uniform(0.15, 0.85), 2)
+        intensity = random.choice(_ENROLLMENT_INTENSITIES)
+        math_placement = random.choice(_MATH_PLACEMENTS)
+        gateway_math = random.choice([True, False])
+        gateway_english = random.choice([True, False])
+        credits_earned = random.randint(3, 36)
+        alert = random.choice(_ALERT_LEVELS)
+
+        if readiness_score >= 0.65:
+            readiness_level = "high"
+        elif readiness_score >= 0.40:
+            readiness_level = "medium"
+        else:
+            readiness_level = "low"
+
+        # Build risk factors based on profile
+        risk_factors = []
+        if gpa < 2.0:
+            risk_factors.append(f"Low first-year GPA ({gpa} / 4.0)")
+        if not gateway_math:
+            risk_factors.append("Gateway math not completed in Year 1")
+        if not gateway_english:
+            risk_factors.append("Gateway English not completed in Year 1")
+        if intensity == "Part-Time":
+            risk_factors.append("Part-time enrollment reduces success probability")
+        if credits_earned < 12:
+            risk_factors.append(f"Below 12-credit Year 1 milestone ({credits_earned} credits earned)")
+        if alert in ("URGENT", "HIGH"):
+            risk_factors.append(f"Retention model flags as {alert.capitalize()} risk")
+
+        # Generate synthetic SHAP values
+        features = random.sample(_FEATURE_NAMES_RETENTION, min(8, len(_FEATURE_NAMES_RETENTION)))
+        shap_values = [round(random.uniform(-0.25, 0.25), 4) for _ in features]
+        feature_values = {
+            "GPA_Group_Year_1": gpa,
+            "course_completion_rate": completion_rate,
+            "CompletedGatewayMathYear1": 1.0 if gateway_math else 0.0,
+            "CompletedGatewayEnglishYear1": 1.0 if gateway_english else 0.0,
+            "Enrollment_Intensity_First_Term": 1.0 if intensity == "Full-Time" else 0.0,
+            "total_credits_attempted": float(credits_earned + random.randint(0, 6)),
+            "Math_Placement": {"C": 2.0, "R": 1.0, "N": 0.0}[math_placement],
+            "Pell_Status_First_Year": float(random.randint(0, 1)),
+            "Student_Age": float(random.randint(18, 45)),
+            "Number_of_Credits_Earned_Year_1": float(credits_earned),
+        }
+
+        top_positive = sorted(
+            [{"feature": f, "shap_value": sv, "value": feature_values.get(f, 0.0)}
+             for f, sv in zip(features, shap_values) if sv > 0],
+            key=lambda x: x["shap_value"], reverse=True,
+        )[:5]
+
+        top_negative = sorted(
+            [{"feature": f, "shap_value": sv, "value": feature_values.get(f, 0.0)}
+             for f, sv in zip(features, shap_values) if sv < 0],
+            key=lambda x: x["shap_value"],
+        )[:5]
+
+        results.append({
+            "student_profile": {
+                "enrollment_intensity": intensity,
+                "gpa_year1": gpa,
+                "math_placement": math_placement,
+                "course_completion_rate": completion_rate,
+                "gateway_math_completed": gateway_math,
+                "gateway_english_completed": gateway_english,
+                "credits_earned_y1": credits_earned,
+                "at_risk_alert": alert,
+                "retention_probability": retention_prob,
+            },
+            "readiness_score": readiness_score,
+            "readiness_level": readiness_level,
+            "risk_factors": risk_factors,
+            "shap": {
+                "retention": {
+                    "base_value": round(random.uniform(0.4, 0.6), 4),
+                    "top_positive": top_positive,
+                    "top_negative": top_negative,
+                },
+            },
+        })
+    return results
+
+
 def load_seed_queries(school: str) -> dict[str, list[dict]]:
     """Load seed queries from a school's seed_queries.yaml."""
     seed_path = get_school_dir(school) / "seed_queries.yaml"
