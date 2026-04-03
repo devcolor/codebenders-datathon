@@ -186,3 +186,6 @@ operations/verify_institution_id.py
 
 # Test upload fixtures (generated — do not commit)
 data/test_uploads/
+
+# Training pipeline artifacts
+training_data/

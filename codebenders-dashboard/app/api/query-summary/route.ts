@@ -1,9 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { canAccess, type Role } from "@/lib/roles"
-import { generateText } from "ai"
-import { createOpenAI } from "@ai-sdk/openai"
-
-const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || "" })
+import { generateSummary } from "@/lib/model-client"
 
 export async function POST(request: NextRequest) {
   const role = request.headers.get("x-user-role") as Role | null
@@ -11,7 +8,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  if (!process.env.OPENAI_API_KEY) {
+  if (process.env.MODEL_BACKEND !== "ollama" && !process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 })
   }
 
@@ -47,12 +44,8 @@ ${JSON.stringify(sampleRows, null, 2)}
 Write a 2-3 sentence plain-English summary of what these results show. Be specific about the numbers. Do not speculate beyond the data. Address the advisor directly.`
 
   try {
-    const result = await generateText({
-      model: openai("gpt-4o-mini"),
-      prompt: llmPrompt,
-      maxOutputTokens: 200,
-    })
-    return NextResponse.json({ summary: result.text })
+    const summary = await generateSummary(llmPrompt, 200)
+    return NextResponse.json({ summary })
   } catch (error) {
     console.error("[query-summary] Error:", error)
     return NextResponse.json(
