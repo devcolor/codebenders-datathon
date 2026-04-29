@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AASCU Intermediary Discovery — Gap Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f5efe4;
+    --paper-deep:#ece3d2;
+    --ink:#1a1714;
+    --ink-soft:#3b342c;
+    --muted:#857a68;
+    --rule:#d6cbb5;
+    --accent:#b8531a;          /* burnt sienna */
+    --accent-deep:#8a3d12;
+    --done:#4f6539;            /* sage */
+    --partial:#a87f1f;         /* mustard */
+    --gap:#8b2f2a;             /* terracotta */
+    --p0:#8b2f2a;
+    --p1:#a87f1f;
+    --p2:#5d6b76;              /* slate */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;font-weight:400;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(184,83,26,0.04), transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(26,23,20,0.05), transparent 50%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.09 0 0 0 0 0.08 0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-attachment:fixed;
+    min-height:100vh;
+  }
+  .doc{
+    max-width:1180px;
+    margin:0 auto;
+    padding:64px 56px 120px;
+  }
+
+  /* —— masthead —— */
+  .mast{
+    border-top:2px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    padding:18px 0 22px;
+    display:grid;
+    grid-template-columns:1fr auto;
+    align-items:end;
+    gap:24px;
+    animation:fadeUp .8s ease-out both;
+  }
+  .mast .lockup{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .mast .lockup b{color:var(--accent);font-weight:500}
+  .mast .meta{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10.5px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--muted);
+    text-align:right;
+    line-height:1.7;
+  }
+
+  /* —— hero —— */
+  .hero{
+    padding:80px 0 64px;
+    border-bottom:1px solid var(--rule);
+    position:relative;
+  }
+  .hero .eyebrow{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:11px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:28px;
+    animation:fadeUp .9s .1s ease-out both;
+  }
+  .hero h1{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 144,"SOFT" 30;
+    font-weight:340;
+    font-size:clamp(48px,7.2vw,108px);
+    line-height:.94;
+    letter-spacing:-0.025em;
+    color:var(--ink);
+    margin-bottom:32px;
+    animation:fadeUp 1s .15s ease-out both;
+  }
+  .hero h1 em{
+    font-style:italic;
+    font-weight:300;
+    color:var(--accent);
+    font-variation-settings:"opsz" 144,"SOFT" 80;
+  }
+  .hero .lede{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 36;
+    font-weight:330;
+    font-size:clamp(20px,1.7vw,24px);
+    line-height:1.45;
+    color:var(--ink-soft);
+    max-width:780px;
+    animation:fadeUp 1s .25s ease-out both;
+  }
+  .hero .strip{
+    margin-top:56px;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:0;
+    border-top:1px solid var(--rule);
+    animation:fadeUp 1s .35s ease-out both;
+  }
+  .hero .strip > div{
+    padding:18px 20px 4px 0;
+    border-right:1px solid var(--rule);
+  }
+  .hero .strip > div:last-child{border-right:none;padding-right:0}
+  .hero .strip dt{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  .hero .strip dd{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 60;
+    font-weight:340;
+    font-size:34px;
+    line-height:1;
+    color:var(--ink);
+    letter-spacing:-0.01em;
+  }
+  .hero .strip dd small{
+    display:block;
+    font-family:"IBM Plex Sans";
+    font-size:11px;
+    letter-spacing:.04em;
+    color:var(--muted);
+    margin-top:8px;
+    font-weight:400;
+  }
+
+  /* —— section scaffolding —— */
+  section.chapter{
+    padding:88px 0 24px;
+    border-bottom:1px solid var(--rule);
+  }
+  section.chapter:last-of-type{border-bottom:none}
+  .chap-head{
+    display:grid;
+    grid-template-columns:120px 1fr;
+    gap:48px;
+    margin-bottom:56px;
+    align-items:start;
+  }
+  .chap-num{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 144,"SOFT" 0;
+    font-weight:300;
+    font-size:96px;
+    line-height:.85;
+    color:var(--accent);
+    letter-spacing:-0.04em;
+  }
+  .chap-num span{
+    display:block;
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-top:14px;
+  }
+  .chap-title{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 60;
+    font-weight:360;
+    font-size:clamp(32px,3.6vw,52px);
+    line-height:1.05;
+    letter-spacing:-0.02em;
+    color:var(--ink);
+    max-width:780px;
+  }
+  .chap-title em{font-style:italic;font-weight:300;color:var(--accent);font-variation-settings:"opsz" 60,"SOFT" 80}
+  .chap-kicker{
+    font-family:"IBM Plex Sans";
+    font-size:15px;
+    line-height:1.6;
+    color:var(--ink-soft);
+    margin-top:18px;
+    max-width:680px;
+  }
+
+  /* —— pain point grid —— */
+  .pains{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+  }
+  .pain{
+    background:var(--paper);
+    padding:32px 30px 36px;
+    position:relative;
+  }
+  .pain .tag{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:14px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .pain .tag::before{
+    content:"";
+    width:14px;height:1px;background:var(--accent);
+  }
+  .pain h3{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 36;
+    font-weight:380;
+    font-size:23px;
+    line-height:1.2;
+    color:var(--ink);
+    margin-bottom:16px;
+    letter-spacing:-0.01em;
+  }
+  .pain ul{list-style:none;padding:0;margin:0}
+  .pain li{
+    position:relative;
+    padding-left:18px;
+    margin-bottom:10px;
+    font-size:14.5px;
+    line-height:1.55;
+    color:var(--ink-soft);
+  }
+  .pain li::before{
+    content:"";
+    position:absolute;
+    left:0;top:.65em;
+    width:6px;height:1px;background:var(--ink-soft);
+  }
+  .pain li strong{color:var(--ink);font-weight:500}
+
+  /* —— pull quote —— */
+  .pq{
+    margin:64px auto;
+    max-width:880px;
+    padding:0 24px;
+    text-align:center;
+  }
+  .pq blockquote{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 144,"SOFT" 100;
+    font-style:italic;
+    font-weight:320;
+    font-size:clamp(26px,3vw,40px);
+    line-height:1.25;
+    color:var(--ink);
+    letter-spacing:-0.015em;
+  }
+  .pq blockquote::before{
+    content:"\201C";
+    display:block;
+    font-size:96px;
+    line-height:.5;
+    color:var(--accent);
+    margin-bottom:8px;
+    opacity:.7;
+  }
+  .pq cite{
+    display:block;
+    margin-top:24px;
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-style:normal;
+    font-size:11px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+
+  /* —— coverage list (replaces table) —— */
+  .coverage{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:0;
+  }
+  .row{
+    display:grid;
+    grid-template-columns:140px 1.2fr 1.4fr 0.7fr;
+    gap:32px;
+    padding:22px 0;
+    border-bottom:1px solid var(--rule);
+    align-items:start;
+  }
+  .row:first-child{border-top:1px solid var(--ink)}
+  .row.head{
+    padding:14px 0;
+    border-bottom:1px solid var(--ink);
+  }
+  .row.head > div{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .row .pp{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+  }
+  .row .name{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 24;
+    font-weight:400;
+    font-size:18px;
+    line-height:1.3;
+    color:var(--ink);
+    letter-spacing:-0.005em;
+  }
+  .row .ev{
+    font-size:13.5px;
+    line-height:1.55;
+    color:var(--ink-soft);
+  }
+  .row .ev code{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:12px;
+    background:var(--paper-deep);
+    padding:1px 6px;
+    border-radius:2px;
+    color:var(--ink);
+  }
+  .stat{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    font-weight:500;
+  }
+  .stat::before{
+    content:"";
+    width:8px;height:8px;border-radius:50%;
+    flex-shrink:0;
+  }
+  .stat.done{color:var(--done)} .stat.done::before{background:var(--done)}
+  .stat.partial{color:var(--partial)} .stat.partial::before{background:var(--partial)}
+  .stat.gap{color:var(--gap)} .stat.gap::before{background:var(--gap)}
+
+  /* —— issue cards —— */
+  .tier{
+    margin-bottom:56px;
+  }
+  .tier-head{
+    display:flex;
+    align-items:baseline;
+    gap:24px;
+    margin-bottom:28px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--ink);
+  }
+  .tier-pill{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:.18em;
+    padding:6px 14px;
+    border-radius:2px;
+    color:var(--paper);
+  }
+  .tier-pill.p0{background:var(--p0)}
+  .tier-pill.p1{background:var(--p1)}
+  .tier-pill.p2{background:var(--p2)}
+  .tier-h{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 36;
+    font-weight:370;
+    font-size:24px;
+    color:var(--ink);
+    letter-spacing:-0.01em;
+  }
+  .tier-h em{font-style:italic;color:var(--muted);font-weight:330}
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+  }
+  .card{
+    background:var(--paper);
+    padding:28px 26px 32px;
+    display:flex;
+    flex-direction:column;
+    transition:background .25s ease, transform .25s ease;
+  }
+  .card:hover{background:var(--paper-deep);transform:translateY(-2px)}
+  .card .num{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10.5px;
+    letter-spacing:.18em;
+    color:var(--muted);
+    text-transform:uppercase;
+    margin-bottom:14px;
+    display:flex;
+    justify-content:space-between;
+  }
+  .card .num b{color:var(--ink);font-weight:500;letter-spacing:.1em}
+  .card h4{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 30;
+    font-weight:400;
+    font-size:21px;
+    line-height:1.2;
+    letter-spacing:-0.01em;
+    color:var(--ink);
+    margin-bottom:14px;
+  }
+  .card .pp-tag{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:10px;
+  }
+  .card p{
+    font-size:14px;
+    line-height:1.6;
+    color:var(--ink-soft);
+    margin-bottom:auto;
+  }
+  .card .link{
+    margin-top:20px;
+    padding-top:16px;
+    border-top:1px dotted var(--rule);
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card .link:hover{color:var(--accent-deep)}
+  .card .link::after{content:"\2192"}
+
+  /* —— exec summary —— */
+  .summary{
+    display:grid;
+    grid-template-columns:1fr 2fr;
+    gap:64px;
+    align-items:start;
+  }
+  .summary aside{
+    border-top:2px solid var(--ink);
+    padding-top:18px;
+  }
+  .summary aside h5{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:18px;
+  }
+  .summary aside ul{list-style:none;padding:0}
+  .summary aside li{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 24;
+    font-size:18px;
+    line-height:1.35;
+    padding:10px 0;
+    border-bottom:1px solid var(--rule);
+    color:var(--ink);
+  }
+  .summary aside li::before{
+    content:attr(data-n);
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.2em;
+    color:var(--accent);
+    margin-right:14px;
+    vertical-align:2px;
+  }
+  .summary .body p{
+    font-family:"Fraunces",ui-serif,Georgia,serif;
+    font-variation-settings:"opsz" 24;
+    font-weight:340;
+    font-size:21px;
+    line-height:1.55;
+    color:var(--ink);
+    margin-bottom:18px;
+    letter-spacing:-0.005em;
+  }
+  .summary .body p strong{color:var(--accent);font-weight:450}
+  .summary .body p em{font-style:italic;color:var(--ink-soft)}
+
+  /* —— scope footer —— */
+  .scope{
+    margin-top:48px;
+    padding:32px 0 0;
+    border-top:1px solid var(--rule);
+    display:grid;
+    grid-template-columns:200px 1fr;
+    gap:48px;
+  }
+  .scope h6{
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .scope ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .scope li{
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--ink-soft);
+    padding-left:14px;
+    position:relative;
+  }
+  .scope li::before{
+    content:"\00d7";
+    position:absolute;left:0;top:0;
+    color:var(--gap);font-weight:500;
+  }
+
+  /* —— colophon —— */
+  footer.colophon{
+    margin-top:96px;
+    padding-top:24px;
+    border-top:2px solid var(--ink);
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:24px;
+    font-family:"JetBrains Mono",ui-monospace,monospace;
+    font-size:10.5px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  footer.colophon b{color:var(--ink);font-weight:500}
+
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(14px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  /* —— responsive —— */
+  @media (max-width:920px){
+    .doc{padding:32px 22px 80px}
+    .hero h1{font-size:54px}
+    .hero .strip{grid-template-columns:repeat(2,1fr)}
+    .hero .strip > div{padding:18px 16px 4px 0}
+    .hero .strip > div:nth-child(2n){border-right:none}
+    .hero .strip > div:nth-child(-n+2){border-bottom:1px solid var(--rule)}
+    .chap-head{grid-template-columns:1fr;gap:20px}
+    .chap-num{font-size:64px}
+    .pains{grid-template-columns:1fr}
+    .row{grid-template-columns:1fr;gap:8px;padding:18px 0}
+    .summary{grid-template-columns:1fr;gap:36px}
+    .cards{grid-template-columns:1fr}
+    .scope{grid-template-columns:1fr;gap:18px}
+    .scope ul{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <header class="mast">
+    <div class="lockup">Codebenders Datathon · <b>Discovery Report №&nbsp;01</b> · Bishop&nbsp;State&nbsp;CC</div>
+    <div class="meta">
+      Filed&nbsp;2026·04·29<br>
+      Source: 21-min&nbsp;recording + notes<br>
+      Status: Stakeholder review
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">AASCU Intermediary Discovery — Gap Analysis</div>
+    <h1>The data they have <em>isn't</em> the data they trust.</h1>
+    <p class="lede">
+      Two AASCU intermediaries described, in their own words, why the Postsecondary Data Partnership dashboard fails the institutions they support — and where a tool built around <em>provable</em>, <em>presentable</em>, <em>governed</em> outputs would land.
+    </p>
+    <dl class="strip">
+      <div><dt>Recording</dt><dd>20:58<small>minutes of testimony</small></dd></div>
+      <div><dt>Voices</dt><dd>2<small>intermediaries · IR + data&#8209;eng</small></dd></div>
+      <div><dt>Pain themes</dt><dd>6<small>mapped across stack</small></dd></div>
+      <div><dt>Issues filed</dt><dd>8<small>#105 — #112</small></dd></div>
+    </dl>
+  </section>
+
+  <!-- ——— EXECUTIVE SUMMARY ——— -->
+  <section class="chapter">
+    <div class="chap-head">
+      <div class="chap-num">01<span>Executive summary</span></div>
+      <div>
+        <h2 class="chap-title">A tool worth adopting is one that <em>institutions can defend</em> — to legal, to leadership, to themselves.</h2>
+        <p class="chap-kicker">The intermediaries don't need another dashboard. They need outputs they can present upward, prove the provenance of, and govern responsibly when sensitive student populations are involved.</p>
+      </div>
+    </div>
+    <div class="summary">
+      <aside>
+        <h5>Three layers of pain</h5>
+        <ul>
+          <li data-n="01">PDP dashboard quality</li>
+          <li data-n="02">AI &amp; data governance</li>
+          <li data-n="03">Institutional process</li>
+        </ul>
+      </aside>
+      <div class="body">
+        <p>Two AASCU intermediaries described pain in three layers: <strong>PDP dashboard quality</strong> — inaccurate cohort numbers, buried definitions, wrong chart types, no data export — forcing IR staff into manual Excel rebuilds; <strong>AI/governance requirements</strong> — FERPA-plus expectations including data lineage, transparency, and explicit safeguards for sensitive student populations; and <strong>institutional process gaps</strong> — submission knowledge that lives with one person and varies wildly across campuses.</p>
+        <p>Our tool already addresses a meaningful share of layer one — CSV export, sane chart types, NLQ, methodology page — and is in-flight on layer two via the SHAP-narrator work. The biggest unaddressed gaps are <em>a definitions glossary with IPEDS / state-compliance cross-walks, presentation-ready chart export, a data-lineage view that proves where each number came from, and AI transparency + sensitive-population safeguards as a precondition for institutional adoption.</em></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ——— PAIN POINTS ——— -->
+  <section class="chapter">
+    <div class="chap-head">
+      <div class="chap-num">02<span>What we heard</span></div>
+      <div>
+        <h2 class="chap-title">Six themes — <em>raised independently</em> by both intermediaries.</h2>
+        <p class="chap-kicker">Andres (IR-focused) and Dr. Prateek (data-engineering-focused) emphasized different layers, but converged on a common diagnosis: institutions can't trust, can't present, and can't govern what PDP gives them today.</p>
+      </div>
+    </div>
+
+    <div class="pains">
+      <div class="pain">
+        <div class="tag">A · Data accuracy &amp; trust</div>
+        <h3>Numbers that don't add up</h3>
+        <ul>
+          <li>Incorrect cohort sizes; campuses missing from dashboard dropdowns.</li>
+          <li>Dashboard <strong>pulls from the wrong dataset</strong> intermittently.</li>
+          <li>Submission-time processing corrupts otherwise-clean institutional data.</li>
+          <li>No cross-source verification — intermediaries and institutions take each other's word.</li>
+        </ul>
+      </div>
+
+      <div class="pain">
+        <div class="tag">B · Definitions &amp; terminology</div>
+        <h3>The glossary that isn't there</h3>
+        <ul>
+          <li>"Completion at 3/4/5 years" and retention metrics undefined in-context.</li>
+          <li>Definitions live in <strong>external documentation</strong>, not the dashboard.</li>
+          <li>Terms diverge from IPEDS and state-compliance vocabulary IR staff already use.</li>
+        </ul>
+      </div>
+
+      <div class="pain">
+        <div class="tag">C · Visualization &amp; export</div>
+        <h3>Charts you can't show your boss</h3>
+        <ul>
+          <li>Wrong chart types — line graph for independent cohorts where bar is correct.</li>
+          <li>Charts <strong>not presentation-ready</strong>; IR staff rebuild in Excel by hand.</li>
+          <li>No data download from dashboard. Analysis-ready file is a <strong>$20K paywall</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="pain">
+        <div class="tag">D · AI &amp; governance</div>
+        <h3>FERPA is the floor, not the ceiling</h3>
+        <ul>
+          <li>"Weaponizing data" risk to under-resourced campuses via context-free AI inference.</li>
+          <li>Sensitive populations — immigrant, undocumented, public-aid — need explicit care.</li>
+          <li>Demand for full <strong>data lineage</strong>, model transparency, storage disclosure.</li>
+        </ul>
+      </div>
+
+      <div class="pain">
+        <div class="tag">E · Institutional process</div>
+        <h3>One person knows; one person retires</h3>
+        <ul>
+          <li>Submission knowledge silos with one IR staffer per institution.</li>
+          <li>Each campus has wildly different submission rituals — some delist + re-upload everything every cycle.</li>
+          <li>"Best edit resolution" loses to <strong>people-and-process bottlenecks</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="pain">
+        <div class="tag">F · Datathon coordination</div>
+        <h3>Group by goal, not just SIS</h3>
+        <ul>
+          <li>AASCU has SIS-by-institution list — can rank by commonality or by need.</li>
+          <li>Last datathon: wildly different institutional incomes ate most of the day.</li>
+          <li>Recommend grouping by <strong>shared SIS + shared goal</strong> (e.g., advising).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="pq">
+    <blockquote>
+      Why on earth would they invest any time in learning this new tool?
+    </blockquote>
+    <cite>— Intermediary, on PDP's compounding friction · 21-min recording, 03:42</cite>
+  </div>
+
+  <!-- ——— TOOL COVERAGE ——— -->
+  <section class="chapter">
+    <div class="chap-head">
+      <div class="chap-num">03<span>What the tool already does</span></div>
+      <div>
+        <h2 class="chap-title">A meaningful share of the pain is <em>already addressed</em> in `codebenders-dashboard`.</h2>
+        <p class="chap-kicker">Mapping each pain point to the closed PRs and shipped components. Status reflects the state of the codebase as of this report.</p>
+      </div>
+    </div>
+
+    <div class="coverage">
+      <div class="row head">
+        <div>Pain point</div>
+        <div>Capability</div>
+        <div>Evidence</div>
+        <div>Status</div>
+      </div>
+
+      <div class="row">
+        <div class="pp">C · Export</div>
+        <div class="name">CSV export wired into dashboard</div>
+        <div class="ev"><code>components/export-button.tsx</code> · issue&nbsp;#15</div>
+        <div><span class="stat done">Done</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">C · Visualization</div>
+        <div class="name">Recharts components, types chosen per metric</div>
+        <div class="ev"><code>retention-risk-chart.tsx</code>, <code>risk-alert-chart.tsx</code>, <code>readiness-assessment-chart.tsx</code></div>
+        <div><span class="stat done">Done</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">B · Definitions</div>
+        <div class="name">Tooltip primitive exists; no centralized glossary yet</div>
+        <div class="ev"><code>components/info-popover.tsx</code></div>
+        <div><span class="stat partial">Partial</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">D · Methodology</div>
+        <div class="name">How predictions are made — surfaced in-app</div>
+        <div class="ev"><code>app/methodology/</code> route</div>
+        <div><span class="stat done">Done</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">D · FERPA</div>
+        <div class="name">RBAC, audit log, FERPA-compliant identity resolution</div>
+        <div class="ev">Issues #67, #75, #77, #78 (closed)</div>
+        <div><span class="stat done">Done</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">D · Automation</div>
+        <div class="name">Self-service upload (PDP, AR, student, course)</div>
+        <div class="ev">Issue #86 (closed) · <code>components/upload/</code></div>
+        <div><span class="stat done">Done</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">D · Explainability</div>
+        <div class="name">SHAP narrator — fine-tuning epic in progress</div>
+        <div class="ev">Issues #97 — #103 · branch <code>fine-tuning/97-shap-narrator-task-type</code></div>
+        <div><span class="stat partial">In flight</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">A · Validation</div>
+        <div class="name">Upload exists; human-readable validation report missing</div>
+        <div class="ev">Addressed by new issue #110</div>
+        <div><span class="stat partial">Partial</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">C · Filtering</div>
+        <div class="name">By cohort, term, demographic, credential type</div>
+        <div class="ev">Issues #66, #81 (closed)</div>
+        <div><span class="stat done">Done</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">C · Query</div>
+        <div class="name">Natural-language query against the data</div>
+        <div class="ev"><code>lib/prompt-analyzer.ts</code> · issues #17, #61, #88, #90</div>
+        <div><span class="stat done">Done</span></div>
+      </div>
+
+      <div class="row">
+        <div class="pp">E · Knowledge</div>
+        <div class="name">Self-service upload reduces single-person dependency</div>
+        <div class="ev">In-app submission runbook missing — addressed by #111</div>
+        <div><span class="stat partial">Partial</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="pq">
+    <blockquote>
+      I just went by each data point and copied that number into the Excel spreadsheet.
+    </blockquote>
+    <cite>— Dr. Prateek, on rebuilding PDP outputs by hand · 04:58</cite>
+  </div>
+
+  <!-- ——— GAPS / ISSUES ——— -->
+  <section class="chapter">
+    <div class="chap-head">
+      <div class="chap-num">04<span>Gaps — issues filed</span></div>
+      <div>
+        <h2 class="chap-title">Eight issues, three priority tiers, one through-line: <em>provable, presentable, governed</em>.</h2>
+        <p class="chap-kicker">Each issue links back to a specific quote or recurring complaint from the discovery session. Out-of-scope items are listed at the end and intentionally not filed.</p>
+      </div>
+    </div>
+
+    <!-- P0 -->
+    <div class="tier">
+      <div class="tier-head">
+        <span class="tier-pill p0">P0 · Differentiators</span>
+        <h3 class="tier-h">Match the loudest complaints. <em>Datathon-eligible.</em></h3>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="num"><span>Issue</span><b>#105</b></div>
+          <div class="pp-tag">Pain B · Definitions</div>
+          <h4>Metric definitions glossary with IPEDS &amp; state-compliance cross-walks</h4>
+          <p>Every KPI surfaces a tooltip with PDP, IPEDS, and state-compliance equivalents. Centralized <code>/glossary</code> page indexed by metric. Markdown source-of-truth, versioned with the code.</p>
+          <a class="link" href="https://github.com/devcolor/codebenders-datathon/issues/105">Open issue</a>
+        </article>
+        <article class="card">
+          <div class="num"><span>Issue</span><b>#106</b></div>
+          <div class="pp-tag">Pain C · Export</div>
+          <h4>Presentation-ready chart export (PNG / PDF)</h4>
+          <p>Every chart exports as a polished image with title, definition, source, and date stamp baked in. Eliminates the manual Excel-rebuild workflow IR staff perform daily.</p>
+          <a class="link" href="https://github.com/devcolor/codebenders-datathon/issues/106">Open issue</a>
+        </article>
+        <article class="card">
+          <div class="num"><span>Issue</span><b>#107</b></div>
+          <div class="pp-tag">Pain A + D · Lineage</div>
+          <h4>Data lineage view — "where did this number come from"</h4>
+          <p>Click any number → see source rows, upload event, transformations, and timestamps. The single highest-leverage gap from the session: directly answers trust + governance + differentiation in one feature.</p>
+          <a class="link" href="https://github.com/devcolor/codebenders-datathon/issues/107">Open issue</a>
+        </article>
+      </div>
+    </div>
+
+    <!-- P1 -->
+    <div class="tier">
+      <div class="tier-head">
+        <span class="tier-pill p1">P1 · Governance hardening</span>
+        <h3 class="tier-h">Table-stakes for institutional adoption.</h3>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="num"><span>Issue</span><b>#108</b></div>
+          <div class="pp-tag">Pain D · Transparency</div>
+          <h4>AI Transparency Page</h4>
+          <p>Per-model disclosure: features used, training data source, homegrown vs. third-party, where data flows when invoked, retention policy. Reviewable independently by institutional IT &amp; legal.</p>
+          <a class="link" href="https://github.com/devcolor/codebenders-datathon/issues/108">Open issue</a>
+        </article>
+        <article class="card">
+          <div class="num"><span>Issue</span><b>#109</b></div>
+          <div class="pp-tag">Pain D · Sensitive populations</div>
+          <h4>Sensitive-population safeguards</h4>
+          <p>Per-institution feature-exclusion lists. Context warnings on small sub-populations. Audit log entries for any query touching flagged groups. Demoable, not just claimed.</p>
+          <a class="link" href="https://github.com/devcolor/codebenders-datathon/issues/109">Open issue</a>
+        </article>
+        <article class="card">
+          <div class="num"><span>Issue</span><b>#110</b></div>
+          <div class="pp-tag">Pain A + E · Validation</div>
+          <h4>Upload validation report — diff vs. last upload</h4>
+          <p>Row-level errors, field coercions, dedup decisions, anomaly flags ("3 campuses dropped from this upload"). Readable by non-technical IR staff. Survives the "person retires" scenario.</p>
+          <a class="link" href="https://github.com/devcolor/codebenders-datathon/issues/110">Open issue</a>
+        </article>
+      </div>
+    </div>
+
+    <!-- P2 -->
+    <div class="tier">
+      <div class="tier-head">
+        <span class="tier-pill p2">P2 · Process &amp; institutional fit</span>
+        <h3 class="tier-h">Lower urgency, higher institutional gratitude.</h3>
+      </div>
+      <div class="cards" style="grid-template-columns:repeat(2,1fr)">
+        <article class="card">
+          <div class="num"><span>Issue</span><b>#111</b></div>
+          <div class="pp-tag">Pain E · Process</div>
+          <h4>Submission runbook generator</h4>
+          <p>Tool records the upload steps + field mappings that worked, then generates a printable runbook so a successor can replicate without tribal knowledge. Replayable on new files.</p>
+          <a class="link" href="https://github.com/devcolor/codebenders-datathon/issues/111">Open issue</a>
+        </article>
+        <article class="card">
+          <div class="num"><span>Issue</span><b>#112</b></div>
+          <div class="pp-tag">Pain F · Datathon coordination</div>
+          <h4>Institution-grouping helper — shared SIS + shared goal</h4>
+          <p>Operational artifact, not a user feature: cross-reference AASCU's SIS list with stated institutional goals; output a candidate cohort matrix for the fall datathon.</p>
+          <a class="link" href="https://github.com/devcolor/codebenders-datathon/issues/112">Open issue</a>
+        </article>
+      </div>
+    </div>
+
+    <div class="scope">
+      <h6>Intentionally<br>out of scope</h6>
+      <ul>
+        <li>PDP-side cohort accuracy and dropdown completeness — that's PDP's bug to fix; we shouldn't build around it.</li>
+        <li>The $20K analysis-ready file paywall — pricing decision by PDP; not addressable here.</li>
+        <li>Vendor over-promising on "full automation" — competitive-positioning concern, not a feature.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <div>
+      <b>AASCU Intermediary Discovery</b> · Gap Analysis<br>
+      Set in Fraunces &amp; IBM Plex Sans · Filed 2026·04·29
+    </div>
+    <div>
+      Codebenders&nbsp;Datathon ·&nbsp;<b>Bishop&nbsp;State&nbsp;CC</b>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

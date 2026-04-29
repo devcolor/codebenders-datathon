@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AASCU Gap Analysis — Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafaf7;
+    --ink:#15181a;
+    --soft:#4a4f53;
+    --muted:#7d8489;
+    --rule:#e3e1da;
+    --accent:#0f5c4d;     /* deep forest */
+    --accent-soft:#e8efe9;
+    --done:#0f5c4d;
+    --partial:#9a6d12;
+    --gap:#8b3a3a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .doc{
+    max-width:760px;
+    margin:0 auto;
+    padding:56px 32px 96px;
+  }
+
+  /* —— header —— */
+  header{
+    padding-bottom:32px;
+    border-bottom:1px solid var(--ink);
+    margin-bottom:48px;
+  }
+  .kicker{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:"Newsreader",ui-serif,Georgia,serif;
+    font-weight:400;
+    font-size:42px;
+    line-height:1.1;
+    letter-spacing:-0.02em;
+    color:var(--ink);
+    margin-bottom:14px;
+  }
+  .lede{
+    font-family:"Newsreader",ui-serif,Georgia,serif;
+    font-weight:400;
+    font-size:19px;
+    line-height:1.5;
+    color:var(--soft);
+    max-width:620px;
+  }
+  .meta{
+    margin-top:24px;
+    display:flex;
+    gap:24px;
+    flex-wrap:wrap;
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11px;
+    letter-spacing:.08em;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+  .meta b{color:var(--ink);font-weight:500}
+
+  /* —— sections —— */
+  section{margin-bottom:56px}
+  h2{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:24px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--rule);
+  }
+
+  /* —— TL;DR —— */
+  .tldr{
+    background:var(--accent-soft);
+    border-left:3px solid var(--accent);
+    padding:24px 28px;
+    border-radius:2px;
+  }
+  .tldr p{
+    font-family:"Newsreader",ui-serif,Georgia,serif;
+    font-size:18px;
+    line-height:1.55;
+    color:var(--ink);
+  }
+  .tldr p + p{margin-top:14px}
+  .tldr strong{color:var(--accent);font-weight:500}
+
+  /* —— pain → status row —— */
+  .item{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:24px;
+    padding:18px 0;
+    border-bottom:1px solid var(--rule);
+    align-items:start;
+  }
+  .item:last-child{border-bottom:none}
+  .item .lbl{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.16em;
+    color:var(--muted);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  .item h3{
+    font-family:"Newsreader",ui-serif,Georgia,serif;
+    font-weight:500;
+    font-size:18px;
+    line-height:1.3;
+    color:var(--ink);
+    letter-spacing:-0.005em;
+    margin-bottom:6px;
+  }
+  .item p{
+    font-size:14px;
+    line-height:1.55;
+    color:var(--soft);
+    max-width:520px;
+  }
+  .stat{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-weight:500;
+    white-space:nowrap;
+    padding-top:4px;
+  }
+  .stat::before{
+    content:"";
+    width:7px;height:7px;border-radius:50%;
+  }
+  .stat.done{color:var(--done)} .stat.done::before{background:var(--done)}
+  .stat.partial{color:var(--partial)} .stat.partial::before{background:var(--partial)}
+  .stat.gap{color:var(--gap)} .stat.gap::before{background:var(--gap)}
+
+  /* —— issues —— */
+  .issue{
+    display:grid;
+    grid-template-columns:72px 1fr auto;
+    gap:20px;
+    padding:18px 0;
+    border-bottom:1px solid var(--rule);
+    align-items:baseline;
+  }
+  .issue:last-child{border-bottom:none}
+  .issue .num{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:13px;
+    font-weight:500;
+    color:var(--accent);
+    letter-spacing:.04em;
+  }
+  .issue .body h3{
+    font-family:"Newsreader",ui-serif,Georgia,serif;
+    font-weight:500;
+    font-size:17px;
+    line-height:1.3;
+    color:var(--ink);
+    margin-bottom:4px;
+    letter-spacing:-0.005em;
+  }
+  .issue .body p{
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--soft);
+  }
+  .pri{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10px;
+    letter-spacing:.14em;
+    color:var(--muted);
+    text-transform:uppercase;
+    padding:3px 9px;
+    border:1px solid var(--rule);
+    border-radius:2px;
+    white-space:nowrap;
+  }
+  .pri.p0{color:var(--gap);border-color:var(--gap)}
+  .pri.p1{color:var(--partial);border-color:var(--partial)}
+  .pri.p2{color:var(--muted)}
+
+  a{color:inherit}
+  a.issue:hover{background:rgba(15,92,77,0.025)}
+
+  footer{
+    margin-top:48px;
+    padding-top:20px;
+    border-top:1px solid var(--rule);
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:14px;
+  }
+  footer a{color:var(--accent);text-decoration:none}
+
+  @media (max-width:640px){
+    .doc{padding:36px 20px 64px}
+    h1{font-size:32px}
+    .lede{font-size:17px}
+    .item{grid-template-columns:1fr}
+    .issue{grid-template-columns:1fr;gap:6px}
+    .issue .num{font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <header>
+    <div class="kicker">AASCU Discovery · Gap Analysis · Brief</div>
+    <h1>What the tool already does, what it's missing, what to build next.</h1>
+    <p class="lede">A two-page condensation of the AASCU intermediary discovery session and the eight issues filed against the codebenders-dashboard backlog.</p>
+    <div class="meta">
+      <span><b>2026·04·29</b></span>
+      <span>2 intermediaries</span>
+      <span>21 min source</span>
+      <span>8 issues filed</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>The take</h2>
+    <div class="tldr">
+      <p>Intermediaries describe pain in three layers: <strong>PDP dashboard quality</strong> (charts, definitions, exports, accuracy), <strong>AI &amp; data governance</strong> (lineage, transparency, sensitive populations), and <strong>institutional process</strong> (knowledge silos, inconsistent submission rituals).</p>
+      <p>The tool already addresses meaningful parts of layer one and is in-flight on layer two via the SHAP narrator. The biggest unaddressed gaps are <strong>a definitions glossary, presentation-ready chart export, a data-lineage view, and AI transparency + sensitive-population safeguards</strong>.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Pain × Coverage</h2>
+
+    <div class="item">
+      <div>
+        <div class="lbl">A · Data accuracy</div>
+        <h3>Numbers don't add up; PDP pulls from wrong dataset</h3>
+        <p>Validation report on upload addresses the institutional side; PDP-side accuracy is out of scope.</p>
+      </div>
+      <span class="stat partial">Partial</span>
+    </div>
+
+    <div class="item">
+      <div>
+        <div class="lbl">B · Definitions</div>
+        <h3>Metrics undefined in-context; mismatch with IPEDS / state</h3>
+        <p>Tooltip primitive exists. Centralized glossary and cross-walks not yet built.</p>
+      </div>
+      <span class="stat gap">Gap</span>
+    </div>
+
+    <div class="item">
+      <div>
+        <div class="lbl">C · Visualization</div>
+        <h3>Wrong chart types in PDP; ours are sane</h3>
+        <p>Recharts components, types chosen per metric. Done.</p>
+      </div>
+      <span class="stat done">Done</span>
+    </div>
+
+    <div class="item">
+      <div>
+        <div class="lbl">C · Export</div>
+        <h3>CSV from dashboard; no presentation-ready chart export</h3>
+        <p>CSV shipped (#15). PNG/PDF export with embedded definitions is the next step.</p>
+      </div>
+      <span class="stat partial">Partial</span>
+    </div>
+
+    <div class="item">
+      <div>
+        <div class="lbl">D · FERPA</div>
+        <h3>RBAC, audit log, FERPA-compliant identity resolution</h3>
+        <p>Issues #67, #75, #77, #78 closed. FERPA basics covered.</p>
+      </div>
+      <span class="stat done">Done</span>
+    </div>
+
+    <div class="item">
+      <div>
+        <div class="lbl">D · AI governance</div>
+        <h3>Transparency page, lineage view, sensitive-population safeguards</h3>
+        <p>Methodology page exists. SHAP narrator in flight. Lineage and transparency disclosures unbuilt.</p>
+      </div>
+      <span class="stat gap">Gap</span>
+    </div>
+
+    <div class="item">
+      <div>
+        <div class="lbl">E · Process</div>
+        <h3>Knowledge siloed; submission rituals vary per campus</h3>
+        <p>Self-service upload (#86) helps. Runbook generator would close the loop.</p>
+      </div>
+      <span class="stat partial">Partial</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Issues filed (#105 — #112)</h2>
+
+    <a class="issue" href="https://github.com/devcolor/codebenders-datathon/issues/105">
+      <div class="num">#105</div>
+      <div class="body">
+        <h3>Metric definitions glossary with IPEDS / state cross-walks</h3>
+        <p>Hover tooltips on every KPI · centralized <code>/glossary</code> page · markdown source-of-truth.</p>
+      </div>
+      <span class="pri p0">P0</span>
+    </a>
+
+    <a class="issue" href="https://github.com/devcolor/codebenders-datathon/issues/106">
+      <div class="num">#106</div>
+      <div class="body">
+        <h3>Presentation-ready chart export (PNG / PDF)</h3>
+        <p>Title, definition, source, date stamp baked in. Eliminates the manual Excel rebuild.</p>
+      </div>
+      <span class="pri p0">P0</span>
+    </a>
+
+    <a class="issue" href="https://github.com/devcolor/codebenders-datathon/issues/107">
+      <div class="num">#107</div>
+      <div class="body">
+        <h3>Data lineage view — "where did this number come from"</h3>
+        <p>Click any number → source rows, upload event, transformations, timestamps. Highest-leverage gap.</p>
+      </div>
+      <span class="pri p0">P0</span>
+    </a>
+
+    <a class="issue" href="https://github.com/devcolor/codebenders-datathon/issues/108">
+      <div class="num">#108</div>
+      <div class="body">
+        <h3>AI Transparency Page</h3>
+        <p>Per-model disclosure — features, training data, provider, data flow, retention. Reviewable independently.</p>
+      </div>
+      <span class="pri p1">P1</span>
+    </a>
+
+    <a class="issue" href="https://github.com/devcolor/codebenders-datathon/issues/109">
+      <div class="num">#109</div>
+      <div class="body">
+        <h3>Sensitive-population safeguards</h3>
+        <p>Per-institution feature exclusion · low-sample-size context warnings · audit log entries.</p>
+      </div>
+      <span class="pri p1">P1</span>
+    </a>
+
+    <a class="issue" href="https://github.com/devcolor/codebenders-datathon/issues/110">
+      <div class="num">#110</div>
+      <div class="body">
+        <h3>Upload validation report — diff vs. last upload</h3>
+        <p>Row-level errors, coercions, dedup decisions, dropped-campus flags. Readable by non-technical IR staff.</p>
+      </div>
+      <span class="pri p1">P1</span>
+    </a>
+
+    <a class="issue" href="https://github.com/devcolor/codebenders-datathon/issues/111">
+      <div class="num">#111</div>
+      <div class="body">
+        <h3>Submission runbook generator</h3>
+        <p>Capture what worked → printable runbook · replayable on new files · survives staff turnover.</p>
+      </div>
+      <span class="pri p2">P2</span>
+    </a>
+
+    <a class="issue" href="https://github.com/devcolor/codebenders-datathon/issues/112">
+      <div class="num">#112</div>
+      <div class="body">
+        <h3>Datathon institution grouping (SIS + goal)</h3>
+        <p>Operational artifact — cross-reference AASCU's SIS list with stated goals; output cohort matrix.</p>
+      </div>
+      <span class="pri p2">P2</span>
+    </a>
+  </section>
+
+  <footer>
+    <span>Brief · Bishop State CC · Codebenders Datathon</span>
+    <span>Full report → <a href="aascu_gap_analysis.html">aascu_gap_analysis.html</a></span>
+  </footer>
+
+</div>
+</body>
+</html>
