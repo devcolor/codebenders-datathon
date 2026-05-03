@@ -12,12 +12,8 @@ describe("metric glossary coverage (#105 / #124)", () => {
     }
   })
 
-  it("topic sections list each indexed slug exactly once", () => {
-    const listed = GLOSSARY_TOPIC_SECTIONS.flatMap((t) => [...t.slugOrder])
-    expect(listed.length).toBe(METRIC_GLOSSARY_INDEX_SLUGS.length)
-    for (const slug of METRIC_GLOSSARY_INDEX_SLUGS) {
-      const n = listed.filter((s) => s === slug).length
-      expect(n, `slug ${slug} should appear once in GLOSSARY_TOPIC_SECTIONS`).toBe(1)
-    }
+  it("topic sections list each indexed slug exactly once in index order", () => {
+    const listedSlugs = GLOSSARY_TOPIC_SECTIONS.flatMap((t) => [...t.slugOrder])
+    expect(listedSlugs).toEqual([...METRIC_GLOSSARY_INDEX_SLUGS])
   })
 })
