@@ -20,6 +20,8 @@
     "ai": "^5.0.81",
     "class-variance-authority": "^0.7.1",
     "clsx": "2.1.1",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
     "lucide-react": "0.548.0",
     "next": "^16.1.6",
     "papaparse": "^5.5.3",
@@ -34,7 +36,6 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "yaml": "^2.8.0",
     "@types/node": "24.9.2",
     "@types/papaparse": "^5.5.2",
     "@types/pg": "^8.16.0",
@@ -46,6 +47,7 @@
     "tailwindcss": "4.1.16",
     "tsx": "^4.21.0",
     "typescript": "5.9.3",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "yaml": "^2.8.0"
   }
 }

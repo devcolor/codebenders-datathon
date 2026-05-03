@@ -1,11 +1,25 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMemo, useRef } from 'react';
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, TrendingUp, Users, Target, AlertTriangle } from 'lucide-react';
 import { InfoPopover } from '@/components/info-popover';
 import { GlossaryMetricEntryLink } from '@/components/glossary-metric-entry-link';
+import {
+  ChartExportBrandFooter,
+  ChartExportDataSourceLine,
+  ChartExportGlossaryBlurb,
+} from '@/components/chart-export-card-meta';
+import { ChartExportMenu } from '@/components/chart-export-menu';
 
 interface ReadinessData {
   summary: {
@@ -60,7 +74,37 @@ interface ReadinessAssessmentChartProps {
   error?: string;
 }
 
+const READINESS_LEVEL_CHART_SLUG = 'readiness-level-distribution' as const;
+const READINESS_SCORE_CHART_SLUG = 'readiness-score-distribution' as const;
+
 export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAssessmentChartProps) {
+  const levelDistExportRef = useRef<HTMLDivElement>(null);
+  const scoreDistExportRef = useRef<HTMLDivElement>(null);
+
+  const levelCsvSpec = useMemo(() => {
+    if (!data?.distribution?.length) return null;
+    const total = data.summary.total_students;
+    return {
+      headers: ['Readiness level', 'Count', 'Avg score (0-1)', 'Percent of cohort'],
+      rows: data.distribution.map((level) => {
+        const pct = total > 0 ? `${((level.count / total) * 100).toFixed(1)}%` : '0%';
+        return [level.readiness_level, level.count, level.avg_score, pct];
+      }),
+    };
+  }, [data]);
+
+  const scoreCsvSpec = useMemo(() => {
+    if (!data?.score_distribution?.length) return null;
+    const total = data.summary.total_students;
+    return {
+      headers: ['Score range', 'Count', 'Percent of cohort'],
+      rows: data.score_distribution.map((row) => {
+        const pct = total > 0 ? `${((row.count / total) * 100).toFixed(1)}%` : '0%';
+        return [row.score_range, row.count, pct];
+      }),
+    };
+  }, [data]);
+
   if (isLoading) {
     return (
       <Card className="w-full">
@@ -117,7 +161,6 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
   const totalStudents = summary.total_students;
   const avgScore = parseFloat(summary.avg_score);
   const highPct = totalStudents > 0 ? ((summary.high_count / totalStudents) * 100).toFixed(1) : '0';
-  const mediumPct = totalStudents > 0 ? ((summary.medium_count / totalStudents) * 100).toFixed(1) : '0';
   const lowPct = totalStudents > 0 ? ((summary.low_count / totalStudents) * 100).toFixed(1) : '0';
 
   return (
@@ -180,21 +223,32 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
       </div>
 
       {/* Readiness Level Distribution */}
-      <Card>
+      <Card ref={levelDistExportRef}>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Readiness Level Distribution</CardTitle>
-              <CardDescription>Student readiness categorization</CardDescription>
+          <CardTitle>Readiness Level Distribution</CardTitle>
+          <CardDescription>Student readiness categorization</CardDescription>
+          <ChartExportGlossaryBlurb slug="readiness-assessment" />
+          <ChartExportDataSourceLine>
+            /api/dashboard/readiness · student_level_with_predictions ·
+          </ChartExportDataSourceLine>
+          <CardAction>
+            <div className="flex items-center gap-1">
+              <span data-chart-export-exclude>
+                <InfoPopover title="Readiness Assessment">
+                  <p>
+                    AI-powered assessment analyzing student preparation, engagement, and success indicators. High
+                    readiness indicates students are well-positioned for success.
+                  </p>
+                  <GlossaryMetricEntryLink slug="readiness-assessment" />
+                </InfoPopover>
+              </span>
+              <ChartExportMenu
+                exportRef={levelDistExportRef}
+                chartFileSlug={READINESS_LEVEL_CHART_SLUG}
+                csv={levelCsvSpec}
+              />
             </div>
-            <InfoPopover title="Readiness Assessment">
-              <p>
-                AI-powered assessment analyzing student preparation, engagement, and success indicators. High readiness
-                indicates students are well-positioned for success.
-              </p>
-              <GlossaryMetricEntryLink slug="readiness-assessment" />
-            </InfoPopover>
-          </div>
+          </CardAction>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -228,13 +282,25 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
             })}
           </div>
         </CardContent>
+        <ChartExportBrandFooter />
       </Card>
 
       {/* Score Distribution */}
-      <Card>
+      <Card ref={scoreDistExportRef}>
         <CardHeader>
           <CardTitle>Score Distribution</CardTitle>
           <CardDescription>Readiness scores grouped by range</CardDescription>
+          <ChartExportGlossaryBlurb slug="readiness-assessment" />
+          <ChartExportDataSourceLine>
+            /api/dashboard/readiness · student_level_with_predictions ·
+          </ChartExportDataSourceLine>
+          <CardAction>
+            <ChartExportMenu
+              exportRef={scoreDistExportRef}
+              chartFileSlug={READINESS_SCORE_CHART_SLUG}
+              csv={scoreCsvSpec}
+            />
+          </CardAction>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -260,6 +326,7 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
             })}
           </div>
         </CardContent>
+        <ChartExportBrandFooter />
       </Card>
 
       {/* Top Risk Factors */}
