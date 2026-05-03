@@ -47,12 +47,9 @@ export const AI_SURFACE_CATEGORY_ORDER: AISurface["category"][] = [
 export function groupAISurfacesByCategory(
   surfaces: readonly AISurface[]
 ): Record<AISurface["category"], AISurface[]> {
-  const grouped: Record<AISurface["category"], AISurface[]> = {
-    ml_model: [],
-    natural_language: [],
-    explainability: [],
-    data_api: [],
-  }
+  const grouped = Object.fromEntries(
+    AI_SURFACE_CATEGORY_ORDER.map((category) => [category, [] as AISurface[]])
+  ) as Record<AISurface["category"], AISurface[]>
   for (const surface of surfaces) {
     grouped[surface.category].push(surface)
   }

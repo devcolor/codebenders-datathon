@@ -1,7 +1,15 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { ArrowLeft, Bot, Cloud, Database, ServerCog, Sparkles } from "lucide-react"
+import {
+  ArrowLeft,
+  Bot,
+  Cloud,
+  Database,
+  ServerCog,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -19,7 +27,7 @@ export const metadata: Metadata = {
 
 const CATEGORY_META: Record<
   AISurface["category"],
-  { label: string; sectionTitle: string; icon: typeof Bot; tint: string }
+  { label: string; sectionTitle: string; icon: LucideIcon; tint: string }
 > = {
   ml_model: {
     label: "ML model",
@@ -29,7 +37,7 @@ const CATEGORY_META: Record<
   },
   natural_language: {
     label: "Natural language",
-    sectionTitle: "Natural languages",
+    sectionTitle: "Natural-language features",
     icon: Sparkles,
     tint: "text-violet-600",
   },
@@ -79,6 +87,50 @@ function ProvenanceBadge({ surface }: { surface: AISurface }) {
   )
 }
 
+function SurfaceInputsField({ surfaceId, lines }: { surfaceId: string; lines: string[] }) {
+  return (
+    <Field
+      label="Inputs"
+      value={
+        <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+          {lines.map((line, index) => (
+            <li key={`${surfaceId}-in-${index}`}>{line}</li>
+          ))}
+        </ul>
+      }
+    />
+  )
+}
+
+function SurfaceTrainingDataField({ surface }: { surface: AISurface }) {
+  const td = surface.trainingData
+  if (!td) return null
+  return (
+    <Field
+      label="Training data"
+      value={
+        <span className="text-muted-foreground">
+          {td.source}
+          <br />
+          <span className="text-xs">
+            Cohort: {td.cohort}
+            {td.rowCount ? ` • ${td.rowCount}` : ""}
+          </span>
+        </span>
+      }
+    />
+  )
+}
+
+function SurfaceNoteCallout({ children }: { children: ReactNode }) {
+  return (
+    <div className="border-l-2 border-amber-300 bg-amber-50/40 px-3 py-2 rounded-r text-muted-foreground">
+      <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">Note</span>
+      <p className="mt-1">{children}</p>
+    </div>
+  )
+}
+
 function SurfaceCard({ surface }: { surface: AISurface }) {
   const cat = CATEGORY_META[surface.category]
   const Icon = cat.icon
@@ -103,42 +155,12 @@ function SurfaceCard({ surface }: { surface: AISurface }) {
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         <Field label="Algorithm" value={surface.algorithm} />
-        <Field
-          label="Inputs"
-          value={
-            <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-              {surface.inputs.map((line, index) => (
-                <li key={`${surface.id}-in-${index}`}>{line}</li>
-              ))}
-            </ul>
-          }
-        />
-        {surface.trainingData && (
-          <Field
-            label="Training data"
-            value={
-              <span className="text-muted-foreground">
-                {surface.trainingData.source}
-                <br />
-                <span className="text-xs">
-                  Cohort: {surface.trainingData.cohort}
-                  {surface.trainingData.rowCount ? ` • ${surface.trainingData.rowCount}` : ""}
-                </span>
-              </span>
-            }
-          />
-        )}
+        <SurfaceInputsField surfaceId={surface.id} lines={surface.inputs} />
+        <SurfaceTrainingDataField surface={surface} />
         <Field label="Where it runs" value={surface.runsOn} />
         <Field label="Data flow on invocation" value={surface.dataFlow} />
         <Field label="Retention policy" value={surface.retentionPolicy} />
-        {surface.notes && (
-          <div className="border-l-2 border-amber-300 bg-amber-50/40 px-3 py-2 rounded-r text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-              Note
-            </span>
-            <p className="mt-1">{surface.notes}</p>
-          </div>
-        )}
+        {surface.notes ? <SurfaceNoteCallout>{surface.notes}</SurfaceNoteCallout> : null}
       </CardContent>
     </Card>
   )
@@ -152,6 +174,31 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
       </div>
       <div className="text-muted-foreground whitespace-pre-line">{value}</div>
     </div>
+  )
+}
+
+function CategorySurfaceSection({
+  category,
+  surfaces,
+}: {
+  category: AISurface["category"]
+  surfaces: AISurface[]
+}) {
+  const meta = CATEGORY_META[category]
+  const Icon = meta.icon
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Icon className={`h-5 w-5 ${meta.tint}`} />
+        <h2 className="text-xl font-semibold">{meta.sectionTitle}</h2>
+        <span className="text-xs text-muted-foreground">({surfaces.length})</span>
+      </div>
+      <div className="grid gap-4">
+        {surfaces.map((s) => (
+          <SurfaceCard key={s.id} surface={s} />
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -216,21 +263,8 @@ export default function AITransparencyPage() {
         {AI_SURFACE_CATEGORY_ORDER.map((category) => {
           const items = grouped[category]
           if (items.length === 0) return null
-          const cat = CATEGORY_META[category]
-          const Icon = cat.icon
           return (
-            <section key={category} className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Icon className={`h-5 w-5 ${cat.tint}`} />
-                <h2 className="text-xl font-semibold">{cat.sectionTitle}</h2>
-                <span className="text-xs text-muted-foreground">({items.length})</span>
-              </div>
-              <div className="grid gap-4">
-                {items.map((s) => (
-                  <SurfaceCard key={s.id} surface={s} />
-                ))}
-              </div>
-            </section>
+            <CategorySurfaceSection key={category} category={category} surfaces={items} />
           )
         })}
 
