@@ -389,6 +389,19 @@ export default function MethodologyPage() {
           </Card>
         </section>
 
+        {/* Cross-link to AI Transparency */}
+        <section className="space-y-2 border-t border-border pt-6">
+          <h2 className="text-lg font-semibold">See also</h2>
+          <p className="text-sm text-muted-foreground">
+            For an inventory of every AI surface in this dashboard — what it is, where it runs,
+            what data flows where, and what is retained — see the{" "}
+            <Link href="/ai-transparency" className="text-blue-600 hover:underline">
+              AI Transparency page
+            </Link>
+            .
+          </p>
+        </section>
+
         {/* Citations */}
         <section className="space-y-4 border-t border-border pt-6">
           <h2 className="text-lg font-semibold">References</h2>

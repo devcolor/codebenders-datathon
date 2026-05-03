@@ -18,6 +18,7 @@ const NAV_LINKS: Array<{ href: string; label: string; roles?: Role[] }> = [
   { href: "/students",  label: "Students"  },
   { href: "/query",     label: "Query"     },
   { href: "/discovery/aascu", label: "Discovery", roles: ["admin", "ir", "leadership"] },
+  { href: "/ai-transparency", label: "AI Transparency" },
   { href: "/admin/upload", label: "Admin", roles: ["admin", "ir"] },
 ]
 
