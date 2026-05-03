@@ -39,6 +39,15 @@ interface FerpaConfig {
   llm: { sdk_markers: string[] }
 }
 
+/** Repeated regulatory hooks — keep literals identical to historical reports. */
+const REG_LEI = "§99.31(a)(1)(i) — legitimate educational interest"
+const REG_CONTRACTOR = "§99.31(a)(1)(ii)(A)(B) — contractor disclosure rules"
+const REG_REDISCLOSURE = "§99.33 — limits on redisclosure"
+const REG_RIGHTS = "§99.7 — policy and rights awareness"
+
+const SKIP_DIRS = new Set(["node_modules", ".next", "dist", ".git"])
+const CONSOLE_LEVELS = ["log", "debug", "info"]
+
 function parseArgs(argv: string[]): { repoRoot: string; outPath: string } {
   let repoRoot = process.cwd()
   let outPath = ""
@@ -58,8 +67,7 @@ function parseArgs(argv: string[]): { repoRoot: string; outPath: string } {
 
 function walkFiles(root: string, exts: Set<string>): string[] {
   const out: string[] = []
-  const skip = new Set(["node_modules", ".next", "dist", ".git"])
-  function walk(dir: string) {
+  function walk(dir: string): void {
     let entries: fs.Dirent[]
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -67,7 +75,7 @@ function walkFiles(root: string, exts: Set<string>): string[] {
       return
     }
     for (const e of entries) {
-      if (skip.has(e.name)) continue
+      if (SKIP_DIRS.has(e.name)) continue
       const p = path.join(dir, e.name)
       if (e.isDirectory()) walk(p)
       else if (exts.has(path.extname(e.name))) out.push(p)
@@ -78,20 +86,33 @@ function walkFiles(root: string, exts: Set<string>): string[] {
 }
 
 function hashFile(filePath: string): string {
-  const h = crypto.createHash("sha256")
-  h.update(fs.readFileSync(filePath))
-  return h.digest("hex").slice(0, 16)
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex").slice(0, 16)
 }
 
 function rel(repoRoot: string, abs: string): string {
   return path.relative(repoRoot, abs).split(path.sep).join("/")
 }
 
-function add(
-  findings: Finding[],
-  f: Finding
-): void {
-  findings.push(f)
+function escapeRegexChars(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function routeMentionedInTransparency(apiPath: string, transparency: string): boolean {
+  if (transparency.includes(apiPath)) return true
+  if (apiPath.includes("analyze") && transparency.includes("analyze")) return true
+  if (apiPath.includes("query-summary") && transparency.includes("query-summary")) return true
+  if (apiPath.includes("explain-pairing") && transparency.includes("explain-pairing")) return true
+  return false
+}
+
+function dedupeFindings(findings: Finding[]): Finding[] {
+  const seen = new Set<string>()
+  return findings.filter((f) => {
+    const k = `${f.severity}|${f.category}|${f.file}|${f.line ?? 0}|${f.title}`
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
 }
 
 /** Regex: excluded column appears in SELECT ... context in a TS string literal */
@@ -108,14 +129,14 @@ function scanSqlLiteralsForExclusions(
     const line = content.slice(0, m.index).split("\n").length
     if (!/\bfrom\b/i.test(chunk)) continue
     for (const col of exclusions) {
-      const word = new RegExp(`\\b${col.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")
+      const word = new RegExp(`\\b${escapeRegexChars(col)}\\b`, "i")
       if (word.test(chunk) && !/FERPA-OK:/i.test(chunk)) {
-        add(findings, {
+        findings.push({
           severity: "Warning",
           category: "select_exclusion_literal",
           file: relPath,
           line,
-          regulation: "§99.31(a)(1)(i) — legitimate educational interest",
+          regulation: REG_LEI,
           title: "SQL text may select a restricted student identifier or field",
           description:
             `A string in this file contains a SELECT-style fragment that references "${col}". Under FERPA, releasing such fields in the wrong context can expose personally identifiable information from education records. Institutions should verify this string is never executed for end-user export without appropriate access control and minimization.`,
@@ -139,7 +160,7 @@ function scanConsoleLeak(
     if (
       ts.isCallExpression(node) &&
       ts.isPropertyAccessExpression(node.expression) &&
-      ["log", "debug", "info"].includes(node.expression.name.text) &&
+      CONSOLE_LEVELS.includes(node.expression.name.text) &&
       ts.isIdentifier(node.expression.expression) &&
       node.expression.expression.text === "console"
     ) {
@@ -149,12 +170,12 @@ function scanConsoleLeak(
         !/FERPA-OK:/i.test(node.getFullText(sourceFile))
       ) {
         const pos = sourceFile.getLineAndCharacterOfPosition(node.getStart())
-        add(findings, {
+        findings.push({
           severity: isClientish ? "Warning" : "Note",
           category: "console_leak",
           file: relPath,
           line: pos.line + 1,
-          regulation: "§99.33 — limits on redisclosure",
+          regulation: REG_REDISCLOSURE,
           title: "Console logging may capture student-level query or response objects",
           description:
             "Browser or server consoles are not a controlled disclosure channel. Logging plans, results, or ambiguous large objects can place education-record-derived data where institutional access rules no longer apply (screenshots, remote debugging, third-party tooling).",
@@ -171,9 +192,9 @@ function scanConsoleLeak(
 function apiUrlFromRouteFile(routeFile: string, dashRoot: string): string {
   const apiRoot = path.join(dashRoot, "app", "api")
   const dir = path.dirname(routeFile)
-  let rel = path.relative(apiRoot, dir)
-  if (rel.startsWith("..")) return ""
-  const segments = rel.split(path.sep).filter(Boolean)
+  let relToApi = path.relative(apiRoot, dir)
+  if (relToApi.startsWith("..")) return ""
+  const segments = relToApi.split(path.sep).filter(Boolean)
   const url = segments.map((s) => (s.startsWith("[") && s.endsWith("]") ? `:${s.slice(1, -1)}` : s)).join("/")
   return `/api/${url}`
 }
@@ -196,11 +217,11 @@ function main(): void {
   if (fs.existsSync(executeSql)) {
     const ex = fs.readFileSync(executeSql, "utf8")
     if (!ex.includes("inspectSelectForFerpaExclusions")) {
-      add(findings, {
+      findings.push({
         severity: "Critical",
         category: "ferpa_select_enforcement_gap",
         file: rel(repoRoot, executeSql),
-        regulation: "§99.31(a)(1)(i) — legitimate educational interest",
+        regulation: REG_LEI,
         title: "Arbitrary SQL execution path has no FERPA column guard",
         description:
           "The `/api/analyze` route applies a conservative SELECT-clause check (`inspectSelectForFerpaExclusions`) for columns such as Student_GUID, in addition to prompt instructions (#127). This endpoint executes whatever SQL the caller supplies with no equivalent guard — so the same identifier could still appear in results when queries bypass the analyzer (for example rule-based fallback → `/api/execute-sql`).",
@@ -209,11 +230,11 @@ function main(): void {
       })
     }
     if (!ex.includes(config.rbac.header_name)) {
-      add(findings, {
+      findings.push({
         severity: "Warning",
         category: "rbac_gap",
         file: rel(repoRoot, executeSql),
-        regulation: "§99.31(a)(1)(i) — legitimate educational interest",
+        regulation: REG_LEI,
         title: "SQL execution API does not check institutional role header",
         description:
           "Without application-layer role checks, any caller who can reach this route may exercise the privileges of the database connection — a common mismatch with FERPA’s expectation that access to education records tracks legitimate educational interest.",
@@ -227,11 +248,11 @@ function main(): void {
   if (fs.existsSync(analyzeRoute)) {
     const an = fs.readFileSync(analyzeRoute, "utf8")
     if (!an.includes(config.rbac.header_name)) {
-      add(findings, {
+      findings.push({
         severity: "Warning",
         category: "rbac_gap",
         file: rel(repoRoot, analyzeRoute),
-        regulation: "§99.31(a)(1)(i) — legitimate educational interest",
+        regulation: REG_LEI,
         title: "LLM query planner route has no role header check",
         description:
           "This route sends schema metadata to a vendor model and returns executable SQL. Institutional policy usually ties such capability to specific staff roles; missing header checks increase the risk of over-broad access if the network perimeter is ever misconfigured.",
@@ -240,11 +261,11 @@ function main(): void {
       })
     }
     if (an.includes("Student_GUID") && an.includes("FERPA COMPLIANCE")) {
-      add(findings, {
+      findings.push({
         severity: "Note",
         category: "vendor_schema_disclosure",
         file: rel(repoRoot, analyzeRoute),
-        regulation: "§99.31(a)(1)(ii)(A)(B) — contractor disclosure rules",
+        regulation: REG_CONTRACTOR,
         title: "Cloud LLM receives schema text that names the student identifier column",
         description:
           "Even when result rows are not sent, the prompt embeds column names and descriptions that reveal how individuals are keyed in the database. Vendors may log prompts for abuse monitoring; institutions should treat this as a controlled disclosure bounded by contract and the school-official framework.",
@@ -260,11 +281,11 @@ function main(): void {
     const cfg = fs.readFileSync(cfgFile, "utf8")
     const qe = fs.readFileSync(qeFile, "utf8")
     if (cfg.includes("schools.syntex-ai.com") && /fetch\s*\(\s*url\s*\)/.test(qe)) {
-      add(findings, {
+      findings.push({
         severity: "Warning",
         category: "external_student_data_host",
         file: rel(repoRoot, qeFile),
-        regulation: "§99.31(a)(1)(ii)(A)(B) — contractor disclosure rules",
+        regulation: REG_CONTRACTOR,
         title: "Query executor can fetch student-level rows from a non-institutional host",
         description:
           "When direct-database mode and FORCE_DIRECT_DB hardening are not in effect, the dashboard retrieves analysis-ready rows from a project-hosted API domain rather than from the institution’s Postgres deployment. That shifts custody of student-level payloads and may affect contractual and FERPA oversight expectations.",
@@ -279,11 +300,11 @@ function main(): void {
     if (!fs.existsSync(abs)) continue
     const txt = fs.readFileSync(abs, "utf8")
     if (!txt.includes(config.rbac.header_name)) {
-      add(findings, {
+      findings.push({
         severity: "Warning",
         category: "rbac_gap",
         file: rel(repoRoot, abs),
-        regulation: "§99.31(a)(1)(i) — legitimate educational interest",
+        regulation: REG_LEI,
         title: "Student-data API route omits configured role header check",
         description:
           "This route appears on the institutional student-data route list in ferpa-config.yaml but does not reference the configured RBAC header. Access to education records should follow role-based institutional policy.",
@@ -299,30 +320,20 @@ function main(): void {
   for (const f of apiFiles) {
     if (!f.endsWith(`${path.sep}route.ts`)) continue
     const t = fs.readFileSync(f, "utf8")
-    if (markers.some((m) => t.includes(m))) {
-      llmRoutes.push(f)
-    }
+    if (markers.some((m) => t.includes(m))) llmRoutes.push(f)
   }
 
   const transparencyPath = path.join(repoRoot, config.project.ai_transparency_file)
-  const transparency = fs.existsSync(transparencyPath)
-    ? fs.readFileSync(transparencyPath, "utf8")
-    : ""
+  const transparency = fs.existsSync(transparencyPath) ? fs.readFileSync(transparencyPath, "utf8") : ""
 
   for (const f of llmRoutes) {
     const apiPath = apiUrlFromRouteFile(f, dashRoot)
-    const mentioned =
-      Boolean(apiPath) &&
-      (transparency.includes(apiPath) ||
-        (apiPath.includes("analyze") && transparency.includes("analyze")) ||
-        (apiPath.includes("query-summary") && transparency.includes("query-summary")) ||
-        (apiPath.includes("explain-pairing") && transparency.includes("explain-pairing")))
-    if (apiPath && !mentioned) {
-      add(findings, {
+    if (apiPath && !routeMentionedInTransparency(apiPath, transparency)) {
+      findings.push({
         severity: "Note",
         category: "ai_transparency_drift",
         file: rel(repoRoot, f),
-        regulation: "§99.7 — policy and rights awareness",
+        regulation: REG_RIGHTS,
         title: "LLM call site may be missing from the AI transparency inventory",
         description:
           "Institutions increasingly publish AI transparency pages for procurement. An undeployed or undocumented model route creates a gap between what legal teams believe is running and what code can execute.",
@@ -346,7 +357,6 @@ function main(): void {
     }
   }
 
-  const compilerOptions: ts.CompilerOptions = { target: ts.ScriptTarget.ES2022, allowJs: true }
   for (const f of walkFiles(path.join(dashRoot, "app"), new Set([".tsx", ".ts"]))) {
     const content = fs.readFileSync(f, "utf8")
     const sf = ts.createSourceFile(f, content, ts.ScriptTarget.ES2022, true, f.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
@@ -354,13 +364,7 @@ function main(): void {
     scanConsoleLeak(ts, sf, rel(repoRoot, f), findings, clientish)
   }
 
-  const seen = new Set<string>()
-  const deduped = findings.filter((f) => {
-    const k = `${f.severity}|${f.category}|${f.file}|${f.line ?? 0}|${f.title}`
-    if (seen.has(k)) return false
-    seen.add(k)
-    return true
-  })
+  const deduped = dedupeFindings(findings)
 
   const payload = {
     layer: "A",
