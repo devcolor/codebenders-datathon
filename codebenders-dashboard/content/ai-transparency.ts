@@ -332,11 +332,11 @@ export const AI_SURFACES: AISurface[] = [
     trainingData: null,
     runsOn: "schools.syntex-ai.com — hosted by the project team, not by the institution.",
     dataFlow:
-      "When the dashboard is run in `useDirectDB = false` mode (default for some query paths in `lib/query-executor.ts`), query plans are converted into URL parameters and fetched from `https://schools.syntex-ai.com/<institution>/analysis-ready`. The API returns analysis-ready rows that the dashboard then groups/aggregates client-side.\n\nWhen `useDirectDB = true`, queries go to the local `/api/execute-sql` route instead and never reach syntex-ai.com.",
+      "When the dashboard is run in `useDirectDB = false` mode (default for some query paths in `lib/query-executor.ts`), query plans are converted into URL parameters and fetched from `https://schools.syntex-ai.com/<institution>/analysis-ready`. The API returns analysis-ready rows that the dashboard then groups/aggregates client-side.\n\nWhen `useDirectDB = true`, queries go to the local `/api/execute-sql` route instead and never reach syntex-ai.com.\n\nWhen the deployment sets `FORCE_DIRECT_DB=true` (see `lib/config.ts`, `env.example`, #126), the external URL is never built or fetched; execution is always direct-DB with a fail-closed guard.",
     retentionPolicy:
       "Logging and retention at schools.syntex-ai.com are governed by the project deployment, not by the institution. Institutions evaluating procurement should ask whether their deployment uses direct-DB mode or the external API.",
     notes:
-      "This entry exists for full-stack transparency: institutions deploying this dashboard should know that, in default configuration for some queries, student-level rows are returned from a non-institutional host. A deployment hardening option to force `useDirectDB = true` end-to-end is tracked as a follow-up issue.",
+      "Institutions should confirm whether their deployment uses the external host or direct DB. Procurement-hardened installs set `FORCE_DIRECT_DB=true` (#126) so student-level rows are never fetched from schools.syntex-ai.com.",
   },
 
   // ─────────────────────────── In-development ───────────────────────────

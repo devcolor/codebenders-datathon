@@ -10,6 +10,7 @@ import { QueryPlanPanel } from "@/components/query-plan-panel"
 import { QueryHistoryPanel } from "@/components/query-history-panel"
 import { analyzePrompt } from "@/lib/prompt-analyzer"
 import { executeQuery } from "@/lib/query-executor"
+import { isForceDirectDb } from "@/lib/config"
 import type { QueryPlan, QueryResult, HistoryEntry } from "@/lib/types"
 import { Loader2, Sparkles, PanelLeft } from "lucide-react"
 
@@ -19,6 +20,9 @@ const INSTITUTIONS = [
   { name: "Cal State San Bernardino", code: "csusb" },
   { name: "Thomas More University", code: "ky" },
 ]
+
+/** Build-time / env snapshot: when true, UI locks to direct DB (matches `lib/config` `isForceDirectDb`). */
+const directDbForcedByEnv = isForceDirectDb()
 
 export default function QueryPage() {
   const [institution, setInstitution] = useState<string>(INSTITUTIONS[0].code)
@@ -154,6 +158,15 @@ export default function QueryPage() {
     }
   }
 
+  let directDbModeHint: string
+  if (directDbForcedByEnv) {
+    directDbModeHint = "(FORCE_DIRECT_DB — external API disabled)"
+  } else if (useDirectDB) {
+    directDbModeHint = "(execute SQL directly)"
+  } else {
+    directDbModeHint = "(fetch from API endpoints)"
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Slim page-level header bar */}
@@ -202,14 +215,19 @@ export default function QueryPage() {
           {/* Query controls */}
           <div className="border border-border/60 rounded-lg p-5 space-y-4">
             {/* DB mode toggle row */}
-            <div className="flex items-center gap-3 pb-4 border-b border-border/40">
-              <Switch id="db-mode" checked={useDirectDB} onCheckedChange={setUseDirectDB} />
+            <div className="flex flex-wrap items-center gap-3 pb-4 border-b border-border/40">
+              <Switch
+                id="db-mode"
+                checked={directDbForcedByEnv || useDirectDB}
+                onCheckedChange={(v) => {
+                  if (!directDbForcedByEnv) setUseDirectDB(v)
+                }}
+                disabled={directDbForcedByEnv}
+              />
               <Label htmlFor="db-mode" className="text-sm font-medium cursor-pointer">
-                {useDirectDB ? "Direct Database" : "API Mode"}
+                {directDbForcedByEnv || useDirectDB ? "Direct Database" : "API Mode"}
               </Label>
-              <span className="text-xs text-muted-foreground font-mono">
-                {useDirectDB ? "(execute SQL directly)" : "(fetch from API endpoints)"}
-              </span>
+              <span className="text-xs text-muted-foreground font-mono">{directDbModeHint}</span>
             </div>
 
             {/* Institution selector */}

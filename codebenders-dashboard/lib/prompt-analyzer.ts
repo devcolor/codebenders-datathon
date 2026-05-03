@@ -1,4 +1,5 @@
 import type { QueryPlan } from "./types"
+import { buildExternalAnalysisReadyUrl } from "./config"
 
 // Database schema mapping
 const SCHEMA_CONFIG = {
@@ -154,7 +155,7 @@ ORDER BY ${orderByColumn}`.trim()
     })
   }
 
-  const queryString = `https://schools.syntex-ai.com/${institutionCode}/analysis-ready?${queryParams.toString()}`
+  const queryString = buildExternalAnalysisReadyUrl(institutionCode, queryParams)
 
   return {
     metric,
