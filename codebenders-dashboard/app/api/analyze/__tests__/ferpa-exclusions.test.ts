@@ -14,24 +14,32 @@ describe("inspectSelectForFerpaExclusions", () => {
     expect(inspectSelectForFerpaExclusions(sql, excluded)).toEqual({ ok: true })
   })
 
-  it("rejects direct GUID projection", () => {
-    const sql = `SELECT "Student_GUID", "Cohort" FROM student_level_with_predictions`
-    const r = inspectSelectForFerpaExclusions(sql, excluded)
-    expect(r).toEqual({ ok: false, violation: "Student_GUID" })
-  })
+  const rejections: { title: string; sql: string; violation: string }[] = [
+    {
+      title: "direct GUID projection",
+      sql: `SELECT "Student_GUID", "Cohort" FROM student_level_with_predictions`,
+      violation: "Student_GUID",
+    },
+    {
+      title: "aliased GUID projection",
+      sql: `SELECT "Student_GUID" AS sid FROM student_level_with_predictions`,
+      violation: "Student_GUID",
+    },
+    {
+      title: "SELECT *",
+      sql: `SELECT * FROM student_level_with_predictions`,
+      violation: "*",
+    },
+  ]
 
-  it("rejects aliased GUID projection", () => {
-    const sql = `SELECT "Student_GUID" AS sid FROM student_level_with_predictions`
-    const r = inspectSelectForFerpaExclusions(sql, excluded)
-    expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.violation).toBe("Student_GUID")
-  })
-
-  it("rejects SELECT *", () => {
-    const sql = `SELECT * FROM student_level_with_predictions`
-    const r = inspectSelectForFerpaExclusions(sql, excluded)
-    expect(r).toEqual({ ok: false, violation: "*" })
-  })
+  for (const { title, sql, violation } of rejections) {
+    it(`rejects ${title}`, () => {
+      expect(inspectSelectForFerpaExclusions(sql, excluded)).toEqual({
+        ok: false,
+        violation,
+      })
+    })
+  }
 
   it("allows SELECT * when exclusion list is empty", () => {
     expect(inspectSelectForFerpaExclusions(`SELECT * FROM t`, [])).toEqual({ ok: true })

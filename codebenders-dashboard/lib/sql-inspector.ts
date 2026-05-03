@@ -28,14 +28,14 @@ function splitTopLevelCommaItems(expr: string): string[] {
 function extractSelectClause(sql: string): string | null {
   const m = /\bselect\s+/i.exec(sql)
   if (!m || m.index === undefined) return null
-  let i = m.index + m[0].length
+  const listStart = m.index + m[0].length
   let depth = 0
-  for (; i < sql.length; i++) {
+  for (let i = listStart; i < sql.length; i++) {
     const ch = sql[i]
     if (ch === "(") depth++
     else if (ch === ")") depth--
     else if (depth === 0 && /^from\b/i.test(sql.slice(i))) {
-      return sql.slice(m.index + m[0].length, i).trim()
+      return sql.slice(listStart, i).trim()
     }
   }
   return null
@@ -47,25 +47,20 @@ export function inspectSelectForFerpaExclusions(
 ): { ok: true } | { ok: false; violation: string } {
   if (!excluded.length) return { ok: true }
 
-  const rawClause = extractSelectClause(sql)
-  if (rawClause === null) return { ok: false, violation: excluded[0] }
+  const raw = extractSelectClause(sql)
+  const selectList = (raw?.replace(/^\s*distinct\s+/i, "").trim()) ?? ""
+  if (!selectList) return { ok: false, violation: excluded[0] }
 
-  const inner = rawClause.replace(/^\s*distinct\s+/i, "").trim()
-  if (!inner) return { ok: false, violation: excluded[0] }
-
-  for (const item of splitTopLevelCommaItems(inner)) {
-    if (/^\*\s*$/.test(item)) {
-      return { ok: false, violation: "*" }
-    }
+  if (splitTopLevelCommaItems(selectList).some((item) => /^\*\s*$/.test(item))) {
+    return { ok: false, violation: "*" }
   }
 
   for (const col of excluded) {
     const quoted = `"${col.replace(/"/g, '""')}"`
-    if (inner.includes(quoted)) {
+    if (selectList.includes(quoted)) {
       return { ok: false, violation: col }
     }
-    const re = new RegExp(`\\b${escapeRegex(col)}\\b`, "i")
-    if (re.test(inner)) {
+    if (new RegExp(`\\b${escapeRegex(col)}\\b`, "i").test(selectList)) {
       return { ok: false, violation: col }
     }
   }

@@ -109,6 +109,20 @@ export async function GET() {
   return NextResponse.json({ status: "ok", message: "Analyze route is loaded" })
 }
 
+function ferpaBlockedResponse(
+  sql: string,
+  ferpaExcluded: readonly string[]
+): NextResponse | null {
+  if (!ferpaExcluded.length || !sql) return null
+  const check = inspectSelectForFerpaExclusions(sql, ferpaExcluded)
+  if (check.ok) return null
+  console.warn("[analyze] FERPA exclusion violated:", check.violation)
+  return NextResponse.json(
+    { error: "FERPA exclusion violated", column: check.violation },
+    { status: 422 }
+  )
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { prompt, institution } = await request.json()
@@ -241,18 +255,11 @@ Make sure the SQL is valid PostgreSQL and addresses exactly what the user asked 
       queryString: finalObject.queryString || "",
     }
 
-    const sql = typeof result.sql === "string" ? result.sql : ""
-    const ferpaExcluded = schemaInfo.ferpaExcluded ?? []
-    if (ferpaExcluded.length > 0 && sql) {
-      const ferpaCheck = inspectSelectForFerpaExclusions(sql, ferpaExcluded)
-      if (!ferpaCheck.ok) {
-        console.warn("[analyze] FERPA exclusion violated:", ferpaCheck.violation)
-        return NextResponse.json(
-          { error: "FERPA exclusion violated", column: ferpaCheck.violation },
-          { status: 422 }
-        )
-      }
-    }
+    const blocked = ferpaBlockedResponse(
+      typeof result.sql === "string" ? result.sql : "",
+      schemaInfo.ferpaExcluded ?? []
+    )
+    if (blocked) return blocked
 
     return NextResponse.json(result)
   } catch (error) {
