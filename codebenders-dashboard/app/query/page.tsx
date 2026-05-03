@@ -10,6 +10,7 @@ import { QueryPlanPanel } from "@/components/query-plan-panel"
 import { QueryHistoryPanel } from "@/components/query-history-panel"
 import { analyzePrompt } from "@/lib/prompt-analyzer"
 import { executeQuery } from "@/lib/query-executor"
+import { isForceDirectDb } from "@/lib/config"
 import type { QueryPlan, QueryResult, HistoryEntry } from "@/lib/types"
 import { Loader2, Sparkles, PanelLeft } from "lucide-react"
 
@@ -19,6 +20,8 @@ const INSTITUTIONS = [
   { name: "Cal State San Bernardino", code: "csusb" },
   { name: "Thomas More University", code: "ky" },
 ]
+
+const forceDirectDbEnv = isForceDirectDb()
 
 export default function QueryPage() {
   const [institution, setInstitution] = useState<string>(INSTITUTIONS[0].code)
@@ -202,13 +205,24 @@ export default function QueryPage() {
           {/* Query controls */}
           <div className="border border-border/60 rounded-lg p-5 space-y-4">
             {/* DB mode toggle row */}
-            <div className="flex items-center gap-3 pb-4 border-b border-border/40">
-              <Switch id="db-mode" checked={useDirectDB} onCheckedChange={setUseDirectDB} />
+            <div className="flex flex-wrap items-center gap-3 pb-4 border-b border-border/40">
+              <Switch
+                id="db-mode"
+                checked={forceDirectDbEnv || useDirectDB}
+                onCheckedChange={(v) => {
+                  if (!forceDirectDbEnv) setUseDirectDB(v)
+                }}
+                disabled={forceDirectDbEnv}
+              />
               <Label htmlFor="db-mode" className="text-sm font-medium cursor-pointer">
-                {useDirectDB ? "Direct Database" : "API Mode"}
+                {forceDirectDbEnv || useDirectDB ? "Direct Database" : "API Mode"}
               </Label>
               <span className="text-xs text-muted-foreground font-mono">
-                {useDirectDB ? "(execute SQL directly)" : "(fetch from API endpoints)"}
+                {forceDirectDbEnv
+                  ? "(FORCE_DIRECT_DB — external API disabled)"
+                  : useDirectDB
+                    ? "(execute SQL directly)"
+                    : "(fetch from API endpoints)"}
               </span>
             </div>
 

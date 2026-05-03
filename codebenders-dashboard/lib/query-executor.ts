@@ -1,4 +1,5 @@
 import type { QueryPlan, QueryResult } from "./types"
+import { assertExternalDataApiAllowed, isForceDirectDb } from "./config"
 
 export async function executeQuery(
   plan: QueryPlan,
@@ -6,11 +7,13 @@ export async function executeQuery(
   useDirectDB = false,
 ): Promise<QueryResult> {
   try {
-    if (useDirectDB) {
+    const forceDirect = isForceDirectDb()
+    if (forceDirect || useDirectDB) {
       return await executeDirectDB(plan, institutionCode)
     }
 
     const url = plan.queryString
+    assertExternalDataApiAllowed(url)
     const response = await fetch(url)
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`)

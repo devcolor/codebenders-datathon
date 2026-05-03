@@ -1,7 +1,9 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  env: {
+    FORCE_DIRECT_DB: process.env.FORCE_DIRECT_DB ?? "false",
+  },
+}
 
-export default nextConfig;
+export default nextConfig
