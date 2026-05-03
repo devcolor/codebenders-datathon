@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Bishop State Student Success Prediction - Full-stack ML + web application predicting student outcomes for Bishop State Community College. Uses 5 ML models to generate retention predictions, early warnings, time-to-credential estimates, credential type forecasts, and GPA predictions for ~4K students.
+Bishop State Student Success Prediction - Full-stack ML + web application predicting student outcomes for Bishop State Community College. Uses 6 ML models to generate retention predictions, time-to-credential estimates, credential type forecasts, gateway math/English success predictions, and first-semester low-GPA predictions for ~4K students. Authoritative AI/ML inventory: `codebenders-dashboard/content/ai-transparency.ts`.
 
 ## Tech Stack
 
@@ -15,14 +15,14 @@ Bishop State Student Success Prediction - Full-stack ML + web application predic
 | Charts | Recharts |
 | UI Components | shadcn/ui (Radix UI) |
 | Database | Postgres (Supabase), pg driver |
-| AI Features | OpenAI (natural language query analysis) |
+| AI Features | OpenAI gpt-4o-mini for: NL query → SQL analyzer (`codebenders-dashboard/app/api/analyze`), query result summarizer (`codebenders-dashboard/app/api/query-summary`), course-pairing explainer (`codebenders-dashboard/app/api/courses/explain-pairing`). Rule-based fallback at `codebenders-dashboard/lib/prompt-analyzer.ts`. Authoritative list: `codebenders-dashboard/content/ai-transparency.ts`. |
 | Infrastructure | Docker Compose, Vercel |
 
 ## Key Directories
 
 | Directory | Purpose |
 |-----------|---------|
-| `ai_model/` | Python ML pipeline - 5 models (XGBoost + Random Forest) |
+| `ai_model/` | Python ML pipeline - 6 models (XGBoost + Random Forest). Authoritative inventory: `codebenders-dashboard/content/ai-transparency.ts`. |
 | `codebenders-dashboard/` | Next.js web application |
 | `codebenders-dashboard/app/` | App Router pages and API routes |
 | `codebenders-dashboard/components/` | React components (shadcn/ui based) |
@@ -87,6 +87,7 @@ Check these files for detailed information on specific topics:
 
 | Topic | File |
 |-------|------|
+| AI / ML surface inventory (models, LLM routes, data flows) | `codebenders-dashboard/content/ai-transparency.ts` |
 | Architectural patterns | `.claude/docs/architectural_patterns.md` |
 | Project overview | `README.md` |
 | Quick start guide | `QUICKSTART.md` |
