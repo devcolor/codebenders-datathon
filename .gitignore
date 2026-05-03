@@ -165,6 +165,9 @@ docs/Copy-of-AI-Powered-Student-Success-Analytics.pdf
 docs/CodeBenders-PRD_Student_Success_Analytics.pdf
 DOCUMENTATION_ISSUES.md
 
+# FERPA audit reports (generated locally; see scripts/ferpa-audit.sh)
+docs/ferpa-audit-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md
+
 # Misc
 .cache/
 *.seed
