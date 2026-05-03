@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { AlertTriangle, CheckCircle, Download } from "lucide-react"
 import {
   serializeUploadValidationReportCsv,
+  UPLOAD_INSERTED_SWING_THRESHOLD_PCT,
   type UploadCommitApiResponse,
 } from "@/lib/upload-validation-report"
 
@@ -14,6 +15,17 @@ function reportFilenameDate(iso: string): string {
   const m = String(d.getMonth() + 1).padStart(2, "0")
   const day = String(d.getDate()).padStart(2, "0")
   return `${y}-${m}-${day}`
+}
+
+function signedIntLabel(n: number): string {
+  const sign = n >= 0 ? "+" : ""
+  return `${sign}${n.toLocaleString()}`
+}
+
+function summaryIconClass(headlineFailed: boolean, headlinePartial: boolean): string {
+  if (headlineFailed) return "text-red-600"
+  if (headlinePartial) return "text-amber-600"
+  return "text-green-600"
 }
 
 interface UploadSummaryProps {
@@ -43,11 +55,11 @@ export function UploadSummary({
       schemaLabel,
       uploadId: report.uploadId,
       totalRowsInFile: report.totalRowsInFile,
-      inserted,
-      skipped,
-      errorCount: errorsTotal,
-      errors,
-      diff,
+      inserted: report.inserted,
+      skipped: report.skipped,
+      errorCount: report.errorsTotal,
+      errors: report.errors,
+      diff: report.diff,
       reportGeneratedAt: report.reportGeneratedAt,
     })
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
@@ -59,7 +71,7 @@ export function UploadSummary({
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  }, [diff, errors, filename, inserted, report, schemaLabel, skipped, errorsTotal])
+  }, [filename, schemaLabel, report])
 
   const statusClass = useMemo(() => {
     if (headlineFailed) return "bg-red-50 border-red-200"
@@ -67,7 +79,7 @@ export function UploadSummary({
     return "bg-green-50 border-green-200"
   }, [headlineFailed, headlinePartial])
 
-  const iconClass = headlineFailed ? "text-red-600" : headlinePartial ? "text-amber-600" : "text-green-600"
+  const iconClass = summaryIconClass(headlineFailed, headlinePartial)
 
   return (
     <div className="text-center space-y-6 max-w-2xl mx-auto">
@@ -115,19 +127,14 @@ export function UploadSummary({
           </p>
           <ul className="space-y-1 text-xs">
             <li>
-              <span className="font-medium">Δ Inserted:</span>{" "}
-              {diff.rowsInsertedDelta >= 0 ? "+" : ""}
-              {diff.rowsInsertedDelta.toLocaleString()}
+              <span className="font-medium">Δ Inserted:</span> {signedIntLabel(diff.rowsInsertedDelta)}
             </li>
             <li>
-              <span className="font-medium">Δ Skipped:</span>{" "}
-              {diff.rowsSkippedDelta >= 0 ? "+" : ""}
-              {diff.rowsSkippedDelta.toLocaleString()}
+              <span className="font-medium">Δ Skipped:</span> {signedIntLabel(diff.rowsSkippedDelta)}
             </li>
             <li>
               <span className="font-medium">Δ Row-level issues:</span>{" "}
-              {diff.errorCountDelta >= 0 ? "+" : ""}
-              {diff.errorCountDelta.toLocaleString()}
+              {signedIntLabel(diff.errorCountDelta)}
             </li>
             {diff.percentInsertedChange != null ? (
               <li>
@@ -139,8 +146,8 @@ export function UploadSummary({
           {diff.anomalyLargeSwing ? (
             <p className="mt-3 text-amber-800 text-xs font-medium flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-              Inserted row count moved by 50% or more vs the last upload of this type — confirm cohort or
-              file scope before relying on aggregates.
+              Inserted row count moved by {UPLOAD_INSERTED_SWING_THRESHOLD_PCT}% or more vs the last upload
+              of this type — confirm cohort or file scope before relying on aggregates.
             </p>
           ) : null}
         </div>

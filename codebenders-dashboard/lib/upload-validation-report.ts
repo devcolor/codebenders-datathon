@@ -39,10 +39,32 @@ export interface UploadValidationDiff {
   anomalyLargeSwing: boolean
 }
 
-const LARGE_SWING_PCT = 50
+/** Magnitude threshold (percent points) for `anomalyLargeSwing` vs prior inserted rows. */
+export const UPLOAD_INSERTED_SWING_THRESHOLD_PCT = 50
+
+export interface UploadCurrentMetrics {
+  inserted: number
+  skipped: number
+  errorCount: number
+}
+
+/** Stored on `upload_history.validation_report` (JSONB). */
+export interface UploadHistoryStoredReport {
+  version: 1
+  schemaId: string
+  totalRowsInFile: number
+  inserted: number
+  skipped: number
+  errors: UploadRowError[]
+  errorsTotal: number
+  errorsTruncated: boolean
+  previousUpload: PreviousUploadSnapshot | null
+  diff: UploadValidationDiff | null
+  generatedAt: string
+}
 
 export function computeUploadDiff(
-  current: { inserted: number; skipped: number; errorCount: number },
+  current: UploadCurrentMetrics,
   previous: PreviousUploadSnapshot | null
 ): UploadValidationDiff | null {
   if (!previous) return null
@@ -53,7 +75,8 @@ export function computeUploadDiff(
   const percentInsertedChange =
     base > 0 ? Math.round(((current.inserted - base) / base) * 1000) / 10 : null
   const anomalyLargeSwing =
-    percentInsertedChange !== null && Math.abs(percentInsertedChange) >= LARGE_SWING_PCT
+    percentInsertedChange !== null &&
+    Math.abs(percentInsertedChange) >= UPLOAD_INSERTED_SWING_THRESHOLD_PCT
 
   return {
     rowsInsertedDelta,

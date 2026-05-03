@@ -6,11 +6,85 @@ import {
   computeUploadDiff,
   type PreviousUploadSnapshot,
   type UploadCommitApiResponse,
+  type UploadCurrentMetrics,
+  type UploadHistoryStoredReport,
+  type UploadRowError,
 } from "@/lib/upload-validation-report"
 
 const BATCH_SIZE = 500
 const MAX_ERRORS_IN_REPORT = 5000
 const MAX_ERRORS_IN_RESPONSE = 3000
+
+type UploadHistoryRow = {
+  id: string
+  filename: string
+  rows_inserted: number
+  rows_skipped: number
+  error_count: number
+  uploaded_at: Date
+}
+
+function pgErrorCode(err: unknown): string | undefined {
+  if (err && typeof err === "object" && "code" in err) {
+    return String((err as { code: unknown }).code)
+  }
+  return undefined
+}
+
+function isUndefinedColumnPgError(err: unknown): boolean {
+  return pgErrorCode(err) === "42703"
+}
+
+function previousUploadFromRow(row: UploadHistoryRow): PreviousUploadSnapshot {
+  return {
+    id: Number(row.id),
+    filename: row.filename,
+    rowsInserted: row.rows_inserted,
+    rowsSkipped: row.rows_skipped,
+    errorCount: row.error_count,
+    uploadedAt: row.uploaded_at.toISOString(),
+  }
+}
+
+function uploadStatus(errorsCount: number, inserted: number): "failed" | "partial" | "success" {
+  if (errorsCount > 0 && inserted === 0) return "failed"
+  if (errorsCount > 0) return "partial"
+  return "success"
+}
+
+async function insertUploadHistoryRow(params: {
+  pool: ReturnType<typeof getPool>
+  baseInsertParams: readonly [
+    string,
+    string,
+    string,
+    string,
+    number,
+    number,
+    number,
+    "failed" | "partial" | "success",
+  ]
+  reportJson: UploadHistoryStoredReport
+}): Promise<number> {
+  const { pool, baseInsertParams, reportJson } = params
+  try {
+    const insertedRow = await pool.query(
+      `INSERT INTO upload_history (user_id, user_email, filename, file_type, rows_inserted, rows_skipped, error_count, status, validation_report)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb) RETURNING id`,
+      [...baseInsertParams, JSON.stringify(reportJson)]
+    )
+    return Number(insertedRow.rows[0].id)
+  } catch (err: unknown) {
+    if (!isUndefinedColumnPgError(err)) throw err
+  }
+
+  const insertedRow = await pool.query(
+    `INSERT INTO upload_history (user_id, user_email, filename, file_type, rows_inserted, rows_skipped, error_count, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+    [...baseInsertParams]
+  )
+  return Number(insertedRow.rows[0].id)
+}
 
 export async function POST(request: NextRequest) {
   const userId = request.headers.get("x-user-id") ?? ""
@@ -56,21 +130,9 @@ export async function POST(request: NextRequest) {
     const result = await upsertRows(rows, columnMapping, schema)
 
     const pool = getPool()
-    const status =
-      result.errors.length > 0 && result.inserted === 0
-        ? "failed"
-        : result.errors.length > 0
-          ? "partial"
-          : "success"
+    const status = uploadStatus(result.errors.length, result.inserted)
 
-    const prevRes = await pool.query<{
-      id: string
-      filename: string
-      rows_inserted: number
-      rows_skipped: number
-      error_count: number
-      uploaded_at: Date
-    }>(
+    const prevRes = await pool.query<UploadHistoryRow>(
       `SELECT id, filename, rows_inserted, rows_skipped, error_count, uploaded_at
        FROM upload_history
        WHERE file_type = $1
@@ -80,29 +142,20 @@ export async function POST(request: NextRequest) {
     )
 
     const previousUpload: PreviousUploadSnapshot | null = prevRes.rows[0]
-      ? {
-          id: Number(prevRes.rows[0].id),
-          filename: prevRes.rows[0].filename,
-          rowsInserted: prevRes.rows[0].rows_inserted,
-          rowsSkipped: prevRes.rows[0].rows_skipped,
-          errorCount: prevRes.rows[0].error_count,
-          uploadedAt: prevRes.rows[0].uploaded_at.toISOString(),
-        }
+      ? previousUploadFromRow(prevRes.rows[0])
       : null
 
     const reportGeneratedAt = new Date().toISOString()
-    const diff = computeUploadDiff(
-      {
-        inserted: result.inserted,
-        skipped: result.skipped,
-        errorCount: result.errors.length,
-      },
-      previousUpload
-    )
+    const currentMetrics: UploadCurrentMetrics = {
+      inserted: result.inserted,
+      skipped: result.skipped,
+      errorCount: result.errors.length,
+    }
+    const diff = computeUploadDiff(currentMetrics, previousUpload)
 
     const errorsForStorage = result.errors.slice(0, MAX_ERRORS_IN_REPORT)
-    const reportJson = {
-      version: 1 as const,
+    const reportJson: UploadHistoryStoredReport = {
+      version: 1,
       schemaId,
       totalRowsInFile: rows.length,
       inserted: result.inserted,
@@ -126,24 +179,11 @@ export async function POST(request: NextRequest) {
       status,
     ] as const
 
-    let historyId: number
-    try {
-      const insertedRow = await pool.query(
-        `INSERT INTO upload_history (user_id, user_email, filename, file_type, rows_inserted, rows_skipped, error_count, status, validation_report)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb) RETURNING id`,
-        [...baseInsertParams, JSON.stringify(reportJson)]
-      )
-      historyId = Number(insertedRow.rows[0].id)
-    } catch (err: unknown) {
-      const code = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : ""
-      if (code !== "42703") throw err
-      const insertedRow = await pool.query(
-        `INSERT INTO upload_history (user_id, user_email, filename, file_type, rows_inserted, rows_skipped, error_count, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-        [...baseInsertParams]
-      )
-      historyId = Number(insertedRow.rows[0].id)
-    }
+    const historyId = await insertUploadHistoryRow({
+      pool,
+      baseInsertParams,
+      reportJson,
+    })
 
     const responseBody: UploadCommitApiResponse = {
       inserted: result.inserted,
@@ -171,7 +211,7 @@ export async function POST(request: NextRequest) {
 interface UpsertResult {
   inserted: number
   skipped: number
-  errors: Array<{ row: number; column?: string; message: string }>
+  errors: UploadRowError[]
 }
 
 async function upsertRows(

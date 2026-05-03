@@ -13,6 +13,12 @@ import type { UploadCommitApiResponse } from "@/lib/upload-validation-report"
 
 type Step = "upload" | "preview" | "complete"
 
+function stepIndicatorClass(i: number, stepIndex: number): string {
+  if (i < stepIndex) return "text-green-600 line-through"
+  if (i === stepIndex) return "font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full"
+  return "text-muted-foreground"
+}
+
 interface PreviewData {
   detectedSchema: string | null
   detectedSchemaLabel: string | null
@@ -162,15 +168,7 @@ export default function UploadPage() {
         {stepLabels.map((label, i) => (
           <span key={label} className="flex items-center gap-2">
             {i > 0 && <span className="text-muted-foreground">→</span>}
-            <span
-              className={
-                i < stepIndex
-                  ? "text-green-600 line-through"
-                  : i === stepIndex
-                    ? "font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full"
-                    : "text-muted-foreground"
-              }
-            >
+            <span className={stepIndicatorClass(i, stepIndex)}>
               {i < stepIndex ? `${label} ✓` : `${i + 1}. ${label}`}
             </span>
           </span>
