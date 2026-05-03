@@ -17,6 +17,9 @@ import {
 import { TrendingUp, Users, AlertTriangle, BookOpen, Search, Table2, X } from "lucide-react"
 import Link from "next/link"
 import { GlossaryMetricEntryLink } from "@/components/glossary-metric-entry-link"
+import { useDataLineage } from "@/components/data-lineage-drawer"
+import { optionalDashboardFilterRecord } from "@/lib/dashboard-filters"
+import type { LineageMetricId } from "@/lib/lineage-config"
 
 interface KPIData {
   overallRetentionRate: string
@@ -60,6 +63,7 @@ const ENROLLMENT_TYPES = ["Full-Time", "Part-Time"]
 const CREDENTIAL_TYPES = ["Certificate", "Associate", "Bachelor"]
 
 export default function DashboardPage() {
+  const { drawer: lineageDrawer, openLineage } = useDataLineage()
   const [kpis, setKpis] = useState<KPIData | null>(null)
   const [riskAlerts, setRiskAlerts] = useState<RiskAlertData[]>([])
   const [retentionRisk, setRetentionRisk] = useState<RetentionRiskData[]>([])
@@ -83,6 +87,13 @@ export default function DashboardPage() {
     if (credentialType) p.set("credentialType", credentialType)
     const qs = p.toString()
     return qs ? `?${qs}` : ""
+  }
+
+  function openKpiLineage(metric: LineageMetricId) {
+    openLineage({
+      metric,
+      ...optionalDashboardFilterRecord({ cohort, enrollmentType, credentialType }),
+    })
   }
 
   useEffect(() => {
@@ -271,6 +282,7 @@ export default function DashboardPage() {
             icon={TrendingUp}
             subtitle={kpis ? `${kpis.totalStudents.toLocaleString()} total students` : undefined}
             loading={loading}
+            onLineageClick={loading ? undefined : () => openKpiLineage("overall_retention")}
             info={
               <>
                 <p><strong>What it shows:</strong> Percentage of students retained year-to-year based on historical data.</p>
@@ -286,6 +298,7 @@ export default function DashboardPage() {
             icon={Users}
             subtitle="ML model prediction"
             loading={loading}
+            onLineageClick={loading ? undefined : () => openKpiLineage("avg_predicted_retention")}
             info={
               <>
                 <p><strong>Model:</strong> XGBoost Classifier trained on 31 features including demographics, academic prep, and course performance.</p>
@@ -307,6 +320,7 @@ export default function DashboardPage() {
             icon={AlertTriangle}
             subtitle="Require immediate intervention"
             loading={loading}
+            onLineageClick={loading ? undefined : () => openKpiLineage("high_critical_risk_count")}
             info={
               <>
                 <p><strong>How it's calculated:</strong> Composite risk score combining:</p>
@@ -332,6 +346,7 @@ export default function DashboardPage() {
             icon={BookOpen}
             subtitle="Credits earned / attempted"
             loading={loading}
+            onLineageClick={loading ? undefined : () => openKpiLineage("avg_course_completion")}
             info={
               <>
                 <p><strong>Formula:</strong> (Total credits earned ÷ Total credits attempted) × 100</p>
@@ -354,6 +369,13 @@ export default function DashboardPage() {
           <RiskAlertChart
             data={riskAlerts}
             loading={loading}
+            onSegmentLineage={(category) =>
+              openLineage({
+                metric: "risk_alert_segment",
+                category,
+                ...optionalDashboardFilterRecord({ cohort, enrollmentType, credentialType }),
+              })
+            }
             info={
               <>
                 <p><strong>What it shows:</strong> Distribution of students across risk alert levels (URGENT, HIGH, MODERATE, LOW).</p>
@@ -427,6 +449,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      {lineageDrawer}
     </div>
   )
 }

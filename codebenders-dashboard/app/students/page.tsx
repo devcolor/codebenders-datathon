@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, ArrowUpDown, ArrowUp, ArrowDown, Download, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { InfoPopover } from "@/components/info-popover"
+import { useDataLineage, type LineageOpenRequest } from "@/components/data-lineage-drawer"
+import type { RosterLineageField } from "@/lib/lineage-config"
 import {
   Select,
   SelectContent,
@@ -61,6 +62,10 @@ const ENROLLMENT_TYPES = [
   { value: "Full-Time",  label: "Full-time" },
   { value: "Part-Time",  label: "Part-time" },
 ] as const
+
+function rosterCellLineage(studentGuid: string, field: RosterLineageField): LineageOpenRequest {
+  return { metric: "roster_cell", studentGuid, field }
+}
 
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 
@@ -120,6 +125,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
 
 export default function StudentsPage() {
   const router = useRouter()
+  const { drawer: lineageDrawer, openLineage } = useDataLineage()
   const [data, setData]           = useState<StudentsResponse | null>(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState<string | null>(null)
@@ -500,31 +506,86 @@ export default function StudentsPage() {
                         {s.student_guid ? s.student_guid.slice(0, 12) + "…" : "—"}
                       </Link>
                     </td>
-                    <td className="px-3 py-2.5 text-xs">{s.cohort ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-xs whitespace-nowrap">
-                      {s.enrollment_intensity === "Full-Time" || s.enrollment_intensity === "Full Time" || s.enrollment_intensity === "FT"
-                        ? "Full-time"
-                        : s.enrollment_intensity === "Part-Time" || s.enrollment_intensity === "Part Time" || s.enrollment_intensity === "PT"
-                        ? "Part-time"
-                        : s.enrollment_intensity ?? "—"}
+                    <td className="px-3 py-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
+                      <LineageValueButton
+                        onLineage={() => openLineage(rosterCellLineage(s.student_guid, "cohort"))}
+                      >
+                        {s.cohort ?? "—"}
+                      </LineageValueButton>
                     </td>
-                    <td className="px-3 py-2.5"><AlertBadge level={s.at_risk_alert} /></td>
-                    <td className="px-3 py-2.5"><Pct value={s.retention_pct} /></td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 text-xs whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <LineageValueButton
+                        onLineage={() => openLineage(rosterCellLineage(s.student_guid, "enrollment_intensity"))}
+                      >
+                        {s.enrollment_intensity === "Full-Time" || s.enrollment_intensity === "Full Time" || s.enrollment_intensity === "FT"
+                          ? "Full-time"
+                          : s.enrollment_intensity === "Part-Time" || s.enrollment_intensity === "Part Time" || s.enrollment_intensity === "PT"
+                          ? "Part-time"
+                          : s.enrollment_intensity ?? "—"}
+                      </LineageValueButton>
+                    </td>
+                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      <LineageValueButton
+                        className="inline-flex"
+                        onLineage={() => openLineage(rosterCellLineage(s.student_guid, "at_risk_alert"))}
+                      >
+                        <AlertBadge level={s.at_risk_alert} />
+                      </LineageValueButton>
+                    </td>
+                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      <LineageValueButton
+                        onLineage={() => openLineage(rosterCellLineage(s.student_guid, "retention_pct"))}
+                      >
+                        <Pct value={s.retention_pct} />
+                      </LineageValueButton>
+                    </td>
+                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1.5">
                         {s.readiness_pct !== null && (
-                          <span className="text-sm font-medium">{s.readiness_pct}%</span>
+                          <LineageValueButton
+                            onLineage={() => openLineage(rosterCellLineage(s.student_guid, "readiness_pct"))}
+                          >
+                            <span className="text-sm font-medium">{s.readiness_pct}%</span>
+                          </LineageValueButton>
                         )}
                         <ReadinessBadge level={s.readiness_level} />
                       </div>
                     </td>
-                    <td className="px-3 py-2.5"><Pct value={s.gateway_math_pct} /></td>
-                    <td className="px-3 py-2.5"><Pct value={s.gateway_english_pct} /></td>
-                    <td className="px-3 py-2.5"><Pct value={s.gpa_risk_pct} invert /></td>
-                    <td className="px-3 py-2.5 text-xs">
-                      {s.time_to_credential ? `${s.time_to_credential} yr` : "—"}
+                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      <LineageValueButton
+                        onLineage={() => openLineage(rosterCellLineage(s.student_guid, "gateway_math_pct"))}
+                      >
+                        <Pct value={s.gateway_math_pct} />
+                      </LineageValueButton>
                     </td>
-                    <td className="px-3 py-2.5 text-xs">{s.credential_type ?? "—"}</td>
+                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      <LineageValueButton
+                        onLineage={() => openLineage(rosterCellLineage(s.student_guid, "gateway_english_pct"))}
+                      >
+                        <Pct value={s.gateway_english_pct} />
+                      </LineageValueButton>
+                    </td>
+                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      <LineageValueButton
+                        onLineage={() => openLineage(rosterCellLineage(s.student_guid, "gpa_risk_pct"))}
+                      >
+                        <Pct value={s.gpa_risk_pct} invert />
+                      </LineageValueButton>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
+                      <LineageValueButton
+                        onLineage={() => openLineage(rosterCellLineage(s.student_guid, "time_to_credential"))}
+                      >
+                        {s.time_to_credential ? `${s.time_to_credential} yr` : "—"}
+                      </LineageValueButton>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
+                      <LineageValueButton
+                        onLineage={() => openLineage(rosterCellLineage(s.student_guid, "credential_type"))}
+                      >
+                        {s.credential_type ?? "—"}
+                      </LineageValueButton>
+                    </td>
                   </tr>
                 ))
               )}
@@ -545,7 +606,32 @@ export default function StudentsPage() {
           </div>
         )}
       </div>
+      {lineageDrawer}
     </div>
+  )
+}
+
+function LineageValueButton({
+  children,
+  onLineage,
+  className = "",
+}: {
+  children: React.ReactNode
+  onLineage: () => void
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      title="View data lineage for this value"
+      className={`max-w-full text-left rounded-sm hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${className}`}
+      onClick={(e) => {
+        e.stopPropagation()
+        onLineage()
+      }}
+    >
+      {children}
+    </button>
   )
 }
 
