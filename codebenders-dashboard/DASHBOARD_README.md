@@ -4,6 +4,8 @@
 
 A modern, interactive dashboard for visualizing student success metrics and predictive analytics for Bishop State Community College.
 
+**Authoritative AI/ML inventory** (six trained models, three OpenAI `gpt-4o-mini` routes, rule-based NLQ fallback, external data API when not on direct DB): [`content/ai-transparency.ts`](content/ai-transparency.ts) (path from repo root: `codebenders-dashboard/content/ai-transparency.ts`).
+
 ## Features
 
 ### 📊 Executive Dashboard (Home Page - `/`)
@@ -38,9 +40,9 @@ Color-coded from red (critical) to green (low risk).
 ### 🔍 SQL Query Interface (`/query`)
 
 Advanced query interface for custom data analysis:
-- Natural language to SQL conversion
+- Natural language to SQL via OpenAI `gpt-4o-mini` (`app/api/analyze/route.ts`), optional result summarization (`app/api/query-summary/route.ts`), and course-pairing explanations (`app/api/courses/explain-pairing/route.ts`), with **rule-based fallback** in `lib/prompt-analyzer.ts` when the LLM path is off or disabled
 - Support for multiple institutions (Bishop State, University of Akron, Cal State San Bernardino, Thomas More)
-- Direct database or API mode
+- Direct database or **external data API** (`schools.syntex-ai.com`) when not in direct DB mode (see `content/ai-transparency.ts`)
 - Interactive visualizations (line, bar, pie charts, tables)
 - Query plan visualization
 
@@ -154,10 +156,18 @@ Returns retention risk categories:
 ### Query APIs
 
 #### `POST /api/analyze`
-Analyzes natural language prompts and generates SQL queries.
+Analyzes natural language prompts and generates SQL (OpenAI `gpt-4o-mini`, with rule-based fallback in `lib/prompt-analyzer.ts`).
+
+#### `POST /api/query-summary`
+Summarizes query results in natural language (OpenAI `gpt-4o-mini`).
+
+#### `POST /api/courses/explain-pairing`
+Explains course-pairing recommendations (OpenAI `gpt-4o-mini`).
 
 #### `POST /api/execute-sql`
 Executes SQL queries directly against the database.
+
+Full route list and data-flow notes: [`content/ai-transparency.ts`](content/ai-transparency.ts).
 
 ## Environment Variables
 
@@ -252,6 +262,7 @@ See `/DASHBOARD_VISUALIZATIONS.md` for a comprehensive list of additional visual
 
 ## References
 
+- **AI / ML surface inventory**: `codebenders-dashboard/content/ai-transparency.ts` (authoritative list of models, LLM routes, and integrations)
 - **Visualization Guide**: `/DASHBOARD_VISUALIZATIONS.md`
 - **Schema Documentation**: `codebenders-dashboard/env.example`
 - **Project PRD**: `/AI_Powered_Student_Success_PRD.md`

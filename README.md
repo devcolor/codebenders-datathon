@@ -17,15 +17,18 @@ A comprehensive machine learning pipeline for predicting student success outcome
 
 ## 🎯 Overview
 
-This project implements five machine learning models to predict various aspects of student success:
+This project implements six machine learning models to predict various aspects of student success (authoritative names and data flows: [`codebenders-dashboard/content/ai-transparency.ts`](codebenders-dashboard/content/ai-transparency.ts)):
 
 1. **Retention Prediction** - Will the student be retained?
-2. **Early Warning System** - Is the student at risk?
-3. **Time-to-Credential** - How long until graduation?
-4. **Credential Type** - What credential will they earn?
-5. **Course Success** - What will their GPA be?
+2. **Time-to-Credential** - How long until credential completion?
+3. **Credential Type** - What credential will they earn?
+4. **Gateway Math Success** - Will the student succeed in gateway math?
+5. **Gateway English Success** - Will the student succeed in gateway English?
+6. **First-Semester Low-GPA Prediction** - Is the student at risk of a low first-semester GPA?
 
 The models use demographic, academic preparation, enrollment, and course performance data to generate actionable predictions for student support services.
+
+The Next.js dashboard adds **natural language query (NLQ)** features: three OpenAI `gpt-4o-mini` API routes (`codebenders-dashboard/app/api/analyze/route.ts`, `codebenders-dashboard/app/api/query-summary/route.ts`, `codebenders-dashboard/app/api/courses/explain-pairing/route.ts`), a **rule-based fallback** in `codebenders-dashboard/lib/prompt-analyzer.ts`, and (when not using direct database mode) an **external data API** at `schools.syntex-ai.com`. See the same `ai-transparency.ts` file for the full inventory.
 
 ## 📁 Project Structure
 
@@ -33,7 +36,7 @@ The models use demographic, academic preparation, enrollment, and course perform
 codebenders-datathon/
 ├── ai_model/                          # Machine learning models and scripts
 │   ├── __init__.py                    # Package initialization
-│   ├── complete_ml_pipeline.py        # Main ML pipeline (5 models)
+│   ├── complete_ml_pipeline.py        # Main ML pipeline (6 models)
 │   ├── generate_bishop_state_data.py  # Synthetic data generation
 │   └── merge_bishop_state_data.py     # Data merging script
 │
@@ -59,11 +62,11 @@ codebenders-datathon/
 
 ### Prediction Capabilities
 
-- **Retention Risk Assessment**: Identify students at risk of not returning
-- **Early Warning Alerts**: Four-level alert system (URGENT, HIGH, MODERATE, LOW)
+- **Retention Risk Assessment**: Retention probability and risk categories; dashboard alert views (URGENT / HIGH / MODERATE / LOW) are driven by these signals
 - **Graduation Timeline**: Predict time to credential completion
 - **Credential Path**: Forecast credential type (Certificate, Associate's, Bachelor's)
-- **Academic Performance**: Predict expected GPA and identify over/underperformers
+- **Gateway Success**: Predict gateway math and English completion outcomes
+- **Early Academic Risk**: First-semester low-GPA risk prediction
 
 ### Technical Features
 
@@ -139,7 +142,7 @@ python complete_ml_pipeline.py
 This will:
 1. Test database connection
 2. Load and preprocess data
-3. Train all 5 models
+3. Train all 6 models
 4. Generate predictions for all students
 5. Save results to **Postgres database** (or CSV files as fallback)
 6. Save model performance metrics to database
@@ -195,47 +198,31 @@ For more details, see [operations/README.md](operations/README.md).
 
 ## 🤖 Models
 
-### 1. Retention Prediction Model
+Authoritative descriptions (inputs, algorithms, data flow): [`codebenders-dashboard/content/ai-transparency.ts`](codebenders-dashboard/content/ai-transparency.ts). The summaries below match that inventory.
 
-**Algorithm**: XGBoost Classifier
+### 1. Retention Prediction
+
+**Algorithm**: XGBoost classifier (model family selected in `ai_model/complete_ml_pipeline.py`)
 **Target**: Binary (Retained / Not Retained)
-**Features**: 40+ demographic, academic, and performance features
+**Features**: Demographic, enrollment, year-one performance, and program signals
 
-**Output**:
-- `retention_probability`: Probability of retention (0-1)
-- `retention_prediction`: Binary prediction (0/1)
-- `retention_risk_category`: Risk level (Critical/High/Moderate/Low)
+**Output** (examples):
+- Retention probability and binary prediction
+- Retention risk category (Critical / High / Moderate / Low)
+- Dashboard risk alerts combine retention and related metrics
 
-### 2. Early Warning System
+### 2. Time-to-Credential Prediction
 
-**Algorithm**: Composite Risk Score
-**Target**: Binary (At Risk / Not At Risk)
-**Approach**: Combines retention probability with performance metrics
-
-**Risk Factors**:
-- Retention probability (50% weight)
-- GPA performance (20% weight)
-- Course completion rate (20% weight)
-- Credit progress (10% weight)
-
-**Output**:
-- `risk_score`: Comprehensive risk score (0-100)
-- `at_risk_alert`: Alert level (URGENT/HIGH/MODERATE/LOW)
-- `at_risk_probability`: Risk probability (0-1)
-- `at_risk_prediction`: Binary prediction (0/1)
-
-### 3. Time-to-Credential Model
-
-**Algorithm**: XGBoost Regressor
+**Algorithm**: Random Forest regressor
 **Target**: Continuous (Years to credential)
 
 **Output**:
 - `predicted_time_to_credential`: Years to completion
 - `predicted_graduation_year`: Expected graduation year
 
-### 4. Credential Type Model
+### 3. Credential Type Prediction
 
-**Algorithm**: Random Forest Classifier
+**Algorithm**: Random Forest multi-class classifier
 **Target**: Multi-class (No Credential / Certificate / Associate's / Bachelor's)
 
 **Output**:
@@ -243,14 +230,26 @@ For more details, see [operations/README.md](operations/README.md).
 - `predicted_credential_label`: Text label
 - `prob_no_credential`, `prob_certificate`, `prob_associate`, `prob_bachelor`: Class probabilities
 
-### 5. Course Success Model
+### 4. Gateway Math Success Prediction
 
-**Algorithm**: Random Forest Regressor
-**Target**: Continuous (GPA 0-4 scale)
+**Algorithm**: XGBoost classifier
+**Target**: Binary (success in gateway math)
 
-**Output**:
-- `predicted_gpa`: Expected GPA (0-4 scale)
-- `gpa_performance`: Performance vs. expected (Above/Below/As Expected)
+**Output**: Probability and prediction fields written to `student_predictions` (see data dictionary and pipeline outputs).
+
+### 5. Gateway English Success Prediction
+
+**Algorithm**: XGBoost classifier
+**Target**: Binary (success in gateway English)
+
+**Output**: Probability and prediction fields written to `student_predictions`.
+
+### 6. First-Semester Low-GPA Prediction
+
+**Algorithm**: XGBoost classifier
+**Target**: Binary (low first-semester GPA risk)
+
+**Output**: Probability and prediction fields written to `student_predictions`.
 
 ## 📊 Data
 
@@ -299,6 +298,7 @@ If database connection fails, predictions are saved to CSV:
 
 ## 📚 Documentation
 
+- **[codebenders-dashboard/content/ai-transparency.ts](codebenders-dashboard/content/ai-transparency.ts)**: Authoritative inventory of ML models, OpenAI/NLQ routes, rule-based fallback, and external data API surfaces
 - **[DATA_DICTIONARY.md](DATA_DICTIONARY.md)**: Detailed descriptions of all data fields
 - **[ML_MODELS_GUIDE.md](ML_MODELS_GUIDE.md)**: In-depth guide to machine learning models
 - **[DOCKER_SETUP.md](DOCKER_SETUP.md)**: Docker Compose setup for local Postgres
