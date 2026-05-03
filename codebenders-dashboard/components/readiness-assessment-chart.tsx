@@ -3,8 +3,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, TrendingUp, TrendingDown, Users, Target, AlertTriangle } from 'lucide-react';
+import { AlertCircle, TrendingUp, Users, Target, AlertTriangle } from 'lucide-react';
 import { InfoPopover } from '@/components/info-popover';
+import { GlossaryMetricEntryLink } from '@/components/glossary-metric-entry-link';
 
 interface ReadinessData {
   summary: {
@@ -187,7 +188,11 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
               <CardDescription>Student readiness categorization</CardDescription>
             </div>
             <InfoPopover title="Readiness Assessment">
-              AI-powered assessment analyzing student preparation, engagement, and success indicators. High readiness indicates students are well-positioned for success.
+              <p>
+                AI-powered assessment analyzing student preparation, engagement, and success indicators. High readiness
+                indicates students are well-positioned for success.
+              </p>
+              <GlossaryMetricEntryLink slug="readiness-assessment" />
             </InfoPopover>
           </div>
         </CardHeader>
