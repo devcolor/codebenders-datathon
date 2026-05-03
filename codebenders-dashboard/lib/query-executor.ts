@@ -7,8 +7,7 @@ export async function executeQuery(
   useDirectDB = false,
 ): Promise<QueryResult> {
   try {
-    const forceDirect = isForceDirectDb()
-    if (forceDirect || useDirectDB) {
+    if (isForceDirectDb() || useDirectDB) {
       return await executeDirectDB(plan, institutionCode)
     }
 

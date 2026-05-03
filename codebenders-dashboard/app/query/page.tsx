@@ -21,7 +21,8 @@ const INSTITUTIONS = [
   { name: "Thomas More University", code: "ky" },
 ]
 
-const forceDirectDbEnv = isForceDirectDb()
+/** Build-time / env snapshot: when true, UI locks to direct DB (matches `lib/config` `isForceDirectDb`). */
+const directDbForcedByEnv = isForceDirectDb()
 
 export default function QueryPage() {
   const [institution, setInstitution] = useState<string>(INSTITUTIONS[0].code)
@@ -157,6 +158,15 @@ export default function QueryPage() {
     }
   }
 
+  let directDbModeHint: string
+  if (directDbForcedByEnv) {
+    directDbModeHint = "(FORCE_DIRECT_DB — external API disabled)"
+  } else if (useDirectDB) {
+    directDbModeHint = "(execute SQL directly)"
+  } else {
+    directDbModeHint = "(fetch from API endpoints)"
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Slim page-level header bar */}
@@ -208,22 +218,16 @@ export default function QueryPage() {
             <div className="flex flex-wrap items-center gap-3 pb-4 border-b border-border/40">
               <Switch
                 id="db-mode"
-                checked={forceDirectDbEnv || useDirectDB}
+                checked={directDbForcedByEnv || useDirectDB}
                 onCheckedChange={(v) => {
-                  if (!forceDirectDbEnv) setUseDirectDB(v)
+                  if (!directDbForcedByEnv) setUseDirectDB(v)
                 }}
-                disabled={forceDirectDbEnv}
+                disabled={directDbForcedByEnv}
               />
               <Label htmlFor="db-mode" className="text-sm font-medium cursor-pointer">
-                {forceDirectDbEnv || useDirectDB ? "Direct Database" : "API Mode"}
+                {directDbForcedByEnv || useDirectDB ? "Direct Database" : "API Mode"}
               </Label>
-              <span className="text-xs text-muted-foreground font-mono">
-                {forceDirectDbEnv
-                  ? "(FORCE_DIRECT_DB — external API disabled)"
-                  : useDirectDB
-                    ? "(execute SQL directly)"
-                    : "(fetch from API endpoints)"}
-              </span>
+              <span className="text-xs text-muted-foreground font-mono">{directDbModeHint}</span>
             </div>
 
             {/* Institution selector */}

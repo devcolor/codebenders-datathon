@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { assertExternalDataApiAllowed, isForceDirectDb } from "../config"
+import {
+  assertExternalDataApiAllowed,
+  buildExternalAnalysisReadyUrl,
+  isForceDirectDb,
+} from "../config"
 
 describe("FORCE_DIRECT_DB config", () => {
   const prev = process.env.FORCE_DIRECT_DB
@@ -48,5 +52,19 @@ describe("FORCE_DIRECT_DB config", () => {
   it("assertExternalDataApiAllowed no-ops on empty url", () => {
     process.env.FORCE_DIRECT_DB = "true"
     expect(() => assertExternalDataApiAllowed("")).not.toThrow()
+  })
+
+  it("buildExternalAnalysisReadyUrl is empty when forced", () => {
+    process.env.FORCE_DIRECT_DB = "true"
+    const params = new URLSearchParams({ limit: "10" })
+    expect(buildExternalAnalysisReadyUrl("bscc", params)).toBe("")
+  })
+
+  it("buildExternalAnalysisReadyUrl matches schools.syntex-ai.com analysis-ready shape when not forced", () => {
+    process.env.FORCE_DIRECT_DB = "false"
+    const params = new URLSearchParams({ limit: "1000", offset: "0" })
+    expect(buildExternalAnalysisReadyUrl("bscc", params)).toBe(
+      "https://schools.syntex-ai.com/bscc/analysis-ready?limit=1000&offset=0",
+    )
   })
 })

@@ -10,6 +10,14 @@ export function isForceDirectDb(): boolean {
 }
 
 /**
+ * Full analysis-ready URL for the external host, or "" when `FORCE_DIRECT_DB` blocks external flows.
+ */
+export function buildExternalAnalysisReadyUrl(institutionCode: string, queryParams: URLSearchParams): string {
+  if (isForceDirectDb()) return ""
+  return `https://schools.syntex-ai.com/${institutionCode}/analysis-ready?${queryParams.toString()}`
+}
+
+/**
  * Fail-closed guard: call before any fetch to a non-institutional analysis-ready host.
  */
 export function assertExternalDataApiAllowed(url: string): void {
