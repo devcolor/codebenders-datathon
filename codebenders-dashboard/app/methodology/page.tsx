@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { AI_TRANSPARENCY_HREF } from "@/content/ai-transparency"
 import Link from "next/link"
 import { ArrowLeft, BookOpen, FlaskConical, GraduationCap, ShieldCheck } from "lucide-react"
 
@@ -395,7 +396,7 @@ export default function MethodologyPage() {
           <p className="text-sm text-muted-foreground">
             For an inventory of every AI surface in this dashboard — what it is, where it runs,
             what data flows where, and what is retained — see the{" "}
-            <Link href="/ai-transparency" className="text-blue-600 hover:underline">
+            <Link href={AI_TRANSPARENCY_HREF} className="text-blue-600 hover:underline">
               AI Transparency page
             </Link>
             .

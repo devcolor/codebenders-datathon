@@ -1,9 +1,15 @@
 import type { Metadata } from "next"
+import type { ReactNode } from "react"
 import Link from "next/link"
 import { ArrowLeft, Bot, Cloud, Database, ServerCog, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AI_SURFACES, type AISurface } from "@/content/ai-transparency"
+import {
+  AI_SURFACE_CATEGORY_ORDER,
+  AI_SURFACES,
+  groupAISurfacesByCategory,
+  type AISurface,
+} from "@/content/ai-transparency"
 
 export const metadata: Metadata = {
   title: "AI Transparency — Bishop State Student Success Dashboard",
@@ -13,12 +19,32 @@ export const metadata: Metadata = {
 
 const CATEGORY_META: Record<
   AISurface["category"],
-  { label: string; icon: typeof Bot; tint: string }
+  { label: string; sectionTitle: string; icon: typeof Bot; tint: string }
 > = {
-  ml_model: { label: "ML model", icon: ServerCog, tint: "text-emerald-600" },
-  natural_language: { label: "Natural language", icon: Sparkles, tint: "text-violet-600" },
-  explainability: { label: "Explainability", icon: Bot, tint: "text-sky-600" },
-  data_api: { label: "Data API", icon: Database, tint: "text-amber-600" },
+  ml_model: {
+    label: "ML model",
+    sectionTitle: "ML models",
+    icon: ServerCog,
+    tint: "text-emerald-600",
+  },
+  natural_language: {
+    label: "Natural language",
+    sectionTitle: "Natural languages",
+    icon: Sparkles,
+    tint: "text-violet-600",
+  },
+  explainability: {
+    label: "Explainability",
+    sectionTitle: "Explainability",
+    icon: Bot,
+    tint: "text-sky-600",
+  },
+  data_api: {
+    label: "Data API",
+    sectionTitle: "Data APIs",
+    icon: Database,
+    tint: "text-amber-600",
+  },
 }
 
 function StatusBadge({ status }: { status: AISurface["status"] }) {
@@ -81,8 +107,8 @@ function SurfaceCard({ surface }: { surface: AISurface }) {
           label="Inputs"
           value={
             <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-              {surface.inputs.map((i) => (
-                <li key={i}>{i}</li>
+              {surface.inputs.map((line, index) => (
+                <li key={`${surface.id}-in-${index}`}>{line}</li>
               ))}
             </ul>
           }
@@ -96,7 +122,7 @@ function SurfaceCard({ surface }: { surface: AISurface }) {
                 <br />
                 <span className="text-xs">
                   Cohort: {surface.trainingData.cohort}
-                  {surface.trainingData.rowCount ? ` • ~${surface.trainingData.rowCount}` : ""}
+                  {surface.trainingData.rowCount ? ` • ${surface.trainingData.rowCount}` : ""}
                 </span>
               </span>
             }
@@ -118,7 +144,7 @@ function SurfaceCard({ surface }: { surface: AISurface }) {
   )
 }
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <div className="text-xs font-semibold uppercase tracking-wide text-foreground/70 mb-1">
@@ -130,20 +156,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export default function AITransparencyPage() {
-  const grouped: Record<string, AISurface[]> = {
-    ml_model: [],
-    natural_language: [],
-    explainability: [],
-    data_api: [],
-  }
-  for (const s of AI_SURFACES) grouped[s.category].push(s)
-
-  const sectionOrder: AISurface["category"][] = [
-    "ml_model",
-    "natural_language",
-    "data_api",
-    "explainability",
-  ]
+  const grouped = groupAISurfacesByCategory(AI_SURFACES)
 
   return (
     <div className="min-h-screen bg-background">
@@ -200,7 +213,7 @@ export default function AITransparencyPage() {
         </Card>
 
         {/* Surfaces grouped by category */}
-        {sectionOrder.map((category) => {
+        {AI_SURFACE_CATEGORY_ORDER.map((category) => {
           const items = grouped[category]
           if (items.length === 0) return null
           const cat = CATEGORY_META[category]
@@ -209,7 +222,7 @@ export default function AITransparencyPage() {
             <section key={category} className="space-y-4">
               <div className="flex items-center gap-2">
                 <Icon className={`h-5 w-5 ${cat.tint}`} />
-                <h2 className="text-xl font-semibold">{cat.label}s</h2>
+                <h2 className="text-xl font-semibold">{cat.sectionTitle}</h2>
                 <span className="text-xs text-muted-foreground">({items.length})</span>
               </div>
               <div className="grid gap-4">

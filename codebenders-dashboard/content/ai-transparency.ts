@@ -33,6 +33,32 @@ export interface AISurface {
   notes?: string
 }
 
+/** App route for the AI Transparency page (nav and cross-links). */
+export const AI_TRANSPARENCY_HREF = "/ai-transparency" as const
+
+/** Category sections on the page appear in this order; keep in sync with grouping logic. */
+export const AI_SURFACE_CATEGORY_ORDER: AISurface["category"][] = [
+  "ml_model",
+  "natural_language",
+  "data_api",
+  "explainability",
+]
+
+export function groupAISurfacesByCategory(
+  surfaces: readonly AISurface[]
+): Record<AISurface["category"], AISurface[]> {
+  const grouped: Record<AISurface["category"], AISurface[]> = {
+    ml_model: [],
+    natural_language: [],
+    explainability: [],
+    data_api: [],
+  }
+  for (const surface of surfaces) {
+    grouped[surface.category].push(surface)
+  }
+  return grouped
+}
+
 export const AI_SURFACES: AISurface[] = [
   // ─────────────────────────── ML models (6, all homegrown) ───────────────────────────
   {
