@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { streamObject } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
 import { z } from "zod"
+import { inspectSelectForFerpaExclusions } from "@/lib/sql-inspector"
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
@@ -106,6 +107,20 @@ const SCHEMA_INFO: Record<string, SchemaEntry> = {
 // Simple test endpoint
 export async function GET() {
   return NextResponse.json({ status: "ok", message: "Analyze route is loaded" })
+}
+
+function ferpaBlockedResponse(
+  sql: string,
+  ferpaExcluded: readonly string[]
+): NextResponse | null {
+  if (!ferpaExcluded.length || !sql) return null
+  const check = inspectSelectForFerpaExclusions(sql, ferpaExcluded)
+  if (check.ok) return null
+  console.warn("[analyze] FERPA exclusion violated:", check.violation)
+  return NextResponse.json(
+    { error: "FERPA exclusion violated", column: check.violation },
+    { status: 422 }
+  )
 }
 
 export async function POST(request: NextRequest) {
@@ -239,6 +254,12 @@ Make sure the SQL is valid PostgreSQL and addresses exactly what the user asked 
       ...finalObject,
       queryString: finalObject.queryString || "",
     }
+
+    const blocked = ferpaBlockedResponse(
+      typeof result.sql === "string" ? result.sql : "",
+      schemaInfo.ferpaExcluded ?? []
+    )
+    if (blocked) return blocked
 
     return NextResponse.json(result)
   } catch (error) {
