@@ -9,8 +9,15 @@ import { UploadSummary } from "@/components/upload/upload-summary"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react"
 import { SCHEMAS, CONFIDENT_THRESHOLD, type ColumnMapping } from "@/lib/upload-schemas"
+import type { UploadCommitApiResponse } from "@/lib/upload-validation-report"
 
 type Step = "upload" | "preview" | "complete"
+
+function stepIndicatorClass(i: number, stepIndex: number): string {
+  if (i < stepIndex) return "text-green-600 line-through"
+  if (i === stepIndex) return "font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full"
+  return "text-muted-foreground"
+}
 
 interface PreviewData {
   detectedSchema: string | null
@@ -22,13 +29,6 @@ interface PreviewData {
   totalRows: number
   warnings: string[]
   errors: string[]
-}
-
-interface CommitResult {
-  inserted: number
-  skipped: number
-  errors: Array<{ row: number; message: string }>
-  uploadId: number
 }
 
 interface HistoryEntry {
@@ -48,7 +48,7 @@ export default function UploadPage() {
   const [columns, setColumns] = useState<ColumnMapping[]>([])
   const [selectedSchema, setSelectedSchema] = useState<string | null>(null)
   const [showSchemaOverride, setShowSchemaOverride] = useState(false)
-  const [commitResult, setCommitResult] = useState<CommitResult | null>(null)
+  const [commitResult, setCommitResult] = useState<UploadCommitApiResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recentUploads, setRecentUploads] = useState<HistoryEntry[]>([])
@@ -123,7 +123,7 @@ export default function UploadPage() {
         return
       }
 
-      const data: CommitResult = await res.json()
+      const data: UploadCommitApiResponse = await res.json()
       setCommitResult(data)
       setStep("complete")
     } catch (err) {
@@ -168,15 +168,7 @@ export default function UploadPage() {
         {stepLabels.map((label, i) => (
           <span key={label} className="flex items-center gap-2">
             {i > 0 && <span className="text-muted-foreground">→</span>}
-            <span
-              className={
-                i < stepIndex
-                  ? "text-green-600 line-through"
-                  : i === stepIndex
-                    ? "font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full"
-                    : "text-muted-foreground"
-              }
-            >
+            <span className={stepIndicatorClass(i, stepIndex)}>
               {i < stepIndex ? `${label} ✓` : `${i + 1}. ${label}`}
             </span>
           </span>
@@ -368,9 +360,7 @@ export default function UploadPage() {
         <UploadSummary
           filename={file?.name ?? ""}
           schemaLabel={selectedSchemaLabel ?? "Unknown"}
-          inserted={commitResult.inserted}
-          skipped={commitResult.skipped}
-          errorCount={commitResult.errors.length}
+          report={commitResult}
           onUploadAnother={resetWizard}
           onViewHistory={() => router.push("/admin/upload/history")}
         />

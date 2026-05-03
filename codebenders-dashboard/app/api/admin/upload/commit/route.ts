@@ -2,8 +2,89 @@ import { NextRequest, NextResponse } from "next/server"
 import { parseFileBuffer, getFileType, validateFileSize } from "@/lib/upload-parser"
 import { SCHEMAS, type UploadSchema, type ColumnMapping } from "@/lib/upload-schemas"
 import { getPool } from "@/lib/db"
+import {
+  computeUploadDiff,
+  type PreviousUploadSnapshot,
+  type UploadCommitApiResponse,
+  type UploadCurrentMetrics,
+  type UploadHistoryStoredReport,
+  type UploadRowError,
+} from "@/lib/upload-validation-report"
 
 const BATCH_SIZE = 500
+const MAX_ERRORS_IN_REPORT = 5000
+const MAX_ERRORS_IN_RESPONSE = 3000
+
+type UploadHistoryRow = {
+  id: string
+  filename: string
+  rows_inserted: number
+  rows_skipped: number
+  error_count: number
+  uploaded_at: Date
+}
+
+function pgErrorCode(err: unknown): string | undefined {
+  if (err && typeof err === "object" && "code" in err) {
+    return String((err as { code: unknown }).code)
+  }
+  return undefined
+}
+
+function isUndefinedColumnPgError(err: unknown): boolean {
+  return pgErrorCode(err) === "42703"
+}
+
+function previousUploadFromRow(row: UploadHistoryRow): PreviousUploadSnapshot {
+  return {
+    id: Number(row.id),
+    filename: row.filename,
+    rowsInserted: row.rows_inserted,
+    rowsSkipped: row.rows_skipped,
+    errorCount: row.error_count,
+    uploadedAt: row.uploaded_at.toISOString(),
+  }
+}
+
+function uploadStatus(errorsCount: number, inserted: number): "failed" | "partial" | "success" {
+  if (errorsCount > 0 && inserted === 0) return "failed"
+  if (errorsCount > 0) return "partial"
+  return "success"
+}
+
+async function insertUploadHistoryRow(params: {
+  pool: ReturnType<typeof getPool>
+  baseInsertParams: readonly [
+    string,
+    string,
+    string,
+    string,
+    number,
+    number,
+    number,
+    "failed" | "partial" | "success",
+  ]
+  reportJson: UploadHistoryStoredReport
+}): Promise<number> {
+  const { pool, baseInsertParams, reportJson } = params
+  try {
+    const insertedRow = await pool.query(
+      `INSERT INTO upload_history (user_id, user_email, filename, file_type, rows_inserted, rows_skipped, error_count, status, validation_report)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb) RETURNING id`,
+      [...baseInsertParams, JSON.stringify(reportJson)]
+    )
+    return Number(insertedRow.rows[0].id)
+  } catch (err: unknown) {
+    if (!isUndefinedColumnPgError(err)) throw err
+  }
+
+  const insertedRow = await pool.query(
+    `INSERT INTO upload_history (user_id, user_email, filename, file_type, rows_inserted, rows_skipped, error_count, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+    [...baseInsertParams]
+  )
+  return Number(insertedRow.rows[0].id)
+}
 
 export async function POST(request: NextRequest) {
   const userId = request.headers.get("x-user-id") ?? ""
@@ -49,25 +130,75 @@ export async function POST(request: NextRequest) {
     const result = await upsertRows(rows, columnMapping, schema)
 
     const pool = getPool()
-    const status =
-      result.errors.length > 0 && result.inserted === 0
-        ? "failed"
-        : result.errors.length > 0
-          ? "partial"
-          : "success"
+    const status = uploadStatus(result.errors.length, result.inserted)
 
-    const { rows: historyRows } = await pool.query(
-      `INSERT INTO upload_history (user_id, user_email, filename, file_type, rows_inserted, rows_skipped, error_count, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-      [userId, userEmail, file.name, schemaId, result.inserted, result.skipped, result.errors.length, status]
+    const prevRes = await pool.query<UploadHistoryRow>(
+      `SELECT id, filename, rows_inserted, rows_skipped, error_count, uploaded_at
+       FROM upload_history
+       WHERE file_type = $1
+       ORDER BY uploaded_at DESC
+       LIMIT 1`,
+      [schemaId]
     )
 
-    return NextResponse.json({
+    const previousUpload: PreviousUploadSnapshot | null = prevRes.rows[0]
+      ? previousUploadFromRow(prevRes.rows[0])
+      : null
+
+    const reportGeneratedAt = new Date().toISOString()
+    const currentMetrics: UploadCurrentMetrics = {
       inserted: result.inserted,
       skipped: result.skipped,
-      errors: result.errors.slice(0, 50),
-      uploadId: historyRows[0].id,
+      errorCount: result.errors.length,
+    }
+    const diff = computeUploadDiff(currentMetrics, previousUpload)
+
+    const errorsForStorage = result.errors.slice(0, MAX_ERRORS_IN_REPORT)
+    const reportJson: UploadHistoryStoredReport = {
+      version: 1,
+      schemaId,
+      totalRowsInFile: rows.length,
+      inserted: result.inserted,
+      skipped: result.skipped,
+      errors: errorsForStorage,
+      errorsTotal: result.errors.length,
+      errorsTruncated: result.errors.length > errorsForStorage.length,
+      previousUpload,
+      diff,
+      generatedAt: reportGeneratedAt,
+    }
+
+    const baseInsertParams = [
+      userId,
+      userEmail,
+      file.name,
+      schemaId,
+      result.inserted,
+      result.skipped,
+      result.errors.length,
+      status,
+    ] as const
+
+    const historyId = await insertUploadHistoryRow({
+      pool,
+      baseInsertParams,
+      reportJson,
     })
+
+    const responseBody: UploadCommitApiResponse = {
+      inserted: result.inserted,
+      skipped: result.skipped,
+      errors: result.errors.slice(0, MAX_ERRORS_IN_RESPONSE),
+      errorsTotal: result.errors.length,
+      errorsTruncated: result.errors.length > MAX_ERRORS_IN_RESPONSE,
+      uploadId: historyId,
+      totalRowsInFile: rows.length,
+      previousUpload,
+      diff,
+      reportGeneratedAt,
+    }
+
+    return NextResponse.json(responseBody)
   } catch (err) {
     console.error("Upload commit error:", err)
     return NextResponse.json(
@@ -80,7 +211,7 @@ export async function POST(request: NextRequest) {
 interface UpsertResult {
   inserted: number
   skipped: number
-  errors: Array<{ row: number; column?: string; message: string }>
+  errors: UploadRowError[]
 }
 
 async function upsertRows(
@@ -176,7 +307,7 @@ async function upsertRows(
 
       const result = await pool.query(batchSql, batchParams)
       inserted += result.rowCount ?? 0
-    } catch (err) {
+    } catch {
       // If batch fails, fall back to per-row to identify the bad row(s)
       for (let j = 0; j < batch.length; j++) {
         const row = batch[j]
