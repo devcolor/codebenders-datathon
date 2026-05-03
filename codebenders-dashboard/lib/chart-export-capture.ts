@@ -1,6 +1,18 @@
 import { toPng } from "html-to-image"
 import { jsPDF } from "jspdf"
 
+import { serializeChartExportCsv, type ChartExportCsvSpec } from "@/lib/chart-export-csv"
+
+export function triggerFileDownload(href: string, filename: string): void {
+  const a = document.createElement("a")
+  a.href = href
+  a.download = filename
+  a.rel = "noopener"
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 export async function captureElementToPngDataUrl(node: HTMLElement): Promise<string> {
   if (typeof document !== "undefined" && document.fonts?.ready) {
     await document.fonts.ready
@@ -21,13 +33,17 @@ export async function captureElementToPngDataUrl(node: HTMLElement): Promise<str
 }
 
 export function downloadDataUrl(dataUrl: string, filename: string): void {
-  const a = document.createElement("a")
-  a.href = dataUrl
-  a.download = filename
-  a.rel = "noopener"
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
+  triggerFileDownload(dataUrl, filename)
+}
+
+export function downloadChartExportCsv(spec: ChartExportCsvSpec, filename: string): void {
+  const blob = new Blob([serializeChartExportCsv(spec)], { type: "text/csv;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  try {
+    triggerFileDownload(url, filename)
+  } finally {
+    URL.revokeObjectURL(url)
+  }
 }
 
 export async function downloadChartPdf(node: HTMLElement, filename: string): Promise<void> {

@@ -1,12 +1,16 @@
 "use client"
 
 import { useMemo, useRef } from "react"
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
 import { InfoPopover } from "@/components/info-popover"
+import {
+  ChartExportBrandFooter,
+  ChartExportDataSourceLine,
+  ChartExportGlossaryBlurb,
+} from "@/components/chart-export-card-meta"
 import { ChartExportMenu } from "@/components/chart-export-menu"
-import { getChartExportBlurb } from "@/lib/chart-export-glossary"
-import { CHART_EXPORT_BRAND_LINE } from "@/lib/chart-export-filename"
+import { buildCategoryCountPercentageCsv } from "@/lib/chart-export-csv"
 
 interface RiskAlertData {
   category: string
@@ -54,12 +58,7 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
 
   const csvSpec = useMemo(
     () =>
-      data?.length
-        ? {
-            headers: ["Alert Level", "Count", "Percentage"],
-            rows: data.map((d) => [d.category, d.count, `${Number(d.percentage).toFixed(1)}%`]),
-          }
-        : null,
+      buildCategoryCountPercentageCsv(data, ["Alert Level", "Count", "Percentage"] as const),
     [data]
   )
 
@@ -114,15 +113,10 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
       <CardHeader>
         <CardTitle>Risk Alert Distribution</CardTitle>
         <CardDescription>{totalStudents.toLocaleString()} total students</CardDescription>
-        <p className="text-xs text-muted-foreground leading-snug max-w-prose">
-          {getChartExportBlurb("risk-alert-distribution")}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/90">Data source:</span>{" "}
-          student_level_with_predictions · at_risk_alert ·{" "}
-          <span className="font-medium text-foreground/90">Generated:</span>{" "}
-          {new Date().toLocaleDateString()}
-        </p>
+        <ChartExportGlossaryBlurb slug="risk-alert-distribution" />
+        <ChartExportDataSourceLine>
+          student_level_with_predictions · at_risk_alert ·
+        </ChartExportDataSourceLine>
         <CardAction>
           <div className="flex items-center gap-1">
             {info ? (
@@ -177,9 +171,7 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
           </PieChart>
         </ResponsiveContainer>
       </CardContent>
-      <CardFooter className="border-t border-border pt-6 text-xs text-muted-foreground">
-        {CHART_EXPORT_BRAND_LINE}
-      </CardFooter>
+      <ChartExportBrandFooter />
     </Card>
   )
 }

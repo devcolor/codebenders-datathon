@@ -6,7 +6,6 @@ import {
   CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -15,9 +14,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, TrendingUp, Users, Target, AlertTriangle } from 'lucide-react';
 import { InfoPopover } from '@/components/info-popover';
 import { GlossaryMetricEntryLink } from '@/components/glossary-metric-entry-link';
+import {
+  ChartExportBrandFooter,
+  ChartExportDataSourceLine,
+  ChartExportGlossaryBlurb,
+} from '@/components/chart-export-card-meta';
 import { ChartExportMenu } from '@/components/chart-export-menu';
-import { getChartExportBlurb } from '@/lib/chart-export-glossary';
-import { CHART_EXPORT_BRAND_LINE } from '@/lib/chart-export-filename';
 
 interface ReadinessData {
   summary: {
@@ -71,6 +73,9 @@ interface ReadinessAssessmentChartProps {
   isLoading?: boolean;
   error?: string;
 }
+
+const READINESS_LEVEL_CHART_SLUG = 'readiness-level-distribution' as const;
+const READINESS_SCORE_CHART_SLUG = 'readiness-score-distribution' as const;
 
 export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAssessmentChartProps) {
   const levelDistExportRef = useRef<HTMLDivElement>(null);
@@ -222,14 +227,10 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
         <CardHeader>
           <CardTitle>Readiness Level Distribution</CardTitle>
           <CardDescription>Student readiness categorization</CardDescription>
-          <p className="text-xs text-muted-foreground leading-snug max-w-prose">
-            {getChartExportBlurb('readiness-assessment')}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground/90">Data source:</span> /api/dashboard/readiness ·
-            student_level_with_predictions ·{' '}
-            <span className="font-medium text-foreground/90">Generated:</span> {new Date().toLocaleDateString()}
-          </p>
+          <ChartExportGlossaryBlurb slug="readiness-assessment" />
+          <ChartExportDataSourceLine>
+            /api/dashboard/readiness · student_level_with_predictions ·
+          </ChartExportDataSourceLine>
           <CardAction>
             <div className="flex items-center gap-1">
               <span data-chart-export-exclude>
@@ -243,7 +244,7 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
               </span>
               <ChartExportMenu
                 exportRef={levelDistExportRef}
-                chartFileSlug="readiness-level-distribution"
+                chartFileSlug={READINESS_LEVEL_CHART_SLUG}
                 csv={levelCsvSpec}
               />
             </div>
@@ -281,9 +282,7 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
             })}
           </div>
         </CardContent>
-        <CardFooter className="border-t border-border pt-6 text-xs text-muted-foreground">
-          {CHART_EXPORT_BRAND_LINE}
-        </CardFooter>
+        <ChartExportBrandFooter />
       </Card>
 
       {/* Score Distribution */}
@@ -291,18 +290,14 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
         <CardHeader>
           <CardTitle>Score Distribution</CardTitle>
           <CardDescription>Readiness scores grouped by range</CardDescription>
-          <p className="text-xs text-muted-foreground leading-snug max-w-prose">
-            {getChartExportBlurb('readiness-assessment')}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground/90">Data source:</span> /api/dashboard/readiness ·
-            student_level_with_predictions ·{' '}
-            <span className="font-medium text-foreground/90">Generated:</span> {new Date().toLocaleDateString()}
-          </p>
+          <ChartExportGlossaryBlurb slug="readiness-assessment" />
+          <ChartExportDataSourceLine>
+            /api/dashboard/readiness · student_level_with_predictions ·
+          </ChartExportDataSourceLine>
           <CardAction>
             <ChartExportMenu
               exportRef={scoreDistExportRef}
-              chartFileSlug="readiness-score-distribution"
+              chartFileSlug={READINESS_SCORE_CHART_SLUG}
               csv={scoreCsvSpec}
             />
           </CardAction>
@@ -331,9 +326,7 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
             })}
           </div>
         </CardContent>
-        <CardFooter className="border-t border-border pt-6 text-xs text-muted-foreground">
-          {CHART_EXPORT_BRAND_LINE}
-        </CardFooter>
+        <ChartExportBrandFooter />
       </Card>
 
       {/* Top Risk Factors */}

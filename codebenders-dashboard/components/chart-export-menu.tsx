@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useState, type RefObject } from "react"
 import { Download, FileImage, FileSpreadsheet, FileType } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,42 +12,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { buildChartExportBasename } from "@/lib/chart-export-filename"
-import { captureElementToPngDataUrl, downloadChartPdf, downloadDataUrl } from "@/lib/chart-export-capture"
-
-export interface ChartExportCsvSpec {
-  headers: string[]
-  rows: (string | number)[][]
-}
+import {
+  captureElementToPngDataUrl,
+  downloadChartExportCsv,
+  downloadChartPdf,
+  downloadDataUrl,
+} from "@/lib/chart-export-capture"
+import type { ChartExportCsvSpec } from "@/lib/chart-export-csv"
 
 interface ChartExportMenuProps {
-  exportRef: React.RefObject<HTMLElement | null>
+  exportRef: RefObject<HTMLElement | null>
   chartFileSlug: string
   csv?: ChartExportCsvSpec | null
   disabled?: boolean
   /** Report capture failures (e.g. toast); defaults to console.error */
   onError?: (message: string) => void
-}
-
-function escapeCsvCell(v: string | number): string {
-  const s = String(v)
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
-}
-
-function downloadChartCsv(spec: ChartExportCsvSpec, basename: string): void {
-  const lines = [
-    spec.headers.map(escapeCsvCell).join(","),
-    ...spec.rows.map((row) => row.map(escapeCsvCell).join(",")),
-  ]
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `${basename}.csv`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
 }
 
 export function ChartExportMenu({
@@ -88,7 +67,7 @@ export function ChartExportMenu({
   const onCsv = useCallback(() => {
     if (!csv) return
     const basename = buildChartExportBasename(chartFileSlug)
-    downloadChartCsv(csv, basename)
+    downloadChartExportCsv(csv, `${basename}.csv`)
   }, [chartFileSlug, csv])
 
   return (

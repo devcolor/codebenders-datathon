@@ -1,12 +1,16 @@
 "use client"
 
 import { useMemo, useRef } from "react"
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
 import { InfoPopover } from "@/components/info-popover"
+import {
+  ChartExportBrandFooter,
+  ChartExportDataSourceLine,
+  ChartExportGlossaryBlurb,
+} from "@/components/chart-export-card-meta"
 import { ChartExportMenu } from "@/components/chart-export-menu"
-import { getChartExportBlurb } from "@/lib/chart-export-glossary"
-import { CHART_EXPORT_BRAND_LINE } from "@/lib/chart-export-filename"
+import { buildCategoryCountPercentageCsv } from "@/lib/chart-export-csv"
 
 interface RetentionRiskData {
   category: string
@@ -34,12 +38,7 @@ export function RetentionRiskChart({ data, loading = false, info }: RetentionRis
 
   const csvSpec = useMemo(
     () =>
-      data?.length
-        ? {
-            headers: ["Risk Category", "Count", "Percentage"],
-            rows: data.map((d) => [d.category, d.count, `${Number(d.percentage).toFixed(1)}%`]),
-          }
-        : null,
+      buildCategoryCountPercentageCsv(data, ["Risk Category", "Count", "Percentage"] as const),
     [data]
   )
 
@@ -94,15 +93,10 @@ export function RetentionRiskChart({ data, loading = false, info }: RetentionRis
       <CardHeader>
         <CardTitle>Retention Risk Funnel</CardTitle>
         <CardDescription>{totalStudents.toLocaleString()} total students</CardDescription>
-        <p className="text-xs text-muted-foreground leading-snug max-w-prose">
-          {getChartExportBlurb("retention-risk-funnel")}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/90">Data source:</span>{" "}
-          student_level_with_predictions · retention_probability (XGBoost) ·{" "}
-          <span className="font-medium text-foreground/90">Generated:</span>{" "}
-          {new Date().toLocaleDateString()}
-        </p>
+        <ChartExportGlossaryBlurb slug="retention-risk-funnel" />
+        <ChartExportDataSourceLine>
+          student_level_with_predictions · retention_probability (XGBoost) ·
+        </ChartExportDataSourceLine>
         <CardAction>
           <div className="flex items-center gap-1">
             {info ? (
@@ -158,9 +152,7 @@ export function RetentionRiskChart({ data, loading = false, info }: RetentionRis
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
-      <CardFooter className="border-t border-border pt-6 text-xs text-muted-foreground">
-        {CHART_EXPORT_BRAND_LINE}
-      </CardFooter>
+      <ChartExportBrandFooter />
     </Card>
   )
 }
