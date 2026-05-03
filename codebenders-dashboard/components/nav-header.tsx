@@ -6,6 +6,7 @@ import { GraduationCap, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { signOut } from "@/app/actions/auth"
 import { AI_TRANSPARENCY_HREF } from "@/content/ai-transparency"
+import { GLOSSARY_HREF } from "@/lib/glossary-constants"
 import { ROLE_COLORS, ROLE_LABELS, type Role } from "@/lib/roles"
 
 interface NavHeaderProps {
@@ -15,6 +16,7 @@ interface NavHeaderProps {
 
 const NAV_LINKS: Array<{ href: string; label: string; roles?: Role[] }> = [
   { href: "/", label: "Dashboard" },
+  { href: GLOSSARY_HREF, label: "Glossary" },
   { href: "/courses", label: "Courses" },
   { href: "/students", label: "Students" },
   { href: "/query", label: "Query" },
