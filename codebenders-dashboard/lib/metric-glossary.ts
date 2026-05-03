@@ -1,6 +1,8 @@
 import fs from "fs"
 import path from "path"
 
+import { GLOSSARY_TOPIC_SECTIONS } from "@/lib/glossary-constants"
+
 export function readMetricGlossaryMarkdown(): string {
   const file = path.join(process.cwd(), "content", "metric-glossary.md")
   return fs.readFileSync(file, "utf8")
@@ -13,7 +15,7 @@ export function parseGlossaryEntries(md: string): Record<string, string> {
   let current: string | null = null
   const buf: string[] = []
 
-  const flush = () => {
+  const flush = (): void => {
     if (current) out[current] = buf.join("\n").trim()
     buf.length = 0
   }
@@ -31,6 +33,17 @@ export function parseGlossaryEntries(md: string): Record<string, string> {
   return out
 }
 
-export function glossarySlugSet(md: string): Set<string> {
-  return new Set(Object.keys(parseGlossaryEntries(md)))
+export function formatGlossarySlugForDisplay(slug: string): string {
+  return slug.replace(/-/g, " ")
+}
+
+export function buildGlossaryTopicBlocks(
+  entries: Record<string, string>
+): { id: string; label: string; slugs: string[] }[] {
+  const present = new Set(Object.keys(entries))
+  return GLOSSARY_TOPIC_SECTIONS.map((topic) => ({
+    id: topic.id,
+    label: topic.label,
+    slugs: topic.slugOrder.filter((slug) => present.has(slug)),
+  }))
 }

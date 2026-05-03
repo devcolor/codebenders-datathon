@@ -3,23 +3,12 @@
 export const GLOSSARY_HREF = "/glossary" as const
 
 /**
- * Every slug under `##` in `content/metric-glossary.md` for dashboard KPIs must stay in sync
- * (see `lib/__tests__/metric-glossary-coverage.test.ts`).
+ * Source of truth for topic groupings and KPI slug order on the glossary page.
+ * `DASHBOARD_KPI_GLOSSARY_SLUGS` is derived from this list; every `##` section in
+ * `content/metric-glossary.md` must stay in sync (see
+ * `lib/__tests__/metric-glossary-coverage.test.ts`).
  */
-export const DASHBOARD_KPI_GLOSSARY_SLUGS = [
-  "overall-retention-rate",
-  "avg-predicted-retention",
-  "students-at-high-critical-risk",
-  "avg-course-completion",
-] as const
-
-export type DashboardKpiGlossarySlug = (typeof DASHBOARD_KPI_GLOSSARY_SLUGS)[number]
-
-export const GLOSSARY_TOPIC_SECTIONS: {
-  id: string
-  label: string
-  slugOrder: readonly DashboardKpiGlossarySlug[]
-}[] = [
+const GLOSSARY_TOPIC_SECTIONS_RAW = [
   {
     id: "retention",
     label: "Retention, risk & predictions",
@@ -27,11 +16,27 @@ export const GLOSSARY_TOPIC_SECTIONS: {
       "overall-retention-rate",
       "avg-predicted-retention",
       "students-at-high-critical-risk",
-    ],
+    ] as const,
   },
   {
     id: "completion",
     label: "Completion & course success",
-    slugOrder: ["avg-course-completion"],
+    slugOrder: ["avg-course-completion"] as const,
   },
-]
+] as const
+
+export type DashboardKpiGlossarySlug =
+  (typeof GLOSSARY_TOPIC_SECTIONS_RAW)[number]["slugOrder"][number]
+
+export const DASHBOARD_KPI_GLOSSARY_SLUGS: readonly DashboardKpiGlossarySlug[] =
+  GLOSSARY_TOPIC_SECTIONS_RAW.flatMap((topic) => [...topic.slugOrder])
+
+export const GLOSSARY_TOPIC_SECTIONS: {
+  id: string
+  label: string
+  slugOrder: readonly DashboardKpiGlossarySlug[]
+}[] = GLOSSARY_TOPIC_SECTIONS_RAW.map((topic) => ({
+  id: topic.id,
+  label: topic.label,
+  slugOrder: topic.slugOrder,
+}))
