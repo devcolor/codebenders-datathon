@@ -12,7 +12,42 @@ import { analyzePrompt } from "@/lib/prompt-analyzer"
 import { executeQuery } from "@/lib/query-executor"
 import { isForceDirectDb } from "@/lib/config"
 import type { QueryPlan, QueryResult, HistoryEntry } from "@/lib/types"
-import { Loader2, Sparkles, PanelLeft } from "lucide-react"
+import { Loader2, Sparkles, PanelLeft, ShieldAlert } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  buildLowSampleWarningMessage,
+  buildSensitivePopulationSqlWarningMessage,
+  findSensitiveMlKeysReferencedInSql,
+} from "@/lib/sensitive-population"
+
+const DEFAULT_LOW_SAMPLE_THRESHOLD = 30
+
+async function fetchLowSampleThreshold(): Promise<number> {
+  try {
+    const res = await fetch("/api/sensitive-context")
+    if (!res.ok) return DEFAULT_LOW_SAMPLE_THRESHOLD
+    const data = (await res.json()) as { lowSampleThreshold?: unknown }
+    return typeof data.lowSampleThreshold === "number"
+      ? data.lowSampleThreshold
+      : DEFAULT_LOW_SAMPLE_THRESHOLD
+  } catch {
+    return DEFAULT_LOW_SAMPLE_THRESHOLD
+  }
+}
+
+function sensitiveQueryGuard(
+  sql: string,
+  rowCount: number,
+  lowSampleThreshold: number,
+): { sqlCols: string[]; sensitiveLowSample: boolean; warnMsgs: string[] } {
+  const sqlCols = findSensitiveMlKeysReferencedInSql(sql)
+  const sensitiveLowSample =
+    typeof rowCount === "number" && rowCount >= 0 && rowCount < lowSampleThreshold
+  const warnMsgs: string[] = []
+  if (sqlCols.length > 0) warnMsgs.push(buildSensitivePopulationSqlWarningMessage(sqlCols))
+  if (sensitiveLowSample) warnMsgs.push(buildLowSampleWarningMessage(lowSampleThreshold))
+  return { sqlCols, sensitiveLowSample, warnMsgs }
+}
 
 const INSTITUTIONS = [
   { name: "Bishop State", code: "bscc" },
@@ -35,6 +70,7 @@ export default function QueryPage() {
   const [summary, setSummary] = useState<string | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
+  const [sensitiveWarnings, setSensitiveWarnings] = useState<string[]>([])
   const [history, setHistory] = useState<HistoryEntry[]>(() => {
     // Read from localStorage on mount (client-only)
     if (typeof window === "undefined") return []
@@ -59,6 +95,7 @@ export default function QueryPage() {
     if (!activePrompt.trim()) return
 
     setIsAnalyzing(true)
+    setSensitiveWarnings([])
     try {
       const enableLLM = process.env.NEXT_PUBLIC_ENABLE_LLM === "1"
       console.log("enableLLM", enableLLM)
@@ -92,6 +129,14 @@ export default function QueryPage() {
       console.log("query result:", result)
       setQueryResult(result)
 
+      const lowSampleThreshold = await fetchLowSampleThreshold()
+      const { sqlCols, sensitiveLowSample, warnMsgs } = sensitiveQueryGuard(
+        plan.sql,
+        result.rowCount,
+        lowSampleThreshold,
+      )
+      setSensitiveWarnings(warnMsgs)
+
       // Persist history entry
       const entry: HistoryEntry = {
         id: crypto.randomUUID(),
@@ -100,6 +145,8 @@ export default function QueryPage() {
         prompt: activePrompt,
         rowCount: result.rowCount,
         vizType: plan.vizType,
+        ...(sqlCols.length > 0 ? { sensitiveSqlColumns: sqlCols } : {}),
+        ...(sensitiveLowSample ? { sensitiveLowSample: true } : {}),
       }
       // Prepend and cap at 50 entries
       setHistory(prev => {
@@ -337,6 +384,23 @@ export default function QueryPage() {
               )}
               {summaryError && (
                 <p className="text-xs text-destructive">{summaryError}</p>
+              )}
+
+              {sensitiveWarnings.length > 0 && (
+                <Alert className="border-amber-200/80 bg-amber-50/60 dark:bg-amber-950/25 dark:border-amber-800/50">
+                  <ShieldAlert className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+                  <AlertTitle className="text-amber-900 dark:text-amber-100">Sensitive population safeguards</AlertTitle>
+                  <AlertDescription className="text-sm text-amber-950/90 dark:text-amber-50/90 space-y-2">
+                    {sensitiveWarnings.map((w, i) => (
+                      <p key={i}>{w}</p>
+                    ))}
+                    <p className="text-xs opacity-90">
+                      This run is written to the server-side query audit log with extra columns when these conditions
+                      apply. Use <strong>Export</strong> in the Recent Queries sidebar to download the CSV (admin and
+                      IR roles).
+                    </p>
+                  </AlertDescription>
+                </Alert>
               )}
 
               <div className="grid gap-6 lg:grid-cols-[1fr_400px]">

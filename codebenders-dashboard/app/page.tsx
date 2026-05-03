@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { TrendingUp, Users, AlertTriangle, BookOpen, Search, Table2, X } from "lucide-react"
+import { TrendingUp, Users, AlertTriangle, BookOpen, Search, Table2, X, ShieldAlert } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import { GlossaryMetricEntryLink } from "@/components/glossary-metric-entry-link"
 import { useDataLineage } from "@/components/data-lineage-drawer"
@@ -27,6 +28,10 @@ interface KPIData {
   highCriticalRiskCount: number
   avgCourseCompletionRate: string
   totalStudents: number
+  sensitivePopulation?: {
+    lowSampleWarning: boolean
+    messages: string[]
+  }
 }
 
 interface RiskAlertData {
@@ -162,6 +167,8 @@ export default function DashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cohort, enrollmentType, credentialType])
 
+  const kpiSensitiveMessages = kpis?.sensitivePopulation?.messages
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 space-y-6">
@@ -272,6 +279,18 @@ export default function DashboardPage() {
             <p className="font-semibold">Error loading dashboard</p>
             <p className="text-sm">{error}</p>
           </div>
+        )}
+
+        {kpiSensitiveMessages && kpiSensitiveMessages.length > 0 && (
+          <Alert className="border-amber-200/80 bg-amber-50/60 dark:bg-amber-950/25 dark:border-amber-800/50">
+            <ShieldAlert className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+            <AlertTitle className="text-amber-900 dark:text-amber-100">Sensitive population safeguards</AlertTitle>
+            <AlertDescription className="text-sm text-amber-950/90 dark:text-amber-50/90 space-y-2">
+              {kpiSensitiveMessages.map((m, i) => (
+                <p key={i}>{m}</p>
+              ))}
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* KPI Cards */}

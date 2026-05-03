@@ -11,6 +11,21 @@ interface QueryHistoryEntry {
   vizType: string
   rowCount: number
   timestamp: string
+  sensitiveSqlColumns?: string[]
+  sensitiveLowSample?: boolean
+}
+
+function optionalSensitiveAuditFields(entry: Record<string, unknown>): Partial<
+  Pick<QueryHistoryEntry, "sensitiveSqlColumns" | "sensitiveLowSample">
+> {
+  const out: Partial<Pick<QueryHistoryEntry, "sensitiveSqlColumns" | "sensitiveLowSample">> = {}
+  if (Array.isArray(entry.sensitiveSqlColumns) && entry.sensitiveSqlColumns.length > 0) {
+    out.sensitiveSqlColumns = entry.sensitiveSqlColumns as string[]
+  }
+  if (typeof entry.sensitiveLowSample === "boolean") {
+    out.sensitiveLowSample = entry.sensitiveLowSample
+  }
+  return out
 }
 
 export async function POST(request: NextRequest) {
@@ -44,6 +59,7 @@ export async function POST(request: NextRequest) {
     vizType: entry.vizType,
     rowCount: entry.rowCount,
     timestamp: entry.timestamp,
+    ...optionalSensitiveAuditFields(entry),
   }
 
   try {

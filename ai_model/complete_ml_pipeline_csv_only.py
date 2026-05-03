@@ -27,7 +27,18 @@ import xgboost as xgb
 from datetime import datetime
 import warnings
 import os
-warnings.filterwarnings('ignore')
+import sys
+
+warnings.filterwarnings('ignore")
+
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+from ai_model.sensitive_feature_loader import (
+    load_excluded_ml_keys,
+    log_institution_ml_privacy_exclusions,
+    strip_excluded_features,
+)
 
 # Get the project root directory
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -197,6 +208,10 @@ retention_features = (
     demographic_features + academic_prep_features + 
     enrollment_features + course_features + performance_features
 )
+
+_EXCLUDED_ML_KEYS = load_excluded_ml_keys()
+log_institution_ml_privacy_exclusions(_EXCLUDED_ML_KEYS)
+retention_features = strip_excluded_features(retention_features, _EXCLUDED_ML_KEYS)
 
 print(f"Selected {len(retention_features)} features for modeling (reduced from 31 to prevent overfitting)")
 
@@ -676,6 +691,8 @@ gateway_math_features = [
     'Number_of_Credits_Earned_Year_1'
 ]
 
+gateway_math_features = strip_excluded_features(gateway_math_features, _EXCLUDED_ML_KEYS)
+
 print(f"\nUsing {len(gateway_math_features)} features (excluded gateway math features to prevent leakage)")
 
 # Preprocess with clean feature set
@@ -777,6 +794,8 @@ gateway_english_features = [
     # Performance - EXCLUDE CompletedGatewayEnglishYear1 (target variable!)
     'Number_of_Credits_Earned_Year_1'
 ]
+
+gateway_english_features = strip_excluded_features(gateway_english_features, _EXCLUDED_ML_KEYS)
 
 print(f"\nUsing {len(gateway_english_features)} features (excluded gateway English features to prevent leakage)")
 
@@ -883,6 +902,8 @@ gpa_features = [
     'Number_of_Credits_Earned_Year_1',
     'CompletedGatewayMathYear1', 'CompletedGatewayEnglishYear1'
 ]
+
+gpa_features = strip_excluded_features(gpa_features, _EXCLUDED_ML_KEYS)
 
 print(f"\nUsing {len(gpa_features)} features (removed GPA-derived features)")
 print("Removed: average_grade, GPA_Group_Year_1, course_completion_rate, total_credits_earned")
