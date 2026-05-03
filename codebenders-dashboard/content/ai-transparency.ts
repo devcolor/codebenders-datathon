@@ -242,7 +242,7 @@ export const AI_SURFACES: AISurface[] = [
     retentionPolicy:
       "OpenAI's API data-handling policy applies to the prompt and schema description. As of this writing, OpenAI states that data submitted via the API is not used to train their models. We do not separately log prompts or responses to a third-party store.",
     notes:
-      "If `OPENAI_API_KEY` is not configured, the route returns a 500 error and the client falls back to the rule-based analyzer (`prompt-analyzer.ts`, see next entry).",
+      "If `OPENAI_API_KEY` is not configured, the route returns a 500 error and the client falls back to the rule-based analyzer (`prompt-analyzer.ts`, see next entry). After the model returns SQL, `lib/sql-inspector.ts` runs a conservative SELECT-clause check against `schemaInfo.ferpaExcluded` (e.g. `Student_GUID` / `student_guid`); violations return HTTP 422 and are logged server-side only — not only prompt instructions.",
   },
   {
     id: "nlq-rule-based-fallback",

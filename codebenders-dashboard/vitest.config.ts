@@ -4,7 +4,7 @@ import path from "path"
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["lib/__tests__/**/*.test.ts"],
+    include: ["lib/__tests__/**/*.test.ts", "app/api/analyze/__tests__/**/*.test.ts"],
   },
   resolve: {
     alias: {

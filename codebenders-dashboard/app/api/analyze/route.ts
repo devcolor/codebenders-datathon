@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { streamObject } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
 import { z } from "zod"
+import { inspectSelectForFerpaExclusions } from "@/lib/sql-inspector"
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
@@ -238,6 +239,19 @@ Make sure the SQL is valid PostgreSQL and addresses exactly what the user asked 
     const result = {
       ...finalObject,
       queryString: finalObject.queryString || "",
+    }
+
+    const sql = typeof result.sql === "string" ? result.sql : ""
+    const ferpaExcluded = schemaInfo.ferpaExcluded ?? []
+    if (ferpaExcluded.length > 0 && sql) {
+      const ferpaCheck = inspectSelectForFerpaExclusions(sql, ferpaExcluded)
+      if (!ferpaCheck.ok) {
+        console.warn("[analyze] FERPA exclusion violated:", ferpaCheck.violation)
+        return NextResponse.json(
+          { error: "FERPA exclusion violated", column: ferpaCheck.violation },
+          { status: 422 }
+        )
+      }
     }
 
     return NextResponse.json(result)
