@@ -1,10 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, TrendingUp, TrendingDown, Users, Target, AlertTriangle } from 'lucide-react';
 import { InfoPopover } from '@/components/info-popover';
+import { GLOSSARY_HREF } from '@/lib/glossary-constants';
 
 interface ReadinessData {
   summary: {
@@ -187,7 +189,18 @@ export function ReadinessAssessmentChart({ data, isLoading, error }: ReadinessAs
               <CardDescription>Student readiness categorization</CardDescription>
             </div>
             <InfoPopover title="Readiness Assessment">
-              AI-powered assessment analyzing student preparation, engagement, and success indicators. High readiness indicates students are well-positioned for success.
+              <p>
+                AI-powered assessment analyzing student preparation, engagement, and success indicators. High readiness
+                indicates students are well-positioned for success.
+              </p>
+              <p className="mt-3">
+                <Link
+                  href={`${GLOSSARY_HREF}#readiness-assessment`}
+                  className="text-primary underline-offset-4 hover:underline text-xs font-medium"
+                >
+                  Full glossary entry (PDP / IPEDS cross-walk) →
+                </Link>
+              </p>
             </InfoPopover>
           </div>
         </CardHeader>

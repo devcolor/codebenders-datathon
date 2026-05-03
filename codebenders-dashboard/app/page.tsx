@@ -389,6 +389,11 @@ export default function DashboardPage() {
                 </ul>
                 <p className="mt-2"><strong>Alert severity levels:</strong> Based on composite risk score combining retention probability, GPA, completion rate, and credit progress.</p>
                 <p className="mt-2"><strong>Use for:</strong> Daily advisor task lists, automated alerts, resource allocation.</p>
+                <p className="mt-3">
+                  <Link href={`${GLOSSARY_HREF}#risk-alert-distribution`} className="text-primary underline-offset-4 hover:underline text-xs font-medium">
+                    Full glossary entry (PDP / IPEDS cross-walk) →
+                  </Link>
+                </p>
               </>
             }
           />
@@ -407,6 +412,11 @@ export default function DashboardPage() {
                   <li><strong>Low Risk:</strong> Retention probability &gt;0.7</li>
                 </ul>
                 <p className="mt-2"><strong>Note:</strong> These are different from Risk Alerts above. This chart shows pure retention probability, while Risk Alerts combine retention with GPA and completion metrics.</p>
+                <p className="mt-3">
+                  <Link href={`${GLOSSARY_HREF}#retention-risk-funnel`} className="text-primary underline-offset-4 hover:underline text-xs font-medium">
+                    Full glossary entry (PDP / IPEDS cross-walk) →
+                  </Link>
+                </p>
               </>
             }
           />

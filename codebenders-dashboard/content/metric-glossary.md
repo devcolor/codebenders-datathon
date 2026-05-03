@@ -1,6 +1,6 @@
 # Metric glossary
 
-Single source of truth for dashboard KPI definitions. Each section is keyed by its URL anchor (e.g. `/glossary#overall-retention-rate`). Cross-walks are indicative — institutions should confirm against their PDP documentation, IPEDS submission manuals, and state reporting rules.
+Single source of truth for dashboard KPIs and chart views. Each section is keyed by its URL anchor (e.g. `/glossary#overall-retention-rate`). Cross-walks are indicative — institutions should confirm against their PDP documentation, IPEDS submission manuals, and state reporting rules.
 
 ---
 
@@ -49,3 +49,39 @@ Single source of truth for dashboard KPI definitions. Each section is keyed by i
 **IPEDS:** Conceptually related to success rates and progression, but IPEDS collects many distinct measures (e.g., completions by award) — do not assume identity without a written cross-walk.
 
 **State compliance:** Often parallels “success rate” or “credit completion ratio” in performance funding models; verify denominator rules match your state formula.
+
+---
+
+## risk-alert-distribution
+
+**Plain English:** Pie chart of students grouped by **composite risk alert** band (LOW, MODERATE, HIGH, URGENT) used for triage — not the same as the retention-probability-only funnel chart.
+
+**PDP / analysis-ready:** Counts come from `at_risk_alert` on `student_level_with_predictions` after dashboard filters. The composite rule combines retention probability, GPA bands, course completion, and credit progress (see in-chart tooltip and methodology).
+
+**IPEDS:** No direct IPEDS collection; analogous to internal early-alert or “at risk” population counts if your institution defines them similarly.
+
+**State compliance:** Operational metric; if reported externally, align labels and thresholds with your state’s definitions and suppress small cells where required.
+
+---
+
+## retention-risk-funnel
+
+**Plain English:** Horizontal bar chart of students by **model retention risk category** (Critical / High / Moderate / Low) from predicted retention probability alone.
+
+**PDP / analysis-ready:** Buckets are derived from `retention_probability` (XGBoost) using fixed cut points on `student_level_with_predictions`.
+
+**IPEDS:** Not an IPEDS measure; related conceptually to retention outcome reporting but this view is **predictive**, not audited cohort outcomes.
+
+**State compliance:** Use for advising and planning; do not substitute for official retention rates in external reporting without documentation.
+
+---
+
+## readiness-assessment
+
+**Plain English:** PDP-aligned **readiness index** — composite score and High / Medium / Low bands summarizing academic, engagement, and ML-risk components for the filtered cohort.
+
+**PDP / analysis-ready:** Scores and levels are computed server-side (see `/api/dashboard/readiness` and methodology) from fields on `student_level_with_predictions` and related logic.
+
+**IPEDS:** No IPEDS analog; closest institutional parallels are internal “student success” or “momentum” indices if your IR office publishes them.
+
+**State compliance:** Treat as an internal diagnostic; confirm any export or public use against institutional policy and small-N rules.
