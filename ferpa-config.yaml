@@ -1,0 +1,82 @@
+# FERPA audit configuration (repository root)
+# Referenced by .claude/skills/ferpa-audit/scripts/* — keep stable keys for hash comparisons across runs.
+
+version: 1
+
+project:
+  dashboard_relative_path: codebenders-dashboard
+  analyze_route_glob: codebenders-dashboard/app/api/analyze/route.ts
+  execute_sql_route_glob: codebenders-dashboard/app/api/execute-sql/route.ts
+  ai_transparency_file: codebenders-dashboard/content/ai-transparency.ts
+  query_executor_file: codebenders-dashboard/lib/query-executor.ts
+  config_file: codebenders-dashboard/lib/config.ts
+
+# Columns that must not appear in SELECT lists, API JSON shapes, exports, or logs
+# without an explicit same-line annotation: // FERPA-OK: <reason>
+select_exclusions:
+  - Student_GUID
+  - student_guid
+
+# Demographic fields — raw values in small cells heighten re-identification risk (Layer B)
+sensitive_demographics:
+  - Race
+  - Gender
+
+subpopulation_minimum_n: 10
+
+# Postgres (Layer B) — override with DB_* env vars; see operations/db_config.py
+database:
+  schema: public
+  predictions_table: student_level_with_predictions
+  small_n_dimensions:
+    - '"Race"'
+    - '"Gender"'
+    - '"Cohort"'
+
+# Third-party / non-institutional hosts (Layer A fetch classification)
+external_data_hosts:
+  - hostname: schools.syntex-ai.com
+    note: "Analysis-ready student-row API; must be blocked when FORCE_DIRECT_DB=true"
+
+allowlisted_external_hosts:
+  - api.openai.com
+  - api.anthropic.com
+
+rbac:
+  header_name: x-user-role
+  # API routes (relative to dashboard) that return student-level or row-level education data
+  # and must enforce the role header per institutional policy.
+  # execute-sql and analyze are covered by dedicated Layer A checks (FERPA guard + vendor prompt).
+  student_data_routes:
+    - app/api/students/route.ts
+    - app/api/students/[guid]/route.ts
+    - app/api/dashboard/kpis/route.ts
+    - app/api/dashboard/readiness/route.ts
+    - app/api/dashboard/retention-risk/route.ts
+    - app/api/dashboard/risk-alerts/route.ts
+    - app/api/query-history/route.ts
+
+taxonomy:
+  pii_column_substrings:
+    - GUID
+    - SSN
+    - social
+    - birth
+    - email
+  educational_record_tables:
+    - student_level_with_predictions
+    - course_enrollments
+    - student_predictions
+    - course_predictions
+
+audit_log:
+  # When set, Layer B will check for this table; if missing, emit informational Note only.
+  table_name: null
+
+llm:
+  # Files that must stay aligned with ferpaExcluded in analyze_route (regex extract in Layer A)
+  sdk_markers:
+    - "@ai-sdk/openai"
+    - "createOpenAI"
+    - "streamObject"
+    - "generateText"
