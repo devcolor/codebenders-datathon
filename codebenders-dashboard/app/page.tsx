@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select"
 import { TrendingUp, Users, AlertTriangle, BookOpen, Search, Table2, X } from "lucide-react"
 import Link from "next/link"
+import { GLOSSARY_HREF } from "@/lib/glossary-constants"
 
 interface KPIData {
   overallRetentionRate: string
@@ -275,6 +276,11 @@ export default function DashboardPage() {
                 <p><strong>What it shows:</strong> Percentage of students retained year-to-year based on historical data.</p>
                 <p className="mt-2"><strong>Data source:</strong> Retention field from student cohort records (0=Not Retained, 1=Retained).</p>
                 <p className="mt-2"><strong>Use for:</strong> Baseline institutional performance metric.</p>
+                <p className="mt-3">
+                  <Link href={`${GLOSSARY_HREF}#overall-retention-rate`} className="text-primary underline-offset-4 hover:underline text-xs font-medium">
+                    Full glossary entry (PDP / IPEDS cross-walk) →
+                  </Link>
+                </p>
               </>
             }
           />
@@ -295,6 +301,11 @@ export default function DashboardPage() {
                   <li>First Year GPA (2.9%)</li>
                 </ul>
                 <p className="mt-2"><strong>Use for:</strong> Early identification of at-risk students for proactive intervention.</p>
+                <p className="mt-3">
+                  <Link href={`${GLOSSARY_HREF}#avg-predicted-retention`} className="text-primary underline-offset-4 hover:underline text-xs font-medium">
+                    Full glossary entry (PDP / IPEDS cross-walk) →
+                  </Link>
+                </p>
               </>
             }
           />
@@ -319,6 +330,11 @@ export default function DashboardPage() {
                   <li><strong>HIGH:</strong> Priority intervention</li>
                 </ul>
                 <p className="mt-2"><strong>Recommended actions:</strong> Immediate advisor outreach, financial aid review, tutoring referrals.</p>
+                <p className="mt-3">
+                  <Link href={`${GLOSSARY_HREF}#students-at-high-critical-risk`} className="text-primary underline-offset-4 hover:underline text-xs font-medium">
+                    Full glossary entry (PDP / IPEDS cross-walk) →
+                  </Link>
+                </p>
               </>
             }
           />
@@ -339,6 +355,11 @@ export default function DashboardPage() {
                   <li>&lt;50%: Critical - failing nearly half of courses</li>
                 </ul>
                 <p className="mt-2"><strong>Why it matters:</strong> Strong predictor of retention and credential completion.</p>
+                <p className="mt-3">
+                  <Link href={`${GLOSSARY_HREF}#avg-course-completion`} className="text-primary underline-offset-4 hover:underline text-xs font-medium">
+                    Full glossary entry (PDP / IPEDS cross-walk) →
+                  </Link>
+                </p>
               </>
             }
           />
