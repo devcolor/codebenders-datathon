@@ -1,8 +1,12 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useMemo, useRef } from "react"
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
 import { InfoPopover } from "@/components/info-popover"
+import { ChartExportMenu } from "@/components/chart-export-menu"
+import { getChartExportBlurb } from "@/lib/chart-export-glossary"
+import { CHART_EXPORT_BRAND_LINE } from "@/lib/chart-export-filename"
 
 interface RiskAlertData {
   category: string
@@ -43,7 +47,22 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: an
   )
 }
 
+const CHART_FILE_SLUG = "risk-alert-distribution" as const
+
 export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartProps) {
+  const exportRef = useRef<HTMLDivElement>(null)
+
+  const csvSpec = useMemo(
+    () =>
+      data?.length
+        ? {
+            headers: ["Alert Level", "Count", "Percentage"],
+            rows: data.map((d) => [d.category, d.count, `${Number(d.percentage).toFixed(1)}%`]),
+          }
+        : null,
+    [data]
+  )
+
   if (loading) {
     return (
       <Card>
@@ -88,16 +107,36 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
     percentage: item.percentage,
   }))
 
+  const totalStudents = data.reduce((sum, item) => sum + Number(item.count), 0)
+
   return (
-    <Card>
+    <Card ref={exportRef}>
       <CardHeader>
-        <div className="flex items-center">
-          <CardTitle>Risk Alert Distribution</CardTitle>
-          {info && <InfoPopover title="Risk Alert Distribution">{info}</InfoPopover>}
-        </div>
-        <CardDescription>
-          {data.reduce((sum, item) => sum + Number(item.count), 0).toLocaleString()} total students
-        </CardDescription>
+        <CardTitle>Risk Alert Distribution</CardTitle>
+        <CardDescription>{totalStudents.toLocaleString()} total students</CardDescription>
+        <p className="text-xs text-muted-foreground leading-snug max-w-prose">
+          {getChartExportBlurb("risk-alert-distribution")}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/90">Data source:</span>{" "}
+          student_level_with_predictions · at_risk_alert ·{" "}
+          <span className="font-medium text-foreground/90">Generated:</span>{" "}
+          {new Date().toLocaleDateString()}
+        </p>
+        <CardAction>
+          <div className="flex items-center gap-1">
+            {info ? (
+              <span data-chart-export-exclude>
+                <InfoPopover title="Risk Alert Distribution">{info}</InfoPopover>
+              </span>
+            ) : null}
+            <ChartExportMenu
+              exportRef={exportRef}
+              chartFileSlug={CHART_FILE_SLUG}
+              csv={csvSpec}
+            />
+          </div>
+        </CardAction>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -130,7 +169,7 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
             <Legend 
               verticalAlign="bottom" 
               height={36}
-              formatter={(value, entry: any) => {
+              formatter={(value) => {
                 const item = data.find(d => d.category === value)
                 return `${value} (${item?.count.toLocaleString() || 0})`
               }}
@@ -138,6 +177,9 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
           </PieChart>
         </ResponsiveContainer>
       </CardContent>
+      <CardFooter className="border-t border-border pt-6 text-xs text-muted-foreground">
+        {CHART_EXPORT_BRAND_LINE}
+      </CardFooter>
     </Card>
   )
 }
