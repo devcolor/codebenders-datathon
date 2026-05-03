@@ -13,9 +13,20 @@ interface KPICardProps {
   }
   loading?: boolean
   info?: React.ReactNode
+  /** Opens data lineage drawer (issue #107). */
+  onLineageClick?: () => void
 }
 
-export function KPICard({ title, value, icon: Icon, subtitle, trend, loading = false, info }: KPICardProps) {
+export function KPICard({
+  title,
+  value,
+  icon: Icon,
+  subtitle,
+  trend,
+  loading = false,
+  info,
+  onLineageClick,
+}: KPICardProps) {
   if (loading) {
     return (
       <Card>
@@ -46,7 +57,18 @@ export function KPICard({ title, value, icon: Icon, subtitle, trend, loading = f
         {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        {onLineageClick ? (
+          <button
+            type="button"
+            onClick={onLineageClick}
+            className="text-left rounded-md -m-1 p-1 w-full min-w-0 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+            title="View data lineage for this KPI"
+          >
+            <div className="text-2xl font-bold">{value}</div>
+          </button>
+        ) : (
+          <div className="text-2xl font-bold">{value}</div>
+        )}
         {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
         {trend && (
           <p className={`text-xs mt-1 ${trend.isPositive ? "text-green-600" : "text-red-600"}`}>

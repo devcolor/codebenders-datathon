@@ -22,6 +22,8 @@ interface RiskAlertChartProps {
   data: RiskAlertData[]
   loading?: boolean
   info?: React.ReactNode
+  /** Click a slice to open data lineage for that alert level (issue #107). */
+  onSegmentLineage?: (category: string) => void
 }
 
 const COLORS = {
@@ -53,7 +55,9 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: an
 
 const CHART_FILE_SLUG = "risk-alert-distribution" as const
 
-export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartProps) {
+type PieSlicePayload = { name?: string }
+
+export function RiskAlertChart({ data, loading = false, info, onSegmentLineage }: RiskAlertChartProps) {
   const exportRef = useRef<HTMLDivElement>(null)
 
   const csvSpec = useMemo(
@@ -70,7 +74,10 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
             <CardTitle>Risk Alert Distribution</CardTitle>
             {info && <InfoPopover title="Risk Alert Distribution">{info}</InfoPopover>}
           </div>
-          <CardDescription>Students by risk level</CardDescription>
+          <CardDescription>
+            Students by risk level
+            {onSegmentLineage ? <span className="text-muted-foreground"> · Click a slice for data lineage</span> : null}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
@@ -89,7 +96,10 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
             <CardTitle>Risk Alert Distribution</CardTitle>
             {info && <InfoPopover title="Risk Alert Distribution">{info}</InfoPopover>}
           </div>
-          <CardDescription>Students by risk level</CardDescription>
+          <CardDescription>
+            Students by risk level
+            {onSegmentLineage ? <span className="text-muted-foreground"> · Click a slice for data lineage</span> : null}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
@@ -112,7 +122,10 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
     <Card ref={exportRef}>
       <CardHeader>
         <CardTitle>Risk Alert Distribution</CardTitle>
-        <CardDescription>{totalStudents.toLocaleString()} total students</CardDescription>
+        <CardDescription>
+          {totalStudents.toLocaleString()} total students
+          {onSegmentLineage ? <span className="text-muted-foreground"> · Click a slice for data lineage</span> : null}
+        </CardDescription>
         <ChartExportGlossaryBlurb slug="risk-alert-distribution" />
         <ChartExportDataSourceLine>
           student_level_with_predictions · at_risk_alert ·
@@ -144,6 +157,10 @@ export function RiskAlertChart({ data, loading = false, info }: RiskAlertChartPr
               outerRadius={100}
               fill="#8884d8"
               dataKey="value"
+              className={onSegmentLineage ? "cursor-pointer outline-none" : undefined}
+              onClick={(slice: PieSlicePayload) => {
+                if (slice.name && onSegmentLineage) onSegmentLineage(slice.name)
+              }}
             >
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[entry.name as keyof typeof COLORS] || "#94a3b8"} />
