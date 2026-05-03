@@ -29,7 +29,7 @@ import warnings
 import os
 import sys
 
-warnings.filterwarnings('ignore")
+warnings.filterwarnings("ignore")
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
