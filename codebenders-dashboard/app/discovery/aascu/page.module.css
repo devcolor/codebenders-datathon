@@ -223,6 +223,28 @@
 .pri1 { color: var(--partial); border-color: var(--partial); }
 .pri2 { color: var(--muted); }
 
+.shipped {
+  color: var(--done);
+  border-color: var(--done);
+  background: var(--accent-soft);
+}
+
+.pillStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.followNote {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--soft);
+  margin-top: -8px;
+  margin-bottom: 18px;
+  max-width: 620px;
+}
+
 .footer {
   margin-top: 48px;
   padding-top: 20px;

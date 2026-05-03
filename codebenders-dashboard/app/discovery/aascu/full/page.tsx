@@ -93,17 +93,20 @@ const COVERAGE: Array<{
   status: "done" | "partial"
   statusLabel: string
 }> = [
-  { pp: "C · Export", name: "CSV export wired into dashboard", ev: <><code>components/export-button.tsx</code> · issue #15</>, status: "done", statusLabel: "Done" },
+  { pp: "C · Export", name: "CSV export + presentation-ready PNG / PDF chart export", ev: <>CSV (#15) · PNG/PDF with embedded definitions (#106 · PR #137)</>, status: "done", statusLabel: "Done" },
   { pp: "C · Visualization", name: "Recharts components, types chosen per metric", ev: <><code>retention-risk-chart.tsx</code>, <code>risk-alert-chart.tsx</code>, <code>readiness-assessment-chart.tsx</code></>, status: "done", statusLabel: "Done" },
-  { pp: "B · Definitions", name: "Tooltip primitive exists; no centralized glossary yet", ev: <><code>components/info-popover.tsx</code></>, status: "partial", statusLabel: "Partial" },
+  { pp: "B · Definitions", name: "Glossary with IPEDS / state cross-walks + chart deep-links", ev: <>Issues #105 (PR #135) and #124 (PR #136) shipped</>, status: "done", statusLabel: "Done" },
   { pp: "D · Methodology", name: "How predictions are made — surfaced in-app", ev: <><code>app/methodology/</code> route</>, status: "done", statusLabel: "Done" },
-  { pp: "D · FERPA", name: "RBAC, audit log, FERPA-compliant identity resolution", ev: <>Issues #67, #75, #77, #78 (closed)</>, status: "done", statusLabel: "Done" },
-  { pp: "D · Automation", name: "Self-service upload (PDP, AR, student, course)", ev: <>Issue #86 (closed) · <code>components/upload/</code></>, status: "done", statusLabel: "Done" },
+  { pp: "D · FERPA", name: "RBAC, audit log, identity resolution, NLQ runtime guard", ev: <>Originals: #67, #75, #77, #78 · NLQ guard #127 (PR #132) · FERPA-audit skill #129 (PR #134)</>, status: "done", statusLabel: "Done" },
+  { pp: "D · Transparency", name: "AI Transparency page — model + LLM + data-API inventory", ev: <>Issue #108 (PR #128) · simplified in PR #131</>, status: "done", statusLabel: "Done" },
+  { pp: "D · Lineage", name: "Click any number → source rows, upload event, transformations", ev: <>Issue #107 (PR #139)</>, status: "done", statusLabel: "Done" },
+  { pp: "D · Sensitive populations", name: "Per-institution feature exclusion, low-N warnings, audit log", ev: <>Issue #109 shipped (commit 163dfea)</>, status: "done", statusLabel: "Done" },
+  { pp: "D · Automation", name: "Self-service upload + on-prem-only NLQ option", ev: <>Upload: #86 · <code>FORCE_DIRECT_DB</code> hardening flag #126 (PR #133)</>, status: "done", statusLabel: "Done" },
   { pp: "D · Explainability", name: "SHAP narrator — fine-tuning epic in progress", ev: <>Issues #97 — #103 · branch <code>fine-tuning/97-shap-narrator-task-type</code></>, status: "partial", statusLabel: "In flight" },
-  { pp: "A · Validation", name: "Upload exists; human-readable validation report missing", ev: <>Addressed by new issue #110</>, status: "partial", statusLabel: "Partial" },
+  { pp: "A · Validation", name: "Row-level errors, coercions, dedup decisions, diff vs. last upload", ev: <>Issue #110 (PR #138)</>, status: "done", statusLabel: "Done" },
   { pp: "C · Filtering", name: "By cohort, term, demographic, credential type", ev: <>Issues #66, #81 (closed)</>, status: "done", statusLabel: "Done" },
-  { pp: "C · Query", name: "Natural-language query against the data", ev: <><code>lib/prompt-analyzer.ts</code> · issues #17, #61, #88, #90</>, status: "done", statusLabel: "Done" },
-  { pp: "E · Knowledge", name: "Self-service upload reduces single-person dependency", ev: <>In-app submission runbook missing — addressed by #111</>, status: "partial", statusLabel: "Partial" },
+  { pp: "C · Query", name: "Natural-language query — LLM-backed analyzer + rule-based fallback", ev: <><code>app/api/analyze/</code> · <code>lib/prompt-analyzer.ts</code> · issues #17, #61, #88, #90</>, status: "done", statusLabel: "Done" },
+  { pp: "E · Knowledge", name: "Self-service upload + validation report; runbook generator outstanding", ev: <>Helped by #86 + #110 · in-app runbook still on #111</>, status: "partial", statusLabel: "Partial" },
 ]
 
 const TIERS: Array<{
@@ -111,16 +114,22 @@ const TIERS: Array<{
   pillLabel: string
   h: React.ReactNode
   twoCol?: boolean
-  cards: Array<{ num: number; tag: string; title: string; body: React.ReactNode }>
+  cards: Array<{
+    num: number
+    tag: string
+    title: string
+    body: React.ReactNode
+    shipped?: { pr?: number }
+  }>
 }> = [
   {
     pri: "p0",
     pillLabel: "P0 · Differentiators",
     h: <>Match the loudest complaints. <em>Datathon-eligible.</em></>,
     cards: [
-      { num: 105, tag: "Pain B · Definitions", title: "Metric definitions glossary with IPEDS & state-compliance cross-walks", body: <>Every KPI surfaces a tooltip with PDP, IPEDS, and state-compliance equivalents. Centralized <code>/glossary</code> page indexed by metric. Markdown source-of-truth, versioned with the code.</> },
-      { num: 106, tag: "Pain C · Export", title: "Presentation-ready chart export (PNG / PDF)", body: <>Every chart exports as a polished image with title, definition, source, and date stamp baked in. Eliminates the manual Excel-rebuild workflow IR staff perform daily.</> },
-      { num: 107, tag: "Pain A + D · Lineage", title: "Data lineage view — “where did this number come from”", body: <>Click any number → see source rows, upload event, transformations, and timestamps. The single highest-leverage gap from the session: directly answers trust + governance + differentiation in one feature.</> },
+      { num: 105, tag: "Pain B · Definitions", title: "Metric definitions glossary with IPEDS & state-compliance cross-walks", body: <>Every KPI surfaces a tooltip with PDP, IPEDS, and state-compliance equivalents. Centralized <code>/glossary</code> page indexed by metric. Markdown source-of-truth, versioned with the code.</>, shipped: { pr: 135 } },
+      { num: 106, tag: "Pain C · Export", title: "Presentation-ready chart export (PNG / PDF)", body: <>Every chart exports as a polished image with title, definition, source, and date stamp baked in. Eliminates the manual Excel-rebuild workflow IR staff perform daily.</>, shipped: { pr: 137 } },
+      { num: 107, tag: "Pain A + D · Lineage", title: "Data lineage view — “where did this number come from”", body: <>Click any number → see source rows, upload event, transformations, and timestamps. The single highest-leverage gap from the session: directly answers trust + governance + differentiation in one feature.</>, shipped: { pr: 139 } },
     ],
   },
   {
@@ -128,9 +137,9 @@ const TIERS: Array<{
     pillLabel: "P1 · Governance hardening",
     h: <>Table-stakes for institutional adoption.</>,
     cards: [
-      { num: 108, tag: "Pain D · Transparency", title: "AI Transparency Page", body: <>Per-model disclosure: features used, training data source, homegrown vs. third-party, where data flows when invoked, retention policy. Reviewable independently by institutional IT &amp; legal.</> },
-      { num: 109, tag: "Pain D · Sensitive populations", title: "Sensitive-population safeguards", body: <>Per-institution feature-exclusion lists. Context warnings on small sub-populations. Audit log entries for any query touching flagged groups. Demoable, not just claimed.</> },
-      { num: 110, tag: "Pain A + E · Validation", title: "Upload validation report — diff vs. last upload", body: <>Row-level errors, field coercions, dedup decisions, anomaly flags (&ldquo;3 campuses dropped from this upload&rdquo;). Readable by non-technical IR staff. Survives the &ldquo;person retires&rdquo; scenario.</> },
+      { num: 108, tag: "Pain D · Transparency", title: "AI Transparency Page", body: <>Per-model disclosure: features used, training data source, homegrown vs. third-party, where data flows when invoked, retention policy. Reviewable independently by institutional IT &amp; legal.</>, shipped: { pr: 128 } },
+      { num: 109, tag: "Pain D · Sensitive populations", title: "Sensitive-population safeguards", body: <>Per-institution feature-exclusion lists. Context warnings on small sub-populations. Audit log entries for any query touching flagged groups. Demoable, not just claimed.</>, shipped: {} },
+      { num: 110, tag: "Pain A + E · Validation", title: "Upload validation report — diff vs. last upload", body: <>Row-level errors, field coercions, dedup decisions, anomaly flags (&ldquo;3 campuses dropped from this upload&rdquo;). Readable by non-technical IR staff. Survives the &ldquo;person retires&rdquo; scenario.</>, shipped: { pr: 138 } },
     ],
   },
   {
@@ -143,6 +152,13 @@ const TIERS: Array<{
       { num: 112, tag: "Pain F · Datathon coordination", title: "Institution-grouping helper — shared SIS + shared goal", body: <>Operational artifact, not a user feature: cross-reference AASCU&rsquo;s SIS list with stated institutional goals; output a candidate cohort matrix for the fall datathon.</> },
     ],
   },
+]
+
+const FOLLOWUPS: Array<{ num: number; title: string; body: React.ReactNode; shipped: { pr?: number } }> = [
+  { num: 125, title: "Docs drift — 6 ML models + 3 OpenAI surfaces", body: <>Authoring the transparency page surfaced documentation inaccuracies in <code>CLAUDE.md</code> and <code>README.md</code>. Updated to match code reality.</>, shipped: { pr: 130 } },
+  { num: 126, title: "FORCE_DIRECT_DB — block external NLQ data flow", body: <>Deployment-hardening flag for institutions that require fully on-prem data paths. Default off; flips an institutional procurement gate when set.</>, shipped: { pr: 133 } },
+  { num: 127, title: "FERPA runtime guard for NLQ-generated SQL", body: <>Static check that LLM-produced SQL never SELECTs <code>Student_GUID</code>. Backs the policy disclosed on the transparency page with code-level enforcement.</>, shipped: { pr: 132 } },
+  { num: 129, title: "FERPA-audit Claude Code skill", body: <>Repeatable static + DB read-time leak detection. Catches gaps like #126 and #127 proactively on every PR rather than retrospectively on the next transparency rewrite.</>, shipped: { pr: 134 } },
 ]
 
 const pillClass = (pri: "p0" | "p1" | "p2") =>
@@ -176,8 +192,8 @@ export default function AASCUFullPage() {
           <dl className={styles.strip}>
             <div><dt>Recording</dt><dd>20:58<small>minutes of testimony</small></dd></div>
             <div><dt>Voices</dt><dd>2<small>intermediaries · IR + data&#8209;eng</small></dd></div>
-            <div><dt>Pain themes</dt><dd>6<small>mapped across stack</small></dd></div>
             <div><dt>Issues filed</dt><dd>8<small>#105 — #112</small></dd></div>
+            <div><dt>Shipped</dt><dd>6<small>of 8 · plus 4 follow-ups</small></dd></div>
           </dl>
         </section>
 
@@ -200,7 +216,7 @@ export default function AASCUFullPage() {
             </aside>
             <div className="body">
               <p>Two AASCU intermediaries described pain in three layers: <strong>PDP dashboard quality</strong> — inaccurate cohort numbers, buried definitions, wrong chart types, no data export — forcing IR staff into manual Excel rebuilds; <strong>AI/governance requirements</strong> — FERPA-plus expectations including data lineage, transparency, and explicit safeguards for sensitive student populations; and <strong>institutional process gaps</strong> — submission knowledge that lives with one person and varies wildly across campuses.</p>
-              <p>Our tool already addresses a meaningful share of layer one — CSV export, sane chart types, NLQ, methodology page — and is in-flight on layer two via the SHAP-narrator work. The biggest unaddressed gaps are <em>a definitions glossary with IPEDS / state-compliance cross-walks, presentation-ready chart export, a data-lineage view that proves where each number came from, and AI transparency + sensitive-population safeguards as a precondition for institutional adoption.</em></p>
+              <p><strong>Update:</strong> six of the eight issues filed have shipped — including all four originally identified as &ldquo;the biggest unaddressed gaps&rdquo;: the definitions glossary with IPEDS / state cross-walks, presentation-ready chart export, the data-lineage view, and AI transparency. Sensitive-population safeguards (#109) and the upload validation report (#110) also shipped. The remaining open work is the submission-runbook generator (#111) and the datathon institution-grouping spike (#112). Authoring the transparency page surfaced four additional follow-ups (#125 — #129) which have all also shipped — see chapter 05.</p>
             </div>
           </div>
         </section>
@@ -287,7 +303,7 @@ export default function AASCUFullPage() {
                 {tier.cards.map((c) => (
                   <a
                     key={c.num}
-                    className={styles.card}
+                    className={`${styles.card} ${c.shipped ? styles.cardShipped : ""}`}
                     href={`${ISSUE_BASE}/${c.num}`}
                     target="_blank"
                     rel="noreferrer"
@@ -299,7 +315,13 @@ export default function AASCUFullPage() {
                     <div className={styles.cardTag}>{c.tag}</div>
                     <h4 className={styles.cardH}>{c.title}</h4>
                     <p className={styles.cardP}>{c.body}</p>
-                    <div className={styles.cardLink}>Open issue</div>
+                    <div className={styles.cardLink}>
+                      {c.shipped
+                        ? c.shipped.pr
+                          ? `Shipped · PR #${c.shipped.pr}`
+                          : "Shipped"
+                        : "Open issue"}
+                    </div>
                   </a>
                 ))}
               </div>
@@ -316,10 +338,42 @@ export default function AASCUFullPage() {
           </div>
         </section>
 
+        <section className={styles.chapter}>
+          <div className={styles.chapHead}>
+            <div className={styles.chapNum}>05<span>Follow-ups</span></div>
+            <div>
+              <h2 className={styles.chapTitle}>What we found <em>by building</em> — and shipped before this update.</h2>
+              <p className={styles.chapKicker}>Authoring the AI Transparency Page (#108) surfaced four hardening gaps that weren&rsquo;t visible from the original discovery session: drifted documentation, an undocumented external data flow, a FERPA policy enforced only by prompt, and the absence of a repeatable audit. All four are now shipped.</p>
+            </div>
+          </div>
+          <div className={`${styles.cards} ${styles.cardsTwo}`}>
+            {FOLLOWUPS.map((c) => (
+              <a
+                key={c.num}
+                className={`${styles.card} ${styles.cardShipped}`}
+                href={`${ISSUE_BASE}/${c.num}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <div className={styles.cardNum}>
+                  <span>Issue</span>
+                  <b>#{c.num}</b>
+                </div>
+                <div className={styles.cardTag}>Follow-up · transparency-driven</div>
+                <h4 className={styles.cardH}>{c.title}</h4>
+                <p className={styles.cardP}>{c.body}</p>
+                <div className={styles.cardLink}>
+                  {c.shipped.pr ? `Shipped · PR #${c.shipped.pr}` : "Shipped"}
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+
         <footer className={styles.colophon}>
           <div>
             <b>AASCU Intermediary Discovery</b> · Gap Analysis<br />
-            Set in Fraunces &amp; IBM Plex Sans · Filed 2026·04·29
+            Set in Fraunces &amp; IBM Plex Sans · Filed 2026·04·29 · Updated 2026·05·03
           </div>
           <div>
             Codebenders&nbsp;Datathon · <b>Bishop&nbsp;State&nbsp;CC</b>

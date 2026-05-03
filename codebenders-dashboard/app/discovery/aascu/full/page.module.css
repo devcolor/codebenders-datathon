@@ -472,6 +472,16 @@
 }
 .cardLink::after { content: " →"; }
 
+.cardShipped {
+  border-color: var(--accent);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+.cardShipped .cardLink {
+  color: var(--accent);
+  font-weight: 500;
+}
+.cardShipped .cardLink::after { content: " ✓"; }
+
 .summary {
   display: grid;
   grid-template-columns: 1fr 2fr;
