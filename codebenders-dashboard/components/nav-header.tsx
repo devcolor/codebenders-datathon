@@ -23,6 +23,7 @@ const NAV_LINKS: Array<{ href: string; label: string; roles?: Role[] }> = [
   { href: "/discovery/aascu", label: "Discovery", roles: ["admin", "ir", "leadership"] },
   { href: AI_TRANSPARENCY_HREF, label: "AI Transparency" },
   { href: "/admin/upload", label: "Admin", roles: ["admin", "ir"] },
+  { href: "/admin/sensitive-ml", label: "ML privacy", roles: ["admin", "ir"] },
 ]
 
 export function NavHeader({ email, role }: NavHeaderProps) {

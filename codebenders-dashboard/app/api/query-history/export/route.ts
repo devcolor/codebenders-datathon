@@ -13,6 +13,12 @@ function escapeCsvField(value: unknown): string {
   return str
 }
 
+function csvSensitiveLowSampleCell(value: unknown): string {
+  if (value === true) return "true"
+  if (value === false) return "false"
+  return ""
+}
+
 export async function GET(request: NextRequest) {
   const role = request.headers.get("x-user-role") as Role | null
   if (!role || !canAccess("/api/query-history/export", role)) {
@@ -40,7 +46,9 @@ export async function GET(request: NextRequest) {
   const lines = raw.split("\n").filter(Boolean)
 
   const rows: string[] = [
-    ["timestamp", "institution", "prompt", "vizType", "rowCount"].join(","),
+    ["timestamp", "institution", "prompt", "vizType", "rowCount", "sensitiveSqlColumns", "sensitiveLowSample"].join(
+      ","
+    ),
   ]
 
   for (const line of lines) {
@@ -58,6 +66,8 @@ export async function GET(request: NextRequest) {
       if (toDate   && ts > toDate)   continue
     }
 
+    const sensCols = entry.sensitiveSqlColumns
+    const sensColsStr = Array.isArray(sensCols) ? sensCols.join(";") : ""
     rows.push(
       [
         escapeCsvField(entry.timestamp),
@@ -65,6 +75,8 @@ export async function GET(request: NextRequest) {
         escapeCsvField(entry.prompt),
         escapeCsvField(entry.vizType),
         escapeCsvField(entry.rowCount),
+        escapeCsvField(sensColsStr),
+        escapeCsvField(csvSensitiveLowSampleCell(entry.sensitiveLowSample)),
       ].join(",")
     )
   }

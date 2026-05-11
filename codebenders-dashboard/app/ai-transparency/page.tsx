@@ -268,6 +268,33 @@ export default function AITransparencyPage() {
           )
         })}
 
+        <Card className="border-amber-200/60 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20">
+          <CardHeader>
+            <CardTitle className="text-base">Sensitive population safeguards (#109)</CardTitle>
+            <CardDescription>
+              Institutional controls for demographic / aid-related model inputs, contextual warnings, and auditability.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>
+              <strong className="text-foreground">ML feature exclusions.</strong> Institution admins can exclude
+              specific fields (e.g., race, ethnicity, Pell status) from all Bishop ML training and batch inference via{" "}
+              <Link href="/admin/sensitive-ml" className="text-foreground underline font-medium">
+                ML privacy settings
+              </Link>
+              . Exclusions are stored in Postgres and read by{" "}
+              <code className="text-xs bg-muted px-1 rounded">complete_ml_pipeline.py</code>; predictions in the database
+              should be refreshed after changes.
+            </p>
+            <p>
+              <strong className="text-foreground">Context warnings.</strong> The home dashboard and natural-language
+              query interface show cautions when the active student count is below a configurable threshold or when SQL
+              references sensitive columns. Query runs that trigger these checks are recorded in the server-side audit
+              log with extra CSV columns for compliance review (admin / IR export).
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Footer / contact */}
         <section className="border-t border-border pt-6 text-sm text-muted-foreground space-y-2">
           <p>
